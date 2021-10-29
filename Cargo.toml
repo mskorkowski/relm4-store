@@ -1,0 +1,19 @@
+[package]
+name = "relm4-extension-store"
+version = "0.1.0"
+edition = "2018"
+description = "Data store for relm4"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace]
+members = [
+    "relm4-store-reexport",
+    "relm4-store-model",
+    "relm4-store",
+    "relm4-store-backend-inmemory",
+    "relm4-store-examples",
+    "relm4-store-components",
+]
+
+[dependencies]

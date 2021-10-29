@@ -1,0 +1,11 @@
+[package]
+name = "relm4-store-examples"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+reexport = { path = "../relm4-store-reexport", package = "relm4-store-reexport" }
+model = { path = "../relm4-store-model", package = "relm4-store-model" }
+store = { path = "../relm4-store", package = "relm4-store" }
+backend_inmemory = { path = "../relm4-store-backend-inmemory", package = "relm4-store-backend-inmemory" }
+components = { path = "../relm4-store-components", package = "relm4-store-components" }

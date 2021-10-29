@@ -1,0 +1,44 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "todo_1",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=todo_1",
+                    "--package=relm4-store-examples"
+                ],
+                "filter": {
+                    "name": "todo_1",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "todo_2",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=todo_2",
+                    "--package=relm4-store-examples"
+                ],
+                "filter": {
+                    "name": "todo_2",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+    ]
+}

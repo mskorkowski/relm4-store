@@ -1,0 +1,16 @@
+[package]
+name = "relm4-store"
+version = "0.1.0"
+edition = "2018"
+
+[profile.dev]
+debug = true
+panic = "abort"
+
+[profile.release]
+debug = true
+panic = "abort"
+
+[dependencies]
+reexport = { path = "../relm4-store-reexport", package = "relm4-store-reexport" }
+model = { path = "../relm4-store-model", package = "relm4-store-model" }

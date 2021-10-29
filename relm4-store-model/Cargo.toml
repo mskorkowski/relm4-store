@@ -1,0 +1,11 @@
+[package]
+name="relm4-store-model"
+version= "0.1.0"
+edition = "2018"
+description = "Library for buildiong application model."
+
+keywords = ["model", "data"]
+readme = "README.md"
+
+[dependencies]
+reexport = { path="../relm4-store-reexport", package = "relm4-store-reexport" }
