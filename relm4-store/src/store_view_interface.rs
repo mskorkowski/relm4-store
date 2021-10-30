@@ -94,11 +94,11 @@ where
         self.view.borrow().is_empty()
     }
 
-    fn get(&self, id: &<Self::Model as Identifiable>::Id) -> Option<(Position, Self::Model)> { 
+    fn get(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Self::Model> { 
         self.view.borrow().get(id)
      }
 
-    fn get_range(&self, range: &math::Range) -> std::vec::Vec<RecordWithLocation<Self::Model>> {
+    fn get_range(&self, range: &math::Range) -> std::vec::Vec<Self::Model> {
         self.view.borrow().get_range(range)
     }
 }
@@ -157,6 +157,10 @@ where
     fn get_window(&self) -> math::Range {
         self.view.borrow().get_window()
     }
+
+    fn get_position(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Position> {
+        self.view.borrow().get_position(id)
+    }
 }
 
 impl<Builder> FactoryPrototype for StoreViewInterface<Builder>
@@ -175,7 +179,8 @@ where
         sender: Sender<Builder::Msg>,
     ) -> Self::Widgets {
         let model = self.view.borrow().get(key).expect("Key doesn't point to the model in the store while generating! WTF?");
-        Builder::generate(&model.1, model.0, sender)
+        let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
+        Builder::generate(&model, position, sender)
     }
 
     /// Set the widget position upon creation, useful for [`gtk::Grid`] or similar.
@@ -184,7 +189,8 @@ where
         key: &<Self::Factory as Factory<Self, Self::View>>::Key,
     ) -> <Self::View as FactoryView<Self::Root>>::Position {
         let model = self.view.borrow().get(key).expect("Key doesn't point to the model in the store while positioning! WTF?");
-        Builder::position(model.1, model.0,)
+        let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
+        Builder::position(model, position)
     }
 
     /// Function called when self is modified.
@@ -194,7 +200,8 @@ where
         widgets: &Self::Widgets,
     ) {
         let model = self.view.borrow().get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
-        Builder::update(model.1, model.0, widgets)
+        let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
+        Builder::update(model, position, widgets)
     }
 
     /// Get the outermost widget from the widgets.

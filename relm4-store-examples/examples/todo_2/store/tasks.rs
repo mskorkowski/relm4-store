@@ -13,7 +13,7 @@ impl InMemoryBackendBuilder for TasksBuilder
     fn initial_data() -> Vec<Self::DataModel> {
         let mut initial_tasks = Vec::new();
 
-        for i in 0..100015 {
+        for i in 0..1000015 {
             initial_tasks.push(
                 Task::new(format!("Sample task {}", i), false)
             );

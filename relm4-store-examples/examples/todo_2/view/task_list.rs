@@ -90,7 +90,7 @@ where Config: TasksListConfiguration + 'static,
             },
             TaskMsg::Toggle{ complete, id } => {
                 let tasks = self.tasks.borrow();
-                if let Some((_, record)) = tasks.get(&id) {
+                if let Some(record) = tasks.get(&id) {
                     let mut updated = record.clone();
                     updated.completed = complete;
                     tasks.inbox(StoreMsg::Commit(updated));

@@ -14,7 +14,6 @@ use store::DataStoreBase;
 use store::DataStoreListenable;
 use store::Handler;
 use store::IdentifiableStore;
-use store::RecordWithLocation;
 use store::Position;
 use store::StoreId;
 use store::StoreMsg;
@@ -175,7 +174,7 @@ where Builder: InMemoryBackendBuilder,
         self.len() == 0
     }
 
-    fn get_range(&self, range: &Range) -> Vec<RecordWithLocation<Self::Model>> {
+    fn get_range(&self, range: &Range) -> Vec<Self::Model> {
         // println!("{}:{}", file!(), line!());
         let count = self.len();
 
@@ -185,29 +184,24 @@ where Builder: InMemoryBackendBuilder,
         let order = self.order.borrow();
         let iter = order.range(start..(start+length));
 
-        let mut result: Vec<RecordWithLocation<Self::Model>> = Vec::new();
+        let mut result: Vec<Self::Model> = Vec::new();
 
-        for (i, id) in iter.enumerate() {
+        for id in iter {
             let record = {
                 self.data.borrow().get(id).unwrap().clone()
             };
 
-            let v = RecordWithLocation::new(Position(start+i), record);
-
-            result.push(v);
+            result.push(record);
         }
 
         result
     }
 
-    fn get(&self, id: &Id<Builder::DataModel>) -> Option<(Position, Builder::DataModel)> {
+    fn get(&self, id: &Id<Builder::DataModel>) -> Option<Builder::DataModel> {
         // println!("{}:{}", file!(), line!());
-        let order = self.order.borrow();
-        let position = order.iter().enumerate().find(|(_pos, e)| **e == *id);
-        let profiles = self.data.borrow();
-        let record = profiles.get(id);
-
-        position.map(move |pos| record.map(move |prof| (Position(pos.0), prof.clone()) )).flatten()
+        let data = self.data.borrow();
+        data.get(id)
+            .map(|r| r.clone())
     }
 }
 

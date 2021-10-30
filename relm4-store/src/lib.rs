@@ -69,13 +69,13 @@ pub trait DataStoreBase: IdentifiableStore {
     fn inbox(&self, m: StoreMsg<Self::Model>);
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
-    fn get(&self, id: &<Self::Model as Identifiable>::Id) -> Option<(Position, Self::Model)>;
+    fn get(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Self::Model>;
 
     /// Returns records which are in the store at the given range
     ///
     /// Returned vector doesn't need to be ordered by position.
     /// If range is out of bounds returned vector will be empty.
-    fn get_range(&self, range: &Range) -> Vec<RecordWithLocation<Self::Model>>;
+    fn get_range(&self, range: &Range) -> Vec<Self::Model>;
 }
 
 pub trait DataStoreListenable: IdentifiableStore + DataStoreBase {
@@ -91,6 +91,11 @@ pub trait StoreView: DataStore
     fn window_size(&self) -> usize;
     fn get_window(&self) -> Range;
     fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Model>>;
+
+    /// Returns the position of the record in the view
+    /// 
+    /// If returns `None` that means record is not in the view
+    fn get_position(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Position>;
 
     fn next_page(&self);
     fn prev_page(&self);

@@ -137,7 +137,7 @@ where
                     let mut view_data = self.view_data.borrow_mut();
                     
                     if view_data.get(id).is_some() {
-                        if let Some( (_, record) ) = store.get(id) {
+                        if let Some(record) = store.get(id) {
                             ids_to_update.insert(*id);
                             view_data.insert(*id, record.clone());
                         }
@@ -155,8 +155,8 @@ where
                     let end = self.range.borrow().end();
                     let start = self.range.borrow().start();
                     let range_of_changes = Range::new(pos, end);
-                    let mut new_items: Vec<RecordWithLocation<<Self as DataStoreBase>::Model>> = store.get_range(&range_of_changes);
-                    new_items.sort();
+                    let mut new_items: Vec<<Self as DataStoreBase>::Model> = store.get_range(&range_of_changes);
+                    // new_items.sort();
 
                     let mut view = self.view.borrow_mut();
 
@@ -171,12 +171,12 @@ where
                     let mut len = 0;
                     let new_items_len = new_items.len();
                     while !store.is_empty() && len <  new_items_len && len < by {
-                        let item = new_items.get(len).unwrap();
+                        let record = new_items.get(len).unwrap();
                         view.remove(pos+len);
 
-                        view.insert(pos+len-start, item.get_id());
-                        self.view_data.borrow_mut().insert(item.get_id(), item.record.clone());
-                        ids_to_add.insert(item.get_id());
+                        view.insert(pos+len-start, record.get_id());
+                        self.view_data.borrow_mut().insert(record.get_id(), record.clone());
+                        ids_to_add.insert(record.get_id());
                         len += 1;
                     }
                 }
@@ -226,9 +226,10 @@ where
             }
         }
 
+        let mut position: Position = Position(self.range.borrow().start());
         for id in view_order.iter() {
             if ids_to_add.contains(id) {
-                if let Some( (position, record) ) = self.get(id) {
+                if let Some(record) = self.get(id) {
                     let new_widgets = Builder::generate(&record, position, sender.clone());
                     let root = Builder::get_root(&new_widgets);
                     let root = if widgets.is_empty() || position.get() == 0 {
@@ -252,12 +253,15 @@ where
             }
 
             if ids_to_update.contains(id) {
-                if let Some( (position, record) ) = self.get(id) {
+                if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
                         Builder::update(record, position, &widget.widgets);
                     }
                 }
             }
+
+
+            position = position + 1;
         }
     }
 }
@@ -297,11 +301,11 @@ where
         self.changes.borrow_mut().push(message);
     }
 
-    fn get_range(&self, range: &Range) -> Vec<RecordWithLocation<<Builder::Store as DataStoreBase>::Model>> {
+    fn get_range(&self, range: &Range) -> Vec<<Builder::Store as DataStoreBase>::Model> {
         self.store.borrow().get_range(range)
     }
 
-    fn get(&self, id: &<Self::Model as Identifiable>::Id) -> Option<(Position, Self::Model)> {
+    fn get(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Self::Model> {
         self.store.borrow().get(id)
     }
 }
@@ -332,7 +336,19 @@ where
     }
 
     fn get_view_data(&self) -> Vec<RecordWithLocation<<Builder::Store as DataStoreBase>::Model>> {
-        self.get_range(&self.range.borrow())
+        let mut result = Vec::new();
+
+        let data = self.get_range(&self.range.borrow());
+
+        let mut i = self.range.borrow().start();
+        for record in data {
+            //TODO: unsafe in case when view is out of sync with store
+            let pos = Position(i);
+            result.push(RecordWithLocation::new(pos, record));
+            i += 1;
+        }
+
+        result
     }
 
     fn first_page(&self) {
@@ -375,6 +391,17 @@ where
 
     fn get_window(&self) -> Range {
         self.range.borrow().clone()
+    }
+
+    fn get_position(&self, id: &<<Builder::Store as DataStoreBase>::Model as Identifiable>::Id) -> Option<Position> {
+        let view = self.view.borrow();
+        for (pos, view_id) in view.iter().enumerate() {
+            if view_id == id {
+                return Some(Position(pos))
+            }
+        }
+
+        None
     }
 }
 
