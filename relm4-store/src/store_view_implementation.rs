@@ -155,7 +155,7 @@ where
                     let end = self.range.borrow().end();
                     let start = self.range.borrow().start();
                     let range_of_changes = Range::new(pos, end);
-                    let mut new_items: Vec<<Self as DataStoreBase>::Model> = store.get_range(&range_of_changes);
+                    let new_items: Vec<<Self as DataStoreBase>::Model> = store.get_range(&range_of_changes);
                     // new_items.sort();
 
                     let mut view = self.view.borrow_mut();
@@ -402,6 +402,11 @@ where
         }
 
         None
+    }
+
+    fn set_window(&self, range: Range) {
+        self.range.replace(range);
+        self.inbox(StoreMsg::Reload);
     }
 }
 

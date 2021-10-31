@@ -161,6 +161,10 @@ where
     fn get_position(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Position> {
         self.view.borrow().get_position(id)
     }
+
+    fn set_window(&self, range: math::Range) {
+        self.view.borrow().set_window(range);
+    }
 }
 
 impl<Builder> FactoryPrototype for StoreViewInterface<Builder>

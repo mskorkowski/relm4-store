@@ -90,6 +90,7 @@ pub trait StoreView: DataStore
     type Builder: FactoryBuilder;
     fn window_size(&self) -> usize;
     fn get_window(&self) -> Range;
+    fn set_window(&self, range: Range);
     fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Model>>;
 
     /// Returns the position of the record in the view
