@@ -41,7 +41,7 @@ where Config: TasksListConfiguration,
     view: Rc<Config::SV>,
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
-    page_size: usize,
+    scroll_adjustment: gtk::Adjustment,
 }
 
 impl<Config> ViewModel for TasksListViewModel<Config>
@@ -56,11 +56,13 @@ impl<Config> ComponentUpdate<Config::ParentViewModel> for TasksListViewModel<Con
 where Config: TasksListConfiguration + 'static,
 {
     fn init_model(parent_model: &Config::ParentViewModel) -> TasksListViewModel<Config> {
+        let view = Rc::new(Config::store(parent_model));
+        let view_length = view.len();
         TasksListViewModel{
-            view: Rc::new(Config::store(parent_model)),
+            view,
             tasks: Config::get_tasks(parent_model),
             new_task_description: gtk::EntryBuffer::new(None),
-            page_size: Config::page_size(parent_model),
+            scroll_adjustment: gtk::Adjustment::new(0.0, 0.0, view_length as f64, 1.0, 1.0, Config::page_size(parent_model) as f64)
         }
     }
 
@@ -77,6 +79,7 @@ where Config: TasksListConfiguration + 'static,
                 let task = Task::new(description, false);
                 self.new_task_description.set_text("");
                 self.tasks.borrow().inbox(StoreMsg::New(task));
+                self.scroll_adjustment.set_upper(self.view.len() as f64);
             },
             TaskMsg::Toggle{ complete, id } => {
                 let tasks = self.tasks.borrow();
@@ -86,13 +89,16 @@ where Config: TasksListConfiguration + 'static,
                     tasks.inbox(StoreMsg::Commit(updated));
                 }
             },
-            TaskMsg::Scrolled{value, page_size, ..} => {
+            TaskMsg::Scrolled => {
+                let value = self.scroll_adjustment.value();
+                let page_size = self.scroll_adjustment.page_size(); 
+
                 self.view.set_window(
                     Range::new(
                         value.floor() as usize,
                         (value+page_size).floor() as usize,
                     )
-                )
+                );
             },
             TaskMsg::Reload => {}
         }
@@ -116,7 +122,7 @@ where Config: TasksListConfiguration + 'static,
                 set_orientation: gtk::Orientation::Horizontal,
                 append: scrollbar = &gtk::Scrollbar {
                     set_orientation: gtk::Orientation::Vertical,
-                    set_adjustment: Some(&gtk::Adjustment::new(0.0, 0.0, model.view.len() as f64, 1.0, 1.0, model.page_size as f64)),
+                    set_adjustment: Some(&model.scroll_adjustment),
                 },
                 append: viewport = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
@@ -139,14 +145,7 @@ where Config: TasksListConfiguration + 'static,
         {
             let sender = sender.clone();
             adjustment.connect_value_changed(move |adj| {
-                send!(sender, TaskMsg::Scrolled{
-                    value: adj.value(),
-                    lower: adj.lower(),
-                    upper: adj.upper(),
-                    step_increment: adj.step_increment(),
-                    page_increment: adj.page_increment(),
-                    page_size: adj.page_size(),
-                });
+                send!(sender, TaskMsg::Scrolled);
             });
 
         }

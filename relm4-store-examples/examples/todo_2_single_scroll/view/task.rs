@@ -14,14 +14,7 @@ pub enum TaskMsg {
     },
     New,
     Reload,
-    Scrolled{
-        value: f64,
-        lower: f64,
-        upper: f64,
-        step_increment: f64,
-        page_increment: f64,
-        page_size: f64,
-    },
+    Scrolled,
 }
 
 #[derive(Debug)]
