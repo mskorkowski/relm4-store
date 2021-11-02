@@ -30,9 +30,9 @@ use super::WindowChangeset;
 
 use super::math::Point;
 use super::math::Range;
-use super::math::Window as DataWindow;
-use super::math::WindowTransition;
 use super::widgets::Widgets;
+use super::window::WindowBehavior;
+use super::window::WindowTransition;
 
 /// View of the store
 /// 
@@ -116,7 +116,7 @@ where
             },
             StoreMsg::Reload => {
                 println!("[{:?}] convert reload message", self.id);
-                WindowTransition::InsertRight{pos: range.start(), by: range.len()}
+                WindowTransition::InsertRight{pos: *range.start(), by: range.len()}
             },
         }
     }
@@ -152,8 +152,8 @@ where
                 }
                 WindowTransition::InsertRight{pos, by} => {
                     let store = self.store.borrow();
-                    let end = self.range.borrow().end();
-                    let start = self.range.borrow().start();
+                    let end = *self.range.borrow().end();
+                    let start = *self.range.borrow().start();
                     let range_of_changes = Range::new(pos, end);
                     let new_items: Vec<<Self as DataStoreBase>::Model> = store.get_range(&range_of_changes);
                     // new_items.sort();
@@ -226,7 +226,7 @@ where
             }
         }
 
-        let mut position: Position = Position(self.range.borrow().start());
+        let mut position: Position = Position(*self.range.borrow().start());
         for id in view_order.iter() {
             if ids_to_add.contains(id) {
                 if let Some(record) = self.get(id) {
@@ -237,7 +237,7 @@ where
                     }
                     else {
                         let range = self.range.borrow();
-                        let prev_id = view_order[(position - 1 - range.start()).get()];
+                        let prev_id = view_order[(position - 1 - *range.start()).get()];
                         let prev = widgets.get(&prev_id).unwrap();
                         view.insert_after(root, &prev.root)
                     };
@@ -340,7 +340,7 @@ where
 
         let data = self.get_range(&self.range.borrow());
 
-        let mut i = self.range.borrow().start();
+        let mut i = *self.range.borrow().start();
         for record in data {
             //TODO: unsafe in case when view is out of sync with store
             let pos = Position(i);
@@ -372,7 +372,7 @@ where
             self.range.borrow().to_right(self.size)
         };
 
-        if range.start() < self.store.borrow().len() {
+        if *range.start() < self.store.borrow().len() {
             self.range.replace(range);
             self.inbox(StoreMsg::Reload);
         }

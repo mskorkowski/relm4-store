@@ -13,7 +13,7 @@ impl<SV: StoreView> Pagination<SV> for SV {
     }
 
     fn current_page(&self) -> usize {
-        let window_start = self.get_window().start();   
+        let window_start = *self.get_window().start();   
         let size = self.window_size();
         1 + ((window_start as f64)/(size as f64)).ceil() as usize
     }

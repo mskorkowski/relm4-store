@@ -3,7 +3,7 @@ use gtk::{Box, CheckButton, Label, Orientation,
     prelude::{BoxExt, CheckButtonExt}};
 use relm4::{send, Sender};
 use model::{Id, Identifiable};
-use store::{FactoryBuilder, Position, math::PositionTrackingWindow};
+use store::{FactoryBuilder, Position, window::PositionTrackingWindow};
 use crate::model::Task;
 use crate::store::Tasks;
 

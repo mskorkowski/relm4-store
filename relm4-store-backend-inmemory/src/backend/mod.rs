@@ -178,8 +178,8 @@ where Builder: InMemoryBackendBuilder,
         // println!("{}:{}", file!(), line!());
         let count = self.len();
 
-        let start = min(range.start(), count);
-        let length = min(range.end(), count) - start;
+        let start = min(*range.start(), count);
+        let length = min(*range.end(), count) - start;
 
         let order = self.order.borrow();
         let iter = order.range(start..(start+length));

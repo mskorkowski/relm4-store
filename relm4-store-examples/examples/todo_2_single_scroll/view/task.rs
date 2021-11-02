@@ -3,7 +3,7 @@ use gtk::{Box, CheckButton, Label, Orientation,
     prelude::{BoxExt, CheckButtonExt}};
 use relm4::{send, Sender};
 use model::{Id, Identifiable};
-use store::{FactoryBuilder, Position, math::PositionTrackingWindow};
+use store::{FactoryBuilder, Position, window::PositionTrackingWindow};
 use crate::model::Task;
 use crate::store::Tasks;
 
@@ -13,7 +13,6 @@ pub enum TaskMsg {
         id: Id<Task>,
     },
     New,
-    Reload,
     Scrolled,
 }
 
@@ -40,15 +39,17 @@ impl FactoryBuilder for TaskFactoryBuilder {
         _position: Position,
         sender: Sender<TaskMsg>,
     ) -> Self::Widgets {
+        let margin_size = 0;
+
         let root = Box::builder()
             .orientation(Orientation::Horizontal)
             .build();
 
         let checkbox = CheckButton::builder()
-            .margin_top(12)
-            .margin_start(12)
-            .margin_end(12)
-            .margin_bottom(12)
+            .margin_top(margin_size)
+            .margin_start(margin_size)
+            .margin_end(margin_size)
+            .margin_bottom(margin_size)
             .active(record.completed)
             .build();
 
@@ -65,10 +66,10 @@ impl FactoryBuilder for TaskFactoryBuilder {
         }
 
         let label = Label::builder()
-            .margin_top(12)
-            .margin_start(12)
-            .margin_end(12)
-            .margin_bottom(12)
+            .margin_top(margin_size)
+            .margin_start(margin_size)
+            .margin_end(margin_size)
+            .margin_bottom(margin_size)
             .label(&record.description)
             .build();
 

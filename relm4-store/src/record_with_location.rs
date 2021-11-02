@@ -1,11 +1,8 @@
-
-
 use std::cmp::Ord;
 use std::cmp::Ordering;
 use std::cmp::PartialEq;
 use std::cmp::PartialOrd;
 use std::fmt::Debug;
-use std::iter::FromIterator;
 use std::ops::Deref;
 
 use model::Model;

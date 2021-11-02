@@ -100,7 +100,6 @@ where Config: TasksListConfiguration + 'static,
                     )
                 );
             },
-            TaskMsg::Reload => {}
         }
     }
 }
@@ -144,7 +143,7 @@ where Config: TasksListConfiguration + 'static,
 
         {
             let sender = sender.clone();
-            adjustment.connect_value_changed(move |adj| {
+            adjustment.connect_value_changed(move |_| {
                 send!(sender, TaskMsg::Scrolled);
             });
 

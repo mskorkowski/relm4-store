@@ -24,6 +24,7 @@ mod store_size;
 mod store_view_implementation;
 mod store_view_interface;
 pub mod widgets;
+pub mod window;
 mod window_changeset;
 
 use reexport::gtk;
@@ -41,7 +42,7 @@ use model::Identifiable;
 use model::Model;
 
 use crate::math::Range;
-use crate::math::Window as DataWindow;
+use crate::window::WindowBehavior;
 
 use handler_wrapper::HandlerWrapper;
 pub use pagination::Pagination;
@@ -109,7 +110,7 @@ pub trait FactoryBuilder {
     type Widgets: Debug;
     type Root: WidgetExt;
     type View: FactoryView<Self::Root> + FactoryListView<Self::Root>;
-    type Window: DataWindow;
+    type Window: WindowBehavior;
     type Msg;
 
     fn generate(

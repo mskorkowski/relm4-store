@@ -69,7 +69,7 @@ impl TasksListConfiguration for MainWindowComponents {
     }
 
     fn page_size(_parent: &Self::ParentViewModel) -> usize {
-        10
+        100
     }
 }
 
