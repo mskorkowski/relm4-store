@@ -37,11 +37,20 @@ pub use window_transition::WindowTransition;
 /// to compute updates for elements which are out of the view.
 pub trait WindowBehavior {
     /// Computes change in order of indexes of elements on the line due to insert
+    /// 
+    /// - `r` is a current store view range
+    /// - `p` is an insertion point
     fn insert(r: &Range, p: &Point) -> WindowTransition;
 
     /// Computes change in order of indexes of element on the line due to removal
+    /// 
+    /// - `r` is a current store view range
+    /// - `p` is an insertion point
     fn remove(r: &Range, p: &Point) -> WindowTransition;
 
     /// Computes change in order of indexes of elements due to moving the range
+    /// 
+    /// - `r` is a current store view range
+    /// - `moved` is the new range to which the view would be moved to
     fn slide(r: &Range, moved: &Range) -> WindowTransition;
 }

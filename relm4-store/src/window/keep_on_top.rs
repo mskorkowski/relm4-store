@@ -11,15 +11,18 @@ use super::WindowTransition;
 pub struct KeepOnTop {}
 
 impl WindowBehavior for KeepOnTop {
-    /// If insert is out of range it's ignored. Otherwise
-    /// insert right is returned since it's only direction in
-    /// which there are data
     fn insert(r: &Range, p: &Point) -> WindowTransition {
         if p >= r.end() {
             WindowTransition::Identity
-        }
+        } 
+        else if p < r.start() {
+            WindowTransition::InsertRight {
+                pos: *r.start(),
+                by: 1,
+            }
+        } 
         else {
-            WindowTransition::InsertRight{
+            WindowTransition::InsertRight {
                 pos: p.value(),
                 by: 1,
             }

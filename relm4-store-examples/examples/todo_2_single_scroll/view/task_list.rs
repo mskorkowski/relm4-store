@@ -136,10 +136,6 @@ where Config: TasksListConfiguration + 'static,
 
     fn post_init() {
         let adjustment = scrollbar.adjustment().unwrap();
-        let properties = adjustment.list_properties();
-        for p in properties {
-            println!("Scrollbar property: {}", p.name());
-        }
 
         {
             let sender = sender.clone();

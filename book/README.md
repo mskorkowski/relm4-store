@@ -36,3 +36,10 @@ There are two ways to read this book. First one is to follow the chapters in ord
 - [**Chapter 3**](./03-todo/README.md) StoreViews behavior. How to make view behave in the presence of the new data. Really simple todo application from chapter 2 extended to showcase different possibilities.
 - [**Chapter 4**](./04-todo/README.md) We will add filtering into the todo application from chapter 2.
 - [**Chapter 5**](./05-todo/README.md) We will add grouping into the todo application from chapter 4.
+
+## How stuff works
+
+### Window behavior
+
+- [Description of window behavior](./03-todo/01-ordering.md)
+- [Implementing your own](./appendix/internals/window-behavior.md)

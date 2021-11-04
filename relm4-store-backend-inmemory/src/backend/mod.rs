@@ -43,7 +43,6 @@ impl<Builder> InMemoryBackend<Builder>
 where Builder: InMemoryBackendBuilder
 {
     pub fn new(initial_data: Vec<Builder::DataModel>) -> Self {
-        // println!("{}:{}", file!(), line!());
         let backend = InMemoryBackend{
             id: StoreId::new(),
             order: RefCell::new(VecDeque::new()),
@@ -57,7 +56,6 @@ where Builder: InMemoryBackendBuilder
 
         //we don't have any views so we don't need to notify anybody yet
 
-        // println!("\tbackend created");
         backend
     }
 
@@ -79,8 +77,6 @@ where Builder: InMemoryBackendBuilder
         let mut ids_for_remove: Vec<StoreId<Self>> = Vec::new();
 
         for (key, handler) in handlers.iter() {
-            // println!("\tNotifying store: {:?}", key);
-
             let remove = handler.handle(message.clone());
 
             if remove {
@@ -112,7 +108,6 @@ where Builder: InMemoryBackendBuilder
     type Id=StoreId<Self>;
 
     fn get_id(&self) -> Self::Id {
-        // println!("{}:{}", file!(), line!());
         self.id
     }
 }
@@ -127,11 +122,8 @@ where Builder: InMemoryBackendBuilder,
     type Model = Builder::DataModel;
 
     fn inbox(&self, msg: StoreMsg<Builder::DataModel>) {
-        // println!("{}:{}", file!(), line!());
-
         match msg {
             StoreMsg::New(record) => {
-                // println!("{}:{}: New record", file!(), line!());
                 let position = self.add(record);
 
                 self.fire_handlers(
@@ -139,15 +131,11 @@ where Builder: InMemoryBackendBuilder,
                 );
             },
             StoreMsg::Commit(record) => {
-                // println!("{}:{}: Commit", file!(), line!());
-
                 let id = record.get_id();
                 {
                     let mut data = self.data.borrow_mut();
                     
                     // let old_record = data.get(&id);
-                    // println!("\t{:?} -> {:?}", old_record, record);
-
                     data.insert(id, record);
                 }
 
@@ -155,27 +143,22 @@ where Builder: InMemoryBackendBuilder,
             },
             StoreMsg::Reload => {
                 //it's in memory store so nothing to do...
-                // println!("{}:{}: Reload", file!(), line!());
             }, 
             _ => {
-                // println!("{}:{}: Default", file!(), line!());
             }
         }
 
     }
 
     fn len(&self) -> usize {
-        // println!("{}:{}", file!(), line!());
         self.data.borrow().len()
     }
 
     fn is_empty(&self) -> bool {
-        // println!("{}:{}", file!(), line!());
         self.len() == 0
     }
 
     fn get_range(&self, range: &Range) -> Vec<Self::Model> {
-        // println!("{}:{}", file!(), line!());
         let count = self.len();
 
         let start = min(*range.start(), count);
@@ -198,7 +181,6 @@ where Builder: InMemoryBackendBuilder,
     }
 
     fn get(&self, id: &Id<Builder::DataModel>) -> Option<Builder::DataModel> {
-        // println!("{}:{}", file!(), line!());
         let data = self.data.borrow();
         data.get(id)
             .map(|r| r.clone())
@@ -209,12 +191,10 @@ impl<Builder> DataStoreListenable for InMemoryBackend<Builder>
 where Builder: InMemoryBackendBuilder
 {
     fn listen<'b>(&self, handler_ref: StoreId<Self>, handler: Box<dyn Handler<Self>>) {
-        // println!("{}:{}", file!(), line!());
         self.handlers.borrow_mut().insert(handler_ref, handler);
     }
 
     fn unlisten(&self, handler_ref: StoreId<Self>) {
-        // println!("{}:{}", file!(), line!());
         self.handlers.borrow_mut().remove(&handler_ref);
     }
 }

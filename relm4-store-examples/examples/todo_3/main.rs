@@ -38,7 +38,8 @@ fn main() {
                     TasksBuilder::initial_data()
                 )
             )
-        )
+        ),
+        page_size: 10,
     };
 
     println!("\tCreating relm4 app");
