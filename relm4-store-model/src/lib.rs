@@ -1,9 +1,11 @@
 //! Provides implementation of identifier for Models
 
 use std::cmp::Eq;
+use std::collections::HashSet;
 use std::fmt;
 use std::hash::Hash;
 use std::hash::Hasher;
+use std::iter::FromIterator;
 use std::marker::PhantomData;
 
 use reexport::uuid::Uuid;
@@ -165,5 +167,11 @@ impl<T: ?Sized + Model> fmt::Debug for Id<T> {
                 f.write_str(&format!("Id::Identifier({})", value)),
         }
 
+    }
+}
+
+impl<T: 'static + ?Sized + Model> FromIterator<&'static Id<T>> for HashSet<Id<T>> {
+    fn from_iter<II: IntoIterator<Item = &'static Id<T>>>(iter: II) -> Self {
+        iter.into_iter().map(|v| v.clone()).collect()
     }
 }

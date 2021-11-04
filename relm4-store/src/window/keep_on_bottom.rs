@@ -13,14 +13,18 @@ pub struct KeepOnBottom {}
 
 impl WindowBehavior for KeepOnBottom {
     /// If insert is out of range it's ignored. Otherwise
-    /// insert left is returned since it's only direction in
+    /// insert right is returned since it's only direction in
     /// which there are data
     fn insert(r: &Range, p: &Point) -> WindowTransition {
         if p < r.start() {
             WindowTransition::Identity
         }
+        else if p >= r.end() {
+            //p is not visible already, then slide by 1 to the right
+            WindowTransition::SlideRight(1)
+        }
         else {
-            WindowTransition::InsertLeft{
+            WindowTransition::InsertRight{
                 pos: p.value(),
                 by: 1,
             }
