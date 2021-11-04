@@ -12,9 +12,6 @@ use super::WindowTransition;
 pub struct KeepOnBottom {}
 
 impl WindowBehavior for KeepOnBottom {
-    /// If insert is out of range it's ignored. Otherwise
-    /// insert right is returned since it's only direction in
-    /// which there are data
     fn insert(r: &Range, p: &Point) -> WindowTransition {
         if p < r.start() {
             WindowTransition::Identity
@@ -31,9 +28,6 @@ impl WindowBehavior for KeepOnBottom {
         }
     }
 
-    /// If removal is out of range, it's ignored. Otherwise
-    /// remove left is returned since all possible data can
-    /// only come from left side
     fn remove(r: &Range, p: &Point) -> WindowTransition {
         if p < r.start() {
             WindowTransition::Identity

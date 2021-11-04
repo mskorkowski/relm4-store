@@ -90,7 +90,6 @@ where
                 Builder::Window::insert(range, &Point::new(self.view_data.borrow().len()))
             },
             StoreMsg::NewAt(p) => {
-                println!("New at: {:?}", p);
                 Builder::Window::insert(range, &p.to_point())
             },
             StoreMsg::Move{from, to} => {
