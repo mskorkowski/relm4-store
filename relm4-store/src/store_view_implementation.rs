@@ -1,7 +1,6 @@
 use reexport::relm4;
 
 use std::cell::RefCell;
-use std::cmp::max;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;

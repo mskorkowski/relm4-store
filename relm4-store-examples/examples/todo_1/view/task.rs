@@ -3,7 +3,7 @@ use gtk::{Box, CheckButton, Label, Orientation,
     prelude::{BoxExt, CheckButtonExt}};
 use relm4::{send, Sender};
 use model::{Id, Identifiable};
-use store::{FactoryBuilder, Position, window::{PositionTrackingWindow, ValueTrackingWindow}};
+use store::{FactoryBuilder, Position, window::{PositionTrackingWindow}};
 use crate::model::Task;
 use crate::store::Tasks;
 
@@ -30,7 +30,7 @@ impl FactoryBuilder for TaskFactoryBuilder {
     type Widgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
-    type Window = ValueTrackingWindow;
+    type Window = PositionTrackingWindow;
     type Msg = TaskMsg;
 
     fn generate(
