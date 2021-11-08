@@ -1,51 +1,156 @@
-use reexport::{gtk, relm4, relm4_macros};
-use std::{cell::RefCell, rc::Rc};
-use gtk::prelude::{BoxExt, EntryExt, EntryBufferExtManual, OrientableExt, WidgetExt};
-use relm4::{ComponentUpdate, Model as ViewModel, send, Sender, Widgets, WidgetPlus};
-use relm4_macros::widget;
-use store::{DataStoreBase, Source, StoreViewInterface};
-use crate::{ model::Task, store::Tasks, view::task::{TaskFactoryBuilder, TaskMsg}};
+use reexport::gtk;
+use reexport::relm4;
+
+use std::cell::RefCell;
+use std::marker::PhantomData;
+use std::rc::Rc;
+
+use gtk::Box;
+use gtk::CheckButton;
+use gtk::Label;
+use gtk::Orientation;
+use gtk::prelude::BoxExt;
+use gtk::prelude::CheckButtonExt;
+use gtk::prelude::EntryExt;
+use gtk::prelude::EntryBufferExtManual;
+use gtk::prelude::OrientableExt;
+use gtk::prelude::WidgetExt;
+
+use relm4::Model as ViewModel;
+use relm4::send;
+use relm4::Sender;
+use relm4::WidgetPlus;
+
+use model::Id;
+use model::Identifiable;
+use store::DataStoreBase;
+use store::FactoryBuilder;
+use store::FactoryContainerWidgets;
+use store::Position;
+use store::Source;
+use store::StoreViewImplementation;
+use store::window::PositionTrackingWindow;
+
+use crate::model::Task;
+use crate::store::Tasks;
 
 type StoreMsg = store::StoreMsg<Task>;
 
-pub trait TasksListConfiguration: Source<SV=StoreViewInterface<TaskFactoryBuilder>> {
-    fn get_tasks(parent: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
+pub enum TaskMsg {
+    Toggle{
+        complete: bool,
+        id: Id<Task>,
+    },
+    New,
 }
 
-pub struct TasksListViewModel<Config> 
-where Config: TasksListConfiguration,
-{
-    view: Config::SV,
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct TaskWidgets {
+    checkbox: CheckButton,
+    label: Label,
+    root: Box,
+}
+
+pub trait TasksListConfiguration : Source {
+    fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
+}
+
+pub struct TasksListViewModel<Config: TasksListConfiguration> {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
+    _config: PhantomData<*const Config>
 }
 
-impl<Config> ViewModel for TasksListViewModel<Config>
-where Config: TasksListConfiguration,
-{
+impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
     type Msg = TaskMsg;
-    type Widgets = TasksListViewWidgets;
+    type Widgets = TasksListViewWidgets<Config>;
     type Components = ();
 }
 
-impl<Config> ComponentUpdate<Config::ParentViewModel> for TasksListViewModel<Config>
-where Config: TasksListConfiguration,
-{
-    fn init_model(parent_model: &Config::ParentViewModel) -> TasksListViewModel<Config> {
-        TasksListViewModel{
-            view: Config::store(parent_model),
-            tasks: Config::get_tasks(parent_model),
-            new_task_description: gtk::EntryBuffer::new(None),
+impl<Config: TasksListConfiguration> FactoryBuilder for TasksListViewModel<Config> {
+    type Store = Tasks;
+    type RecordWidgets = TaskWidgets;
+    type Root = gtk::Box;
+    type View = gtk::Box;
+    type Window = PositionTrackingWindow;
+    type ContainerWidgets = TasksListViewWidgets<Config>;
+    type ParentViewModel = Config::ParentViewModel;
+
+
+    fn generate(
+        record: &Task,
+        _position: Position,
+        sender: Sender<TaskMsg>,
+    ) -> Self::RecordWidgets {
+        let root = Box::builder()
+            .orientation(Orientation::Horizontal)
+            .build();
+
+        let checkbox = CheckButton::builder()
+            .margin_top(12)
+            .margin_start(12)
+            .margin_end(12)
+            .margin_bottom(12)
+            .active(record.completed)
+            .build();
+
+        {
+            let sender = sender.clone();
+            let id = record.get_id();
+
+            checkbox.connect_toggled(move |btn| {
+                send!(sender, TaskMsg::Toggle{
+                    id,
+                    complete: btn.is_active()
+                });
+            });
+        }
+
+        let label = Label::builder()
+            .margin_top(12)
+            .margin_start(12)
+            .margin_end(12)
+            .margin_bottom(12)
+            .label(&record.description)
+            .build();
+
+        root.append(&checkbox);
+        root.append(&label);
+
+        TaskWidgets {
+            checkbox,
+            label,
+            root,
         }
     }
 
-    fn update(
-        &mut self,
-        msg: TaskMsg,
-        _components: &(),
-        _sender: Sender<TaskMsg>,
-        _parent_sender: Sender<<Config::ParentViewModel as ViewModel>::Msg>
+    /// Function called when record is modified.
+    fn update_record(
+        record: Task,
+        _position: Position,
+        widgets: &Self::RecordWidgets,
     ) {
+        widgets.checkbox.set_active(record.completed);
+
+        let attrs = widgets.label.attributes().unwrap_or_default();
+        attrs.change(gtk::pango::Attribute::new_strikethrough(record.completed));
+        widgets.label.set_attributes(Some(&attrs));
+    }
+
+    fn position(
+        _model: Task, 
+        _position: Position,
+    ) {}
+
+    /// Get the outermost widget from the widgets.
+    fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root {
+        &widgets.root
+    }
+
+    fn update(&mut self, msg: Self::Msg, _sender: Sender<Self::Msg>) {
+        println!("[TasksListViewModel::update] message received, updating data");
+
         match msg {
             TaskMsg::New => {
                 let description = self.new_task_description.text();
@@ -63,29 +168,70 @@ where Config: TasksListConfiguration,
             },
         }
     }
+
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, _store_view: Rc<RefCell<StoreViewImplementation<Self>>>) -> Self {
+        TasksListViewModel{
+            tasks: Config::get_tasks(parent_view_model),
+            new_task_description: gtk::EntryBuffer::new(None),
+            _config: PhantomData,
+        }
+    }
 }
 
-#[widget(visibility=pub, relm4 = relm4)]
-impl<Config> Widgets<TasksListViewModel<Config>, Config::ParentViewModel> for TasksListViewWidgets
-where Config: TasksListConfiguration,
-{
-    view!{
-        root = &gtk::Box {
-            set_margin_all: 12,
-            set_orientation: gtk::Orientation::Vertical,
-            append: input = &gtk::Entry::with_buffer(&model.new_task_description) {
-                connect_activate => move |_| {
-                    send!(sender, TaskMsg::New)
-                },  
-            },
-            append = &gtk::ScrolledWindow {
-                set_child = Some(&gtk::Box) {
-                    set_orientation: gtk::Orientation::Vertical,
-                    factory!(model.view),
-                },
-                set_hexpand: true,
-                set_vexpand: true,
-            }
+pub struct TasksListViewWidgets<Config: TasksListConfiguration> {
+    root: gtk::Box,
+    _input: gtk::Entry,
+    scrolled_box: gtk::Box,
+    _scrolled_window: gtk::ScrolledWindow,
+    _config: PhantomData<*const Config>,
+}
+
+impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets<Config> {
+    type Root = gtk::Box;
+
+    fn init_view(view_model: &TasksListViewModel<Config>, store_view: &StoreViewImplementation<TasksListViewModel<Config>>, sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) -> Self {
+        let root = gtk::Box::default();
+        root.set_margin_all(12);
+        root.set_orientation(gtk::Orientation::Vertical);
+
+        let _input = gtk::Entry::with_buffer(&view_model.new_task_description);
+        {
+            let sender = sender.clone();
+            _input.connect_activate(move |_| send!(sender, TaskMsg::New));
         }
+
+        let scrolled_box = gtk::Box::default();
+        scrolled_box.set_orientation(gtk::Orientation::Vertical);
+
+        store_view.generate(&scrolled_box, sender.clone());
+
+
+        let _scrolled_window = gtk::ScrolledWindow::default();
+        _scrolled_window.set_hexpand(true);
+        _scrolled_window.set_vexpand(true);
+        _scrolled_window.set_child(Some(&scrolled_box));
+
+        root.append(&_input);
+        root.append(&_scrolled_window);
+
+        TasksListViewWidgets {
+            root,
+            _input,
+            scrolled_box,
+            _scrolled_window,
+            _config: PhantomData,
+        }
+    }
+
+    fn view(&mut self, _view_model: &TasksListViewModel<Config>, _store_view: &StoreViewImplementation<TasksListViewModel<Config>>, _sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) {
+        println!("Updating the view");
+    }
+
+    fn root_widget(&self) -> Self::Root {
+        self.root.clone()
+    }
+
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryBuilder>::View {
+        &self.scrolled_box
     }
 }

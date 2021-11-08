@@ -1,13 +1,13 @@
 use reexport::{gtk, relm4, relm4_macros};
 use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::GtkWindowExt;
-use relm4::{AppUpdate, Components, Model as ViewModel, Sender, RelmComponent, Widgets};
+use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets};
 use relm4_macros::widget;
 use store::{Source, StoreSize, StoreViewInterface};
 
 use crate::{
     store::Tasks,
-    view::{ task::TaskFactoryBuilder, task_list::TasksListConfiguration, task_list::TasksListViewModel}
+    view::{ task_list::TasksListConfiguration, task_list::TasksListViewModel}
 };
 
 pub enum MainWindowMsg {}
@@ -34,27 +34,27 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list: RelmComponent<TasksListViewModel<Self>, MainWindowViewModel>,
+    tasks_list: StoreViewInterface<TasksListViewModel<Self>>
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
     fn init_components(
         parent_model: &MainWindowViewModel,
-        parent_widgets: &MainWindowWidgets,
-        parent_sender: Sender<MainWindowMsg>,
+        _parent_widgets: &MainWindowWidgets,
+        _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            tasks_list: RelmComponent::new(parent_model, parent_widgets, parent_sender.clone()),
+            tasks_list: Self::store(parent_model),
         }
     }
 }
 
 impl Source for MainWindowComponents {
     type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TaskFactoryBuilder>;
+    type SV = StoreViewInterface<TasksListViewModel<Self>>;
 
     fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewInterface::new(parent_model.tasks.clone(), StoreSize::Unlimited)
+        StoreViewInterface::new(parent_model, parent_model.tasks.clone(), StoreSize::Unlimited)
     }
 }
 

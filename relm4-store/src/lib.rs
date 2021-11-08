@@ -13,6 +13,7 @@
 //! 
 //! As side effect it simplifies relm4 factories usage.
 
+mod factory_builder;
 mod handler_wrapper;
 pub mod math;
 mod pagination;
@@ -27,23 +28,19 @@ pub mod widgets;
 pub mod window;
 mod window_changeset;
 
-use reexport::gtk;
 use reexport::relm4;
 
 use std::fmt::Debug;
 use std::marker::Sized;
-use gtk::prelude::WidgetExt;
-use gtk::glib::Sender;
 use relm4::Model as ViewModel;
-use relm4::factory::FactoryListView;
-use relm4::factory::FactoryView;
 
 use model::Identifiable;
 use model::Model;
 
 use crate::math::Range;
-use crate::window::WindowBehavior;
 
+pub use factory_builder::FactoryBuilder;
+pub use factory_builder::FactoryContainerWidgets;
 use handler_wrapper::HandlerWrapper;
 pub use pagination::Pagination;
 pub use position::Position;
@@ -51,7 +48,7 @@ pub use record_with_location::RecordWithLocation;
 pub use store_id::StoreId;
 pub use store_msg::StoreMsg;
 pub use store_size::StoreSize;
-use store_view_implementation::StoreViewImpl;
+pub use store_view_implementation::StoreViewImplementation;
 use store_view_implementation::StoreViewImplHandler;
 use window_changeset::WindowChangeset;
 pub use store_view_interface::StoreViewInterface;
@@ -163,37 +160,11 @@ pub trait StoreView: DataStore
     fn prev_page(&self);
     fn first_page(&self);
     fn last_page(&self);
+
+    fn inbox_queue_size(&self) -> usize;
 }
 
-pub trait FactoryBuilder {
-    type Store: DataStore;
-    type Widgets: Debug;
-    type Root: WidgetExt;
-    type View: FactoryView<Self::Root> + FactoryListView<Self::Root>;
-    type Window: WindowBehavior;
-    type Msg;
 
-    fn generate(
-        record: &<Self::Store as DataStoreBase>::Model,
-        position: Position,
-        sender: Sender<Self::Msg>,
-    ) -> Self::Widgets;
-
-    /// Function called when self is modified.
-    fn update(
-        model: <Self::Store as DataStoreBase>::Model,
-        position: Position,
-        widgets: &Self::Widgets,
-    );
-
-    fn position(
-        model: <Self::Store as DataStoreBase>::Model, 
-        position: Position,
-    ) -> <Self::View as FactoryView<Self::Root>>::Position;
-
-    /// Get the outermost widget from the widgets.
-    fn get_root(widgets: &Self::Widgets) -> &Self::Root;
-}
 
 pub trait Source {
     type ParentViewModel : ViewModel;

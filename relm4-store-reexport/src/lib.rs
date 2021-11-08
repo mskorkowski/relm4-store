@@ -5,3 +5,4 @@ pub use relm4_macros;
 pub use relm4_components;
 pub use tracker;
 pub use uuid;
+pub use log;

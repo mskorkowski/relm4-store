@@ -24,7 +24,7 @@ fn main() {
     println!();
 
     
-    let app_id = "com.constellationsoft.rmail.example.todo-1";
+    let app_id = "store.relm4.example.todo-1";
     
     gtk::init().expect("Couldn't initialize gtk");
     let application = gtk::Application::builder()
