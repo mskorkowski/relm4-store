@@ -1,4 +1,3 @@
-mod task;
 mod task_list;
 mod main_window;
 

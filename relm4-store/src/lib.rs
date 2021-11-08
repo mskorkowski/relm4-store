@@ -19,6 +19,7 @@ pub mod math;
 mod pagination;
 mod position;
 mod record_with_location;
+mod redraw_messages;
 mod store_id;
 mod store_msg;
 mod store_size;
@@ -113,9 +114,11 @@ pub trait DataStoreListenable: IdentifiableStore + DataStoreBase {
 /// If you create a model which has internal mutability then it would need know to which data store
 /// it belongs to so it can notify it about the changes. But data store is collection so it needs to
 /// know the data which are kept inside. So we have a perfect circle of dependencies which would make
-/// it insane in terms of implementation. What's more it would be store implementation dependant. Which
-/// would make it hard for you to change the way in which you store the data from application point of view.
-/// Changing storage is hard enough without that so no internal mutation.
+/// it insane in terms of implementation.
+/// 
+/// Another reason is that store implementation in really more like simple database or database proxy.
+/// As such it must own the "truth" of what the current state of the records is. If your records are
+/// internally mutable, you might introduce side effects which are not recorded by the database.
 /// 
 /// ### They are serializable
 /// 

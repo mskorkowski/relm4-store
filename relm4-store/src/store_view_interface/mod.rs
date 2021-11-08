@@ -39,16 +39,13 @@ use super::StoreView;
 use super::StoreViewImplementation;
 use super::StoreViewImplHandler;
 
+use crate::redraw_messages::RedrawMessages;
 
 pub enum StoreViewInterfaceError {
     /// Error returned if borrow failed
     Borrow(BorrowError),
     /// Error returned if borrowing mutably failed
     BorrowMut(BorrowMutError),
-}
-
-enum RedrawMessages {
-    Redraw,
 }
 
 /// Helper to convert values of [`std::cell::BorrowError`] into [`StoreViewInterfaceError`]
@@ -127,6 +124,7 @@ where
         let handler_sender = sender.clone();
         let redraw_handler_sender = sender.clone();
         let (redraw_sender, redraw_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+        let handler_redraw_sender = redraw_sender.clone();
 
         let view = Rc::new(
             RefCell::new(
@@ -143,7 +141,7 @@ where
             s.listen(
                 view_id.transfer(),
                 Box::new(
-                    StoreViewImplHandler::new(weak_view),
+                    StoreViewImplHandler::new(weak_view, redraw_sender.clone()),
                 )
             );
         }
@@ -179,10 +177,8 @@ where
                     if let Ok(mut view_model) = handler_view_model.try_borrow_mut() {
                         if let Ok(mut container) = handler_container.try_borrow_mut() {
                             Builder::update(&mut view_model, msg, handler_sender.clone());
-                            container.view(&view_model,&store_view, handler_sender.clone());
-                            if store_view.inbox_queue_size() > 0 { //only redraw if there is an update awaiting
-                                store_view.generate(container.container_widget(), handler_sender.clone());
-                            }
+                            container.view(&view_model, &store_view, handler_sender.clone());
+                            send!(handler_redraw_sender, RedrawMessages::Redraw);
                         }
                         else {
                             log::warn!(target: "relm4-store", "Could not borrow the container. Make sure you dropped all references to container after user");

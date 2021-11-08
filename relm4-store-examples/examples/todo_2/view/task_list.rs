@@ -1,5 +1,3 @@
-use components::pagination::PaginationConfiguration;
-use components::pagination::PaginationViewModel;
 use reexport::gtk;
 use reexport::relm4;
 
@@ -25,6 +23,8 @@ use relm4::send;
 use relm4::Sender;
 use relm4::WidgetPlus;
 
+use components::pagination::PaginationConfiguration;
+use components::pagination::PaginationViewModel;
 use model::Id;
 use model::Identifiable;
 use store::DataStoreBase;

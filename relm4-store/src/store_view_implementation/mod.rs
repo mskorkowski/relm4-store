@@ -379,7 +379,8 @@ where
             changes.is_empty()
         };
 
-        if empty { //fast track for no changes in case redraw logic was invoked many times
+        if empty { 
+            //fast track for no changes in case redraw logic was invoked many times
             return
         }
 
@@ -389,7 +390,10 @@ where
             ids_to_update,
         } = self.compile_changes();
 
-        
+        if widgets_to_remove.is_empty() && ids_to_add.is_empty() && ids_to_update.is_empty() {
+            //if all changes leads to identity then return
+            return
+        }
 
         let mut widgets = self.widgets.borrow_mut();
         let view_order = self.view.borrow();

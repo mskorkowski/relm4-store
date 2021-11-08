@@ -1,7 +1,7 @@
 use reexport::{gtk, relm4, relm4_macros};
 use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::GtkWindowExt;
-use relm4::{AppUpdate, Components, Model as ViewModel, Sender, RelmComponent, Widgets};
+use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets};
 use relm4_macros::widget;
 use store::{Source, StoreSize, StoreViewInterface};
 
@@ -40,8 +40,8 @@ pub struct MainWindowComponents {
 impl Components<MainWindowViewModel> for MainWindowComponents {
     fn init_components(
         parent_model: &MainWindowViewModel,
-        parent_widgets: &MainWindowWidgets,
-        parent_sender: Sender<MainWindowMsg>,
+        _parent_widgets: &MainWindowWidgets,
+        _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
             tasks_list: Self::store(parent_model),

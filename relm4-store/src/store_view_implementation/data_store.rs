@@ -1,6 +1,10 @@
-use std::cell::RefCell;
+use reexport::relm4;
 
+use std::cell::RefCell;
 use std::rc::Weak;
+
+use relm4::send;
+use relm4::Sender;
 
 use model::Identifiable;
 
@@ -19,6 +23,7 @@ use super::StoreView;
 use super::StoreViewImplementation;
 
 use crate::math::Range;
+use crate::redraw_messages::RedrawMessages;
 
 impl<Builder> IdentifiableStore for StoreViewImplementation<Builder> 
 where
@@ -168,21 +173,22 @@ where
     }
 }
 
-
 pub struct StoreViewImplHandler<Builder>
 where
     Builder: FactoryBuilder + 'static,
 {
-    view: Weak<RefCell<StoreViewImplementation<Builder>>>
+    view: Weak<RefCell<StoreViewImplementation<Builder>>>,
+    sender: Sender<RedrawMessages>,
 }
 
 impl<Builder> StoreViewImplHandler<Builder>
 where
     Builder: FactoryBuilder + 'static,
 {
-    pub fn new(view: Weak<RefCell<StoreViewImplementation<Builder>>>) -> Self {
+    pub fn new(view: Weak<RefCell<StoreViewImplementation<Builder>>>, sender: Sender<RedrawMessages>) -> Self {
         Self {
             view,
+            sender,
         }
     }
 }
@@ -194,6 +200,8 @@ where
     fn handle(&self, message: StoreMsg<<Builder::Store as DataStoreBase>::Model>) -> bool {
         if let Some(view) = self.view.upgrade() {
             view.borrow().inbox(message);
+            let sender = &self.sender;
+            send!(sender, RedrawMessages::Redraw);
             false
         }
         else {
