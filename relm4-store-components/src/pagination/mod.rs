@@ -2,7 +2,10 @@ use reexport::gtk;
 use reexport::relm4;
 use reexport::relm4_macros;
 use store::DataStoreBase;
+use store::FactoryBuilder;
+use store::StoreViewImplementation;
 
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use gtk::prelude::BoxExt;
@@ -36,9 +39,9 @@ pub enum PaginationMsg {
 
 pub trait PaginationConfiguration {
     type SV: StoreView;
-    type ParentViewModel: ViewModel;
+    type ParentViewModel: ViewModel + FactoryBuilder;
 
-    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<Self::SV>;
+    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentViewModel>>>;
 
     fn update_message() -> <Self::ParentViewModel as ViewModel>::Msg;
 }
@@ -46,9 +49,9 @@ pub trait PaginationConfiguration {
 
 
 pub struct PaginationViewModel<Config> 
-where Config: PaginationConfiguration,
+where Config: PaginationConfiguration + 'static,
 {
-    view: Rc<Config::SV>,
+    view: Rc<RefCell<StoreViewImplementation<Config::ParentViewModel>>>,
     page: gtk::EntryBuffer,
     pages_total: String,
 }
@@ -67,10 +70,11 @@ where Config: PaginationConfiguration,
     fn init_model(parent_model: &Config::ParentViewModel) -> Self {
         let view = Config::get_view(parent_model); 
 
-        let pages_total = format!("{}", view.total_pages());
-        let current_page: &str = &format!("{}", view.current_page());
+
+        let pages_total = format!("{}", view.borrow().total_pages());
+        let current_page: &str = &format!("{}", view.borrow().current_page());
         Self{
-            view,
+            view: view.clone(),
             page: gtk::EntryBuffer::new(Some(current_page)),
             pages_total,
         }
@@ -85,21 +89,21 @@ where Config: PaginationConfiguration,
     ) {
         match msg {
             PaginationMsg::First => 
-                self.view.first_page(),
+                self.view.borrow().first_page(),
             PaginationMsg::Prev =>
-                self.view.prev_page(),
+                self.view.borrow().prev_page(),
             PaginationMsg::Next => 
-                self.view.next_page(),
+                self.view.borrow().next_page(),
             PaginationMsg::Last => 
-                self.view.last_page(),
+                self.view.borrow().last_page(),
             PaginationMsg::ToPage => (),
             PaginationMsg::Reload =>
-                self.view.inbox(StoreMsg::Reload),
+                self.view.borrow().inbox(StoreMsg::Reload),
         }
 
         send!(parent_sender, Config::update_message());
-        self.pages_total = self.view.total_pages().to_string();
-        self.page.set_text(&self.view.current_page().to_string());
+        self.pages_total = self.view.borrow().total_pages().to_string();
+        self.page.set_text(&self.view.borrow().current_page().to_string());
 
     }
 }

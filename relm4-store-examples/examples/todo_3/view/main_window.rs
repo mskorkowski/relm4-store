@@ -1,23 +1,16 @@
 use reexport::{gtk, relm4, relm4_macros};
-use std::{cell::RefCell, rc::Rc};
-use gtk::prelude::{BoxExt, OrientableExt,  GtkWindowExt};
-use relm4::{AppUpdate, Components, Model as ViewModel, Sender, RelmComponent, Widgets};
+use std::{ cell::RefCell, rc::Rc};
+use gtk::prelude::{BoxExt, OrientableExt, GtkWindowExt};
+use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets};
 use relm4_macros::widget;
-use store::{Source, StoreSize, StoreViewInterface, window::{KeepOnBottom, KeepOnTop, PositionTrackingWindow, ValueTrackingWindow}};
+use store::{Source, StoreSize, StoreViewInterface, window::{PositionTrackingWindow, ValueTrackingWindow}};
 
 use crate::{
     store::Tasks,
-    view::{ task::TaskFactoryBuilder, task_list::TasksListConfiguration, task_list::TasksListViewModel}
+    view::{task_list::TasksListConfiguration, task_list::TasksListViewModel}
 };
 
-use super::task::TaskMsg;
-
-pub enum MainWindowMsg {
-    List1Update,
-    List2Update,
-    List3Update,
-    List4Update,
-}
+pub enum MainWindowMsg {}
 
 pub struct MainWindowViewModel {
     pub tasks: Rc<RefCell<Tasks>>,
@@ -33,183 +26,137 @@ impl ViewModel for MainWindowViewModel {
 impl AppUpdate for MainWindowViewModel {
     fn update(
         &mut self, 
-        msg: Self::Msg , 
-        components: &Self::Components, 
+        _msg: Self::Msg , 
+        _components: &Self::Components, 
         _sender: Sender<Self::Msg>
     ) -> bool {
-        match msg {
-            MainWindowMsg::List1Update => {
-                //force redraw of the components
-                components.list2.send(TaskMsg::Reload).unwrap();
-                components.list3.send(TaskMsg::Reload).unwrap();
-                components.list4.send(TaskMsg::Reload).unwrap();
-            },
-            MainWindowMsg::List2Update => {
-                //force redraw of the components
-                components.list1.send(TaskMsg::Reload).unwrap();
-                components.list3.send(TaskMsg::Reload).unwrap();
-                components.list4.send(TaskMsg::Reload).unwrap();
-            },
-            MainWindowMsg::List3Update => {
-                components.list1.send(TaskMsg::Reload).unwrap();
-                components.list2.send(TaskMsg::Reload).unwrap();
-                components.list4.send(TaskMsg::Reload).unwrap();
-            },
-            MainWindowMsg::List4Update => {
-                components.list1.send(TaskMsg::Reload).unwrap();
-                components.list2.send(TaskMsg::Reload).unwrap();
-                components.list3.send(TaskMsg::Reload).unwrap();
-            }
-        }
         true
     }
 }
 
 pub struct MainWindowComponents {
-    list1: RelmComponent<TasksListViewModel<ListSource1>, MainWindowViewModel>,
-    list2: RelmComponent<TasksListViewModel<ListSource2>, MainWindowViewModel>,
-    list3: RelmComponent<TasksListViewModel<ListSource3>, MainWindowViewModel>,
-    list4: RelmComponent<TasksListViewModel<ListSource4>, MainWindowViewModel>,
+    tasks_list_1: StoreViewInterface<TasksListViewModel<TaskList1Configuration>>,
+    tasks_list_2: StoreViewInterface<TasksListViewModel<TaskList2Configuration>>,
+    tasks_list_3: StoreViewInterface<TasksListViewModel<TaskList3Configuration>>,
+    tasks_list_4: StoreViewInterface<TasksListViewModel<TaskList4Configuration>>,
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
     fn init_components(
         parent_model: &MainWindowViewModel,
-        parent_widgets: &MainWindowWidgets,
-        parent_sender: Sender<MainWindowMsg>,
+        _parent_widgets: &MainWindowWidgets,
+        _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            list1: RelmComponent::new(parent_model, parent_widgets, parent_sender.clone()),
-            list2: RelmComponent::new(parent_model, parent_widgets, parent_sender.clone()),
-            list3: RelmComponent::new(parent_model, parent_widgets, parent_sender.clone()),
-            list4: RelmComponent::new(parent_model, parent_widgets, parent_sender.clone()),
+            tasks_list_1: TaskList1Configuration::store(parent_model),
+            tasks_list_2: TaskList2Configuration::store(parent_model),
+            tasks_list_3: TaskList3Configuration::store(parent_model),
+            tasks_list_4: TaskList4Configuration::store(parent_model),
         }
     }
 }
 
-struct ListSource1 {}
-
-impl Source for ListSource1 {
+struct TaskList1Configuration {}
+impl Source for TaskList1Configuration {
     type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TaskFactoryBuilder<PositionTrackingWindow>>;
+    type SV = StoreViewInterface<TasksListViewModel<Self>>;
 
     fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewInterface::new(parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
+        StoreViewInterface::new(parent_model, parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
     }
 }
 
-impl TasksListConfiguration for ListSource1 {
-    type Window = PositionTrackingWindow;
-    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
-        parent_model.tasks.clone()
-    }
-
-    fn ping_parent_message() -> MainWindowMsg {
-        MainWindowMsg::List1Update
-    }
-}
-
-struct ListSource2 {}
-
-impl Source for ListSource2 {
-    type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TaskFactoryBuilder<ValueTrackingWindow>>;
-
-    fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewInterface::new(parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
-    }
-}
-
-impl TasksListConfiguration for ListSource2 {
+impl TasksListConfiguration for TaskList1Configuration {
     type Window = ValueTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
     }
-
-    fn ping_parent_message() -> MainWindowMsg {
-        MainWindowMsg::List2Update
-    }
 }
 
-struct ListSource3 {}
-
-impl Source for ListSource3 {
+struct TaskList2Configuration {}
+impl Source for TaskList2Configuration {
     type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TaskFactoryBuilder<KeepOnTop>>;
+    type SV = StoreViewInterface<TasksListViewModel<Self>>;
 
     fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewInterface::new(parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
+        StoreViewInterface::new(parent_model, parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
     }
 }
 
-impl TasksListConfiguration for ListSource3 {
-    type Window = KeepOnTop;
+impl TasksListConfiguration for TaskList2Configuration {
+    type Window = PositionTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
     }
-
-    fn ping_parent_message() -> MainWindowMsg {
-        MainWindowMsg::List3Update
-    }
 }
 
-struct ListSource4 {}
-
-impl Source for ListSource4 {
+struct TaskList3Configuration {}
+impl Source for TaskList3Configuration {
     type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TaskFactoryBuilder<KeepOnBottom>>;
+    type SV = StoreViewInterface<TasksListViewModel<Self>>;
 
     fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewInterface::new(parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
+        StoreViewInterface::new(parent_model, parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
     }
 }
 
-impl TasksListConfiguration for ListSource4 {
-    type Window = KeepOnBottom;
+impl TasksListConfiguration for TaskList3Configuration {
+    type Window = PositionTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
     }
+}
 
-    fn ping_parent_message() -> MainWindowMsg {
-        MainWindowMsg::List4Update
+struct TaskList4Configuration {}
+impl Source for TaskList4Configuration {
+    type ParentViewModel = MainWindowViewModel;
+    type SV = StoreViewInterface<TasksListViewModel<Self>>;
+
+    fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
+        StoreViewInterface::new(parent_model, parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
     }
 }
 
-
+impl TasksListConfiguration for TaskList4Configuration {
+    type Window = PositionTrackingWindow;
+    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
+        parent_model.tasks.clone()
+    }
+}
 
 #[widget(visibility=pub, relm4=relm4)]
 impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
     view!{
         root = gtk::ApplicationWindow {
-            set_child = Some(&gtk::Box) {
+            set_child= Some(&gtk::Box) {
                 set_orientation: gtk::Orientation::Horizontal,
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
                     append = &gtk::Label {
-                        set_label: "PositionTrackingWindow"
+                        set_label: "PositionTrackingWindow",
                     },
-                    append: component!(components.list1.root_widget()),
+                    append: component!(components.tasks_list_1.root_widget()),
                 },
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
                     append = &gtk::Label {
-                        set_label: "ValueTrackingWindow"
+                        set_label: "ValueTrackingWindow",
                     },
-                    append: component!(components.list2.root_widget()),
+                    append: component!(components.tasks_list_2.root_widget()),
                 },
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
                     append = &gtk::Label {
-                        set_label: "KeepOnTop"
+                        set_label: "KeepOnTop",
                     },
-                    append: component!(components.list3.root_widget()),
+                    append: component!(components.tasks_list_3.root_widget()),
                 },
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
                     append = &gtk::Label {
-                        set_label: "KeepOnBottom"
+                        set_label: "KeepOnBottom",
                     },
-                    append: component!(components.list4.root_widget()),
+                    append: component!(components.tasks_list_4.root_widget()),
                 }
             },
             set_default_size: args!(350, 800),

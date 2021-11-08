@@ -19,11 +19,11 @@ use crate::view::MainWindowViewModel;
 
 fn main() {
     println!();
-    println!("Todo 2 example!");
+    println!("Todo 3 example!");
     println!();
 
     
-    let app_id = "com.constellationsoft.rmail.example.todo-1";
+    let app_id = "store.relm4.examples.todo-3";
     
     gtk::init().expect("Couldn't initialize gtk");
     let application = gtk::Application::builder()

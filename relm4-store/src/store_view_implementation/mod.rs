@@ -1,3 +1,6 @@
+mod data_store;
+pub use data_store::StoreViewImplHandler;
+
 use reexport::relm4;
 
 use std::cell::RefCell;
@@ -5,7 +8,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::rc::Rc;
-use std::rc::Weak;
 
 use relm4::Sender;
 use relm4::factory::FactoryListView;
@@ -42,7 +44,7 @@ use super::window::WindowTransition;
 /// 
 /// To interact with content you should use Store. Store will handle all the
 /// make sure all the updates are propagated to the view.
-pub struct StoreViewImpl<Builder>
+pub struct StoreViewImplementation<Builder>
 where
     Builder: FactoryBuilder + 'static,
 {
@@ -53,13 +55,13 @@ where
     view_data: RefCell<HashMap<Id<<Builder::Store as DataStoreBase>::Model>, <Builder::Store as DataStoreBase>::Model>>,
     view: RefCell<VecDeque<Id<<Builder::Store as DataStoreBase>::Model>>>,
     #[allow(clippy::type_complexity)]
-    widgets: RefCell<HashMap<Id<<Builder::Store as DataStoreBase>::Model>, Widgets<Builder::Widgets, <Builder::View as FactoryView<Builder::Root>>::Root>>>,
+    widgets: RefCell<HashMap<Id<<Builder::Store as DataStoreBase>::Model>, Widgets<Builder::RecordWidgets, <Builder::View as FactoryView<Builder::Root>>::Root>>>,
     changes: RefCell<Vec<StoreMsg<<Builder::Store as DataStoreBase>::Model>>>,
     range: RefCell<Range>,
     size: usize,
 }
 
-impl<'me, Builder> StoreViewImpl<Builder> 
+impl<'me, Builder> StoreViewImplementation<Builder> 
 where
     Builder: FactoryBuilder + 'static,
 {
@@ -370,12 +372,28 @@ where
     }
 
     pub fn generate(&self, view: &Builder::View, sender: Sender<Builder::Msg>) {
+        println!("[StoreViewImplementation::generate]");
+
+        let empty = {
+            let changes = self.changes.borrow();
+            changes.is_empty()
+        };
+
+        if empty { 
+            //fast track for no changes in case redraw logic was invoked many times
+            return
+        }
+
         let WindowChangeset{
             widgets_to_remove,
             ids_to_add,
             ids_to_update,
         } = self.compile_changes();
 
+        if widgets_to_remove.is_empty() && ids_to_add.is_empty() && ids_to_update.is_empty() {
+            //if all changes leads to identity then return
+            return
+        }
 
         let mut widgets = self.widgets.borrow_mut();
         let view_order = self.view.borrow();
@@ -415,7 +433,7 @@ where
             if ids_to_update.contains(id) {
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
-                        Builder::update(record, position, &widget.widgets);
+                        <Builder as FactoryBuilder>::update_record(record, position, &widget.widgets);
                     }
                 }
             }
@@ -426,180 +444,3 @@ where
     }
 }
 
-impl<Builder> IdentifiableStore for StoreViewImpl<Builder> 
-where
-    Builder: FactoryBuilder + 'static,
-{}
-
-impl<Builder> Identifiable for StoreViewImpl<Builder>
-where
-    Builder: FactoryBuilder,
-{
-    type Id = StoreId<Self>;
-
-    fn get_id(&self) -> Self::Id {
-        self.id
-    }
-}
-
-
-impl<Builder> DataStoreBase for StoreViewImpl<Builder> 
-where
-    Builder: FactoryBuilder + 'static
-{
-    type Model = <Builder::Store as DataStoreBase>::Model;
-
-    fn len(&self) -> usize {
-        self.store.borrow().len()
-    }
-
-    fn is_empty(&self) -> bool {
-        self.store.borrow().is_empty()
-    }
-
-    fn inbox(&self, message: StoreMsg<Self::Model>) {
-        self.changes.borrow_mut().push(message);
-    }
-
-    fn get_range(&self, range: &Range) -> Vec<<Builder::Store as DataStoreBase>::Model> {
-        self.store.borrow().get_range(range)
-    }
-
-    fn get(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Self::Model> {
-        self.store.borrow().get(id)
-    }
-}
-
-impl<Builder: FactoryBuilder> DataStoreListenable for StoreViewImpl<Builder> {
-    fn listen(&self, handler_ref: StoreId<Self>, handler: Box<dyn Handler<Self>>) {
-        self.handlers.borrow_mut().insert(handler_ref, handler);         
-    }
-
-    fn unlisten(&self, handler_ref: StoreId<Self>) {
-        self.handlers.borrow_mut().remove(&handler_ref);
-    }
-}
-
-impl<Builder> DataStore for StoreViewImpl<Builder> 
-where 
-    Builder: FactoryBuilder + 'static,
-{}
-
-impl<Builder> StoreView for StoreViewImpl<Builder> 
-where
-    Builder: FactoryBuilder + 'static,
-{
-    type Builder = Builder;
-
-    fn window_size(&self) -> usize {
-        self.range.borrow().len()
-    }
-
-    fn get_view_data(&self) -> Vec<RecordWithLocation<<Builder::Store as DataStoreBase>::Model>> {
-        let mut result = Vec::new();
-
-        let data = self.get_range(&self.range.borrow());
-
-        let mut i = *self.range.borrow().start();
-        for record in data {
-            //TODO: unsafe in case when view is out of sync with store
-            let pos = Position(i);
-            result.push(RecordWithLocation::new(pos, record));
-            i += 1;
-        }
-
-        result
-    }
-
-    fn first_page(&self) {
-        let range = {
-            self.range.borrow().slide(0)
-        };
-        self.range.replace(range);
-        self.inbox(StoreMsg::Reload);
-    }
-
-    fn prev_page(&self) {
-        let range = {
-            self.range.borrow().to_left(self.size)
-        };
-        self.range.replace(range);
-        self.inbox(StoreMsg::Reload);
-    }
-
-    fn next_page(&self) {
-        let range = {
-            self.range.borrow().to_right(self.size)
-        };
-
-        if *range.start() < self.store.borrow().len() {
-            self.range.replace(range);
-            self.inbox(StoreMsg::Reload);
-        }
-    }
-
-    fn last_page(&self) {
-        let range = {
-            let last_page = self.total_pages();
-            let start = (last_page-1)*self.size;
-
-            Range::new(start, start+self.size)
-        };
-        self.range.replace(range);
-        self.inbox(StoreMsg::Reload);
-    }
-
-    fn get_window(&self) -> Range {
-        self.range.borrow().clone()
-    }
-
-    fn get_position(&self, id: &<<Builder::Store as DataStoreBase>::Model as Identifiable>::Id) -> Option<Position> {
-        let view = self.view.borrow();
-        for (pos, view_id) in view.iter().enumerate() {
-            if view_id == id {
-                return Some(Position(pos))
-            }
-        }
-
-        None
-    }
-
-    fn set_window(&self, range: Range) {
-        self.range.replace(range);
-        self.inbox(StoreMsg::Reload);
-    }
-}
-
-
-pub struct StoreViewImplHandler<Builder>
-where
-    Builder: FactoryBuilder + 'static,
-{
-    view: Weak<RefCell<StoreViewImpl<Builder>>>
-}
-
-impl<Builder> StoreViewImplHandler<Builder>
-where
-    Builder: FactoryBuilder + 'static,
-{
-    pub fn new(view: Weak<RefCell<StoreViewImpl<Builder>>>) -> Self {
-        Self {
-            view,
-        }
-    }
-}
-
-impl<Builder> Handler<Builder::Store> for StoreViewImplHandler<Builder> 
-where
-    Builder: 'static + FactoryBuilder
-{
-    fn handle(&self, message: StoreMsg<<Builder::Store as DataStoreBase>::Model>) -> bool {
-        if let Some(view) = self.view.upgrade() {
-            view.borrow().inbox(message);
-            false
-        }
-        else {
-            true
-        }
-    }
-}
