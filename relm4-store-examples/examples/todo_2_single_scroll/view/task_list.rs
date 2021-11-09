@@ -24,7 +24,7 @@ use relm4::WidgetPlus;
 
 use model::Id;
 use model::Identifiable;
-use store::DataStoreBase;
+use store::DataStore;
 use store::FactoryBuilder;
 use store::FactoryContainerWidgets;
 use store::Position;

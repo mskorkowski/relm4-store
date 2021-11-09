@@ -10,7 +10,7 @@ use std::cell::RefCell;
 
 use relm4::RelmApp;
 
-use backend_inmemory::InMemoryBackendBuilder;
+use backend_inmemory::InMemoryBackendConfiguration;
 
 use crate::store::Tasks;
 use crate::store::TasksBuilder;

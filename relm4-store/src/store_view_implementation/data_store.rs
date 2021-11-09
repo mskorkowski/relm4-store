@@ -1,3 +1,4 @@
+use record::TemporaryIdAllocator;
 use reexport::relm4;
 
 use std::cell::RefCell;
@@ -6,14 +7,12 @@ use std::rc::Weak;
 use relm4::send;
 use relm4::Sender;
 
-use model::Identifiable;
+use record::Id;
+use record::Identifiable;
 
 use super::DataStore;
-use super::DataStoreBase;
-use super::DataStoreListenable;
 use super::FactoryBuilder;
 use super::Handler;
-use super::IdentifiableStore;
 use super::Pagination;
 use super::Position;
 use super::RecordWithLocation;
@@ -25,28 +24,24 @@ use super::StoreViewImplementation;
 use crate::math::Range;
 use crate::redraw_messages::RedrawMessages;
 
-impl<Builder> IdentifiableStore for StoreViewImplementation<Builder> 
+impl<Builder, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Builder, Allocator>
 where
-    Builder: FactoryBuilder + 'static,
-{}
-
-impl<Builder> Identifiable for StoreViewImplementation<Builder>
-where
-    Builder: FactoryBuilder,
+    Builder: FactoryBuilder<Allocator>,
+    Allocator: TemporaryIdAllocator,
 {
-    type Id = StoreId<Self>;
+    type Id = StoreId<Self, Allocator>;
 
     fn get_id(&self) -> Self::Id {
         self.id
     }
 }
 
-
-impl<Builder> DataStoreBase for StoreViewImplementation<Builder> 
-where
-    Builder: FactoryBuilder + 'static
+impl<Builder, Allocator> DataStore<Allocator> for StoreViewImplementation<Builder, Allocator> 
+where 
+    Builder: FactoryBuilder<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator,
 {
-    type Model = <Builder::Store as DataStoreBase>::Model;
+    type Record = <Builder::Store as DataStore<Allocator>>::Record;
 
     fn len(&self) -> usize {
         self.store.borrow().len()
@@ -56,37 +51,31 @@ where
         self.store.borrow().is_empty()
     }
 
-    fn inbox(&self, message: StoreMsg<Self::Model>) {
+    fn inbox(&self, message: StoreMsg<Self::Record>) {
         self.changes.borrow_mut().push(message);
     }
 
-    fn get_range(&self, range: &Range) -> Vec<<Builder::Store as DataStoreBase>::Model> {
+    fn get_range(&self, range: &Range) -> Vec<<Builder::Store as DataStore<Allocator>>::Record> {
         self.store.borrow().get_range(range)
     }
 
-    fn get(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Self::Model> {
+    fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record> {
         self.store.borrow().get(id)
     }
-}
 
-impl<Builder: FactoryBuilder> DataStoreListenable for StoreViewImplementation<Builder> {
-    fn listen(&self, handler_ref: StoreId<Self>, handler: Box<dyn Handler<Self>>) {
+    fn listen(&self, handler_ref: StoreId<Self, Allocator>, handler: Box<dyn Handler<Self, Allocator>>) {
         self.handlers.borrow_mut().insert(handler_ref, handler);         
     }
 
-    fn unlisten(&self, handler_ref: StoreId<Self>) {
+    fn unlisten(&self, handler_ref: StoreId<Self, Allocator>) {
         self.handlers.borrow_mut().remove(&handler_ref);
     }
 }
 
-impl<Builder> DataStore for StoreViewImplementation<Builder> 
-where 
-    Builder: FactoryBuilder + 'static,
-{}
-
-impl<Builder> StoreView for StoreViewImplementation<Builder> 
+impl<Builder, Allocator> StoreView<Allocator> for StoreViewImplementation<Builder, Allocator> 
 where
-    Builder: FactoryBuilder + 'static,
+    Builder: FactoryBuilder<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator,
 {
     type Builder = Builder;
 
@@ -94,7 +83,7 @@ where
         self.range.borrow().len()
     }
 
-    fn get_view_data(&self) -> Vec<RecordWithLocation<<Builder::Store as DataStoreBase>::Model>> {
+    fn get_view_data(&self) -> Vec<RecordWithLocation<<Builder::Store as DataStore<Allocator>>::Record>> {
         let mut result = Vec::new();
 
         let data = self.get_range(&self.range.borrow());
@@ -152,7 +141,7 @@ where
         self.range.borrow().clone()
     }
 
-    fn get_position(&self, id: &<<Builder::Store as DataStoreBase>::Model as Identifiable>::Id) -> Option<Position> {
+    fn get_position(&self, id: &Id<Self::Record>) -> Option<Position> {
         let view = self.view.borrow();
         for (pos, view_id) in view.iter().enumerate() {
             if view_id == id {
@@ -173,19 +162,21 @@ where
     }
 }
 
-pub struct StoreViewImplHandler<Builder>
+pub struct StoreViewImplHandler<Builder, Allocator>
 where
-    Builder: FactoryBuilder + 'static,
+    Builder: FactoryBuilder<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator,
 {
-    view: Weak<RefCell<StoreViewImplementation<Builder>>>,
+    view: Weak<RefCell<StoreViewImplementation<Builder, Allocator>>>,
     sender: Sender<RedrawMessages>,
 }
 
-impl<Builder> StoreViewImplHandler<Builder>
+impl<Builder, Allocator> StoreViewImplHandler<Builder, Allocator>
 where
-    Builder: FactoryBuilder + 'static,
+    Builder: FactoryBuilder<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator,
 {
-    pub fn new(view: Weak<RefCell<StoreViewImplementation<Builder>>>, sender: Sender<RedrawMessages>) -> Self {
+    pub fn new(view: Weak<RefCell<StoreViewImplementation<Builder, Allocator>>>, sender: Sender<RedrawMessages>) -> Self {
         Self {
             view,
             sender,
@@ -193,11 +184,12 @@ where
     }
 }
 
-impl<Builder> Handler<Builder::Store> for StoreViewImplHandler<Builder> 
+impl<Builder, Allocator> Handler<Builder::Store, Allocator> for StoreViewImplHandler<Builder, Allocator> 
 where
-    Builder: 'static + FactoryBuilder
+    Builder: 'static + FactoryBuilder<Allocator>,
+    Allocator: TemporaryIdAllocator,
 {
-    fn handle(&self, message: StoreMsg<<Builder::Store as DataStoreBase>::Model>) -> bool {
+    fn handle(&self, message: StoreMsg<<Builder::Store as DataStore<Allocator>>::Record>) -> bool {
         if let Some(view) = self.view.upgrade() {
             view.borrow().inbox(message);
             let sender = &self.sender;

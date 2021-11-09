@@ -1,48 +1,49 @@
-mod component;
-
 use std::cmp::min;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 
-use model::Id;
-use model::Identifiable;
-use model::Model;
+use record::DefaultIdAllocator;
+use record::Id;
+use record::Identifiable;
+use record::Record;
+use record::TemporaryIdAllocator;
 use store::DataStore;
-use store::DataStoreBase;
-use store::DataStoreListenable;
 use store::Handler;
-use store::IdentifiableStore;
 use store::Position;
 use store::StoreId;
 use store::StoreMsg;
 use store::math::Range;
 
-pub trait InMemoryBackendBuilder {
-    type DataModel: 'static + Model + Debug + Clone;
+pub trait InMemoryBackendConfiguration {
+    type Record: 'static + Record + Debug + Clone;
 
-    fn initial_data() -> Vec<Self::DataModel>;
+    fn initial_data() -> Vec<Self::Record>;
 }
 
-pub struct InMemoryBackend<Builder> 
-where Builder: InMemoryBackendBuilder,
+pub struct InMemoryBackend<Builder, Allocator> 
+where 
+    Builder: InMemoryBackendConfiguration,
+    Allocator: TemporaryIdAllocator,
 {
-    id: StoreId<Self>,
+    id: StoreId<Self, Allocator>,
 
     /// Order of profiles
-    order: RefCell<VecDeque<Id<Builder::DataModel>>>,
+    order: RefCell<VecDeque<Id<Builder::Record>>>,
 
     /// profile storage
-    data: RefCell<HashMap<Id<Builder::DataModel>, Builder::DataModel>>,
+    data: RefCell<HashMap<Id<Builder::Record>, Builder::Record>>,
 
-    handlers: RefCell<HashMap<StoreId<Self>, Box<dyn Handler<Self>>>>,
+    handlers: RefCell<HashMap<StoreId<Self, Allocator>, Box<dyn Handler<Self, Allocator>>>>,
 }
 
-impl<Builder> InMemoryBackend<Builder> 
-where Builder: InMemoryBackendBuilder
+impl<Builder, Allocator> InMemoryBackend<Builder, Allocator> 
+where 
+    Builder: InMemoryBackendConfiguration,
+    Allocator: TemporaryIdAllocator
 {
-    pub fn new(initial_data: Vec<Builder::DataModel>) -> Self {
+    pub fn new(initial_data: Vec<Builder::Record>) -> Self {
         let backend = InMemoryBackend{
             id: StoreId::new(),
             order: RefCell::new(VecDeque::new()),
@@ -59,7 +60,7 @@ where Builder: InMemoryBackendBuilder
         backend
     }
 
-    fn fire_handlers(&self, message: StoreMsg<Builder::DataModel>) {
+    fn fire_handlers(&self, message: StoreMsg<Builder::Record>) {
         let handlers = self.handlers.borrow();
 
         if handlers.is_empty() {
@@ -74,7 +75,7 @@ where Builder: InMemoryBackendBuilder
         // removal we need to borrow again since, unlisten is
         // internally mutable which would cause UB, since we would 
         // iterate over collection which changes itself
-        let mut ids_for_remove: Vec<StoreId<Self>> = Vec::new();
+        let mut ids_for_remove: Vec<StoreId<Self, Allocator>> = Vec::new();
 
         for (key, handler) in handlers.iter() {
             let remove = handler.handle(message.clone());
@@ -90,7 +91,7 @@ where Builder: InMemoryBackendBuilder
         }
     }
 
-    fn add(&self, record: Builder::DataModel) -> Position {
+    fn add(&self, record: Builder::Record) -> Position {
         let id = record.get_id();
         {
             self.data.borrow_mut().insert(id, record.clone());
@@ -102,26 +103,26 @@ where Builder: InMemoryBackendBuilder
     }
 }
 
-impl<Builder> Identifiable for InMemoryBackend<Builder>
-where Builder: InMemoryBackendBuilder
+impl<Builder, Allocator> Identifiable<InMemoryBackend<Builder, Allocator>, Allocator::Type> for InMemoryBackend<Builder, Allocator>
+where 
+    Builder: InMemoryBackendConfiguration,
+    Allocator: TemporaryIdAllocator,
 {
-    type Id=StoreId<Self>;
+    type Id=StoreId<Self, Allocator>;
 
     fn get_id(&self) -> Self::Id {
         self.id
     }
 }
 
-impl<Builder> IdentifiableStore for InMemoryBackend<Builder> 
-where Builder: InMemoryBackendBuilder,
-{}
-
-impl<Builder> DataStoreBase for InMemoryBackend<Builder>
-where Builder: InMemoryBackendBuilder,
+impl<Builder, Allocator> DataStore<Allocator> for InMemoryBackend<Builder, Allocator>
+where 
+    Builder: InMemoryBackendConfiguration,
+    Allocator: TemporaryIdAllocator,
 {
-    type Model = Builder::DataModel;
+    type Record = Builder::Record;
 
-    fn inbox(&self, msg: StoreMsg<Builder::DataModel>) {
+    fn inbox(&self, msg: StoreMsg<Builder::Record>) {
         match msg {
             StoreMsg::New(record) => {
                 let position = self.add(record);
@@ -158,7 +159,7 @@ where Builder: InMemoryBackendBuilder,
         self.len() == 0
     }
 
-    fn get_range(&self, range: &Range) -> Vec<Self::Model> {
+    fn get_range(&self, range: &Range) -> Vec<Self::Record> {
         let count = self.len();
 
         let start = min(*range.start(), count);
@@ -167,7 +168,7 @@ where Builder: InMemoryBackendBuilder,
         let order = self.order.borrow();
         let iter = order.range(start..(start+length));
 
-        let mut result: Vec<Self::Model> = Vec::new();
+        let mut result: Vec<Self::Record> = Vec::new();
 
         for id in iter {
             let record = {
@@ -180,25 +181,17 @@ where Builder: InMemoryBackendBuilder,
         result
     }
 
-    fn get(&self, id: &Id<Builder::DataModel>) -> Option<Builder::DataModel> {
+    fn get(&self, id: &Id<Builder::Record>) -> Option<Builder::Record> {
         let data = self.data.borrow();
         data.get(id)
             .map(|r| r.clone())
     }
-}
 
-impl<Builder> DataStoreListenable for InMemoryBackend<Builder> 
-where Builder: InMemoryBackendBuilder
-{
-    fn listen<'b>(&self, handler_ref: StoreId<Self>, handler: Box<dyn Handler<Self>>) {
+    fn listen<'b>(&self, handler_ref: StoreId<Self, Allocator>, handler: Box<dyn Handler<Self, Allocator>>) {
         self.handlers.borrow_mut().insert(handler_ref, handler);
     }
 
-    fn unlisten(&self, handler_ref: StoreId<Self>) {
+    fn unlisten(&self, handler_ref: StoreId<Self, Allocator>) {
         self.handlers.borrow_mut().remove(&handler_ref);
     }
 }
-
-impl<Builder> DataStore for InMemoryBackend<Builder>
-where Builder: InMemoryBackendBuilder
-{}

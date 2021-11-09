@@ -1,12 +1,12 @@
 use std::fmt::Debug;
 
-use model::Id;
-use model::Model;
+use record::Id;
+use record::Record;
 
 use super::Position;
 
 #[derive(Clone,Debug)]
-pub enum StoreMsg<T: Model + Debug + Clone> {
+pub enum StoreMsg<T: Record + Debug + Clone> {
     New(T),
     NewAt(Position),
     /// One element in store has been moved

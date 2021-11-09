@@ -1,3 +1,4 @@
+use record::TemporaryIdAllocator;
 use reexport::gtk;
 use reexport::relm4;
 
@@ -16,24 +17,26 @@ use crate::store_view_implementation::StoreViewImplementation;
 use crate::window::WindowBehavior;
 
 use super::DataStore;
-use super::DataStoreBase;
 use super::position::Position;
 
 
-pub trait FactoryBuilder: ViewModel<Widgets = Self::ContainerWidgets> {
-    type Store: DataStore;
+pub trait FactoryBuilder<Allocator>: ViewModel<Widgets = Self::ContainerWidgets> 
+where
+    Allocator: TemporaryIdAllocator,
+{
+    type Store: DataStore<Allocator>;
     type RecordWidgets: Debug;
     type Root: WidgetExt;
     type View: FactoryView<Self::Root> + FactoryListView<Self::Root>;
     type Window: WindowBehavior;
-    type ContainerWidgets: FactoryContainerWidgets<Self>;
+    type ContainerWidgets: FactoryContainerWidgets<Self, Allocator>;
 
     // type Msg;
     // type ViewModel: ViewModel<Msg=Self::Msg>;
     type ParentViewModel: ViewModel;
 
     fn generate(
-        record: &<Self::Store as DataStoreBase>::Model,
+        record: &<Self::Store as DataStore<Allocator>>::Record,
         position: Position,
         sender: Sender<Self::Msg>,
     ) -> Self::RecordWidgets;
@@ -41,7 +44,7 @@ pub trait FactoryBuilder: ViewModel<Widgets = Self::ContainerWidgets> {
     /// Function called when record in store view is modified and you need to 
     /// synchronize the state of the view with data in the model
     fn update_record(
-        model: <Self::Store as DataStoreBase>::Model,
+        model: <Self::Store as DataStore<Allocator>>::Record,
         position: Position,
         widgets: &Self::RecordWidgets,
     );
@@ -52,10 +55,10 @@ pub trait FactoryBuilder: ViewModel<Widgets = Self::ContainerWidgets> {
         sender: Sender<Self::Msg>,
     );
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self>>>) -> Self;
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self, Allocator>>>) -> Self;
 
     fn position(
-        model: <Self::Store as DataStoreBase>::Model, 
+        model: <Self::Store as DataStore<Allocator>>::Record, 
         position: Position,
     ) -> <Self::View as FactoryView<Self::Root>>::Position;
 
@@ -63,19 +66,22 @@ pub trait FactoryBuilder: ViewModel<Widgets = Self::ContainerWidgets> {
     fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root;
 }
 
-pub trait FactoryContainerWidgets<FactoryViewModel: FactoryBuilder<Widgets=Self, ContainerWidgets=Self>> {
+pub trait FactoryContainerWidgets<FactoryViewModel: FactoryBuilder<Allocator, Widgets=Self, ContainerWidgets=Self>, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+{
     type Root: std::fmt::Debug;
 
     fn init_view(
         view_model: &FactoryViewModel, 
-        store_view: &StoreViewImplementation<FactoryViewModel>, 
+        store_view: &StoreViewImplementation<FactoryViewModel, Allocator>, 
         sender: Sender<<FactoryViewModel as ViewModel>::Msg>
     ) -> Self;
     
     fn view(
         &mut self, 
         view_model: &FactoryViewModel, 
-        store_view: &StoreViewImplementation<FactoryViewModel>,
+        store_view: &StoreViewImplementation<FactoryViewModel, Allocator>,
         sender: Sender<<FactoryViewModel as ViewModel>::Msg>
     );
     
@@ -83,5 +89,5 @@ pub trait FactoryContainerWidgets<FactoryViewModel: FactoryBuilder<Widgets=Self,
 
     fn connect_components(&self, _model: &FactoryViewModel, _components: &FactoryViewModel::Components) {}
 
-    fn container_widget(&self) -> &<FactoryViewModel as FactoryBuilder>::View;
+    fn container_widget(&self) -> &<FactoryViewModel as FactoryBuilder<Allocator>>::View;
 }

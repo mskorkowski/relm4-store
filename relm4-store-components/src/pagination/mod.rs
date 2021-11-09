@@ -1,7 +1,8 @@
+use record::TemporaryIdAllocator;
 use reexport::gtk;
 use reexport::relm4;
 use reexport::relm4_macros;
-use store::DataStoreBase;
+use store::DataStore;
 use store::FactoryBuilder;
 use store::StoreViewImplementation;
 
@@ -37,35 +38,41 @@ pub enum PaginationMsg {
     Reload,
 }
 
-pub trait PaginationConfiguration {
-    type SV: StoreView;
-    type ParentViewModel: ViewModel + FactoryBuilder;
+pub trait PaginationConfiguration<Allocator> 
+where Allocator: TemporaryIdAllocator,
+{
+    type SV: StoreView<Allocator>;
+    type ParentViewModel: ViewModel + FactoryBuilder<Allocator>;
 
-    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentViewModel>>>;
+    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentViewModel, Allocator>>>;
 
     fn update_message() -> <Self::ParentViewModel as ViewModel>::Msg;
 }
 
-
-
-pub struct PaginationViewModel<Config> 
-where Config: PaginationConfiguration + 'static,
+pub struct PaginationViewModel<Config, Allocator> 
+where 
+    Config: PaginationConfiguration<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator + 'static,
 {
-    view: Rc<RefCell<StoreViewImplementation<Config::ParentViewModel>>>,
+    view: Rc<RefCell<StoreViewImplementation<Config::ParentViewModel, Allocator>>>,
     page: gtk::EntryBuffer,
     pages_total: String,
 }
 
-impl<Config> ViewModel for PaginationViewModel<Config>
-where Config: PaginationConfiguration,
+impl<Config, Allocator> ViewModel for PaginationViewModel<Config, Allocator>
+where 
+    Config: PaginationConfiguration<Allocator>,
+    Allocator: TemporaryIdAllocator,
 {
     type Msg = PaginationMsg;
     type Widgets = PaginationWidgets;
     type Components = ();
 }
 
-impl<Config> ComponentUpdate<Config::ParentViewModel> for PaginationViewModel<Config>
-where Config: PaginationConfiguration,
+impl<Config, Allocator> ComponentUpdate<Config::ParentViewModel> for PaginationViewModel<Config, Allocator>
+where 
+    Config: PaginationConfiguration<Allocator>,
+    Allocator: TemporaryIdAllocator,
 {
     fn init_model(parent_model: &Config::ParentViewModel) -> Self {
         let view = Config::get_view(parent_model); 
@@ -109,8 +116,10 @@ where Config: PaginationConfiguration,
 }
 
 #[widget(visibility=pub, relm4=relm4)]
-impl<Config> Widgets<PaginationViewModel<Config>, Config::ParentViewModel> for PaginationWidgets 
-where Config: PaginationConfiguration,
+impl<Config, Allocator> Widgets<PaginationViewModel<Config, Allocator>, Config::ParentViewModel> for PaginationWidgets 
+where 
+    Config: PaginationConfiguration<Allocator>,
+    Allocator: TemporaryIdAllocator,
 {
     view! {
         root = &gtk::Box {

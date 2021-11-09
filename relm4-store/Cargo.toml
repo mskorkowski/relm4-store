@@ -13,4 +13,4 @@ panic = "abort"
 
 [dependencies]
 reexport = { path = "../relm4-store-reexport", package = "relm4-store-reexport" }
-model = { path = "../relm4-store-model", package = "relm4-store-model" }
+record = { path = "../relm4-store-record", package = "relm4-store-record" }

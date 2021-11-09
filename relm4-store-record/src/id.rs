@@ -1,4 +1,3 @@
-//! Provides implementation of identifier for Models
 
 use std::cmp::Eq;
 use std::collections::HashSet;
@@ -8,23 +7,12 @@ use std::hash::Hasher;
 use std::iter::FromIterator;
 use std::marker::PhantomData;
 
-use reexport::uuid::Uuid;
-
-pub trait Identity<T: ?Sized> {
-    fn get_value(&self) -> Uuid;
-}
-
-pub trait Identifiable {
-    type Id: Identity<Self> + ?Sized;
-    
-    fn get_id(&self) -> Self::Id;
-}
-
-pub trait Model: Identifiable<Id=Id<Self>> {}
+use super::Identity;
+use super::Record;
+use super::TemporaryIdAllocator;
+use super::DefaultIdAllocator;
 
 /// Id for models
-/// 
-/// 
 /// 
 /// There are two possible values for it, `New` and `Identifier`.
 /// `New` is used for models which were created but not "persisted" yet in
@@ -58,120 +46,184 @@ pub trait Model: Identifiable<Id=Id<Self>> {}
 /// Another use case could be sending messages to remote system, where you can show user
 /// a message which was send and when response about persisted message comes back you can
 /// update ui to reflect that.
-pub enum Id<T: ?Sized + Model> {
+/// 
+/// ## Something different then uuid
+/// 
+/// If you would like to have an id with values which differ from uuid you should
+/// implement your own [TemporaryIdAllocator] and pass it as a second type.
+pub enum Id<T, Allocator=DefaultIdAllocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    T: ?Sized + Record<Allocator>,
+{
     /// Id for records which were not committed yet to store
     New{
-        value: Uuid,
-        phantom: PhantomData<*const T>,
+        /// Value of the id
+        value: Allocator::Type,
+        #[allow(missing_docs)]
+        _t: PhantomData<*const T>,
     },
     /// Id for records which are persisted already
     /// 
     /// What persisted means depends on the store.
-    Identifier {
-        value: Uuid,
-        phantom: PhantomData<*const T>,
+    Permanent {
+        /// Value of the id
+        value: Allocator::Type,
+        #[allow(missing_docs)]
+        _t: PhantomData<*const T>,
     }
 }
 
-impl<T: ?Sized + Model> Id<T> {
+impl<T, Allocator> Id<T, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    T: ?Sized + Record<Allocator>,
+{
     /// Returns `true` if id has not been committed to store yet
     pub fn is_new(&self) -> bool {
         match self {
             Id::New{..} => true,
-            Id::Identifier{..} => false
+            Id::Permanent{..} => false
         }
     }
 }
 
-impl<T: ?Sized + Model> Identity<T> for Id<T> {
-    fn get_value(&self) -> Uuid {
+impl<T, Allocator> Identity<T, Allocator::Type> for Id<T, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    T: ?Sized + Record<Allocator>,
+{
+    fn get_value(&self) -> Allocator::Type {
         match self {
             Id::New{value, ..} => *value,
-            Id::Identifier{value, ..} => *value,
+            Id::Permanent{value, ..} => *value,
         }
     }
 }
 
-impl<T: ?Sized + Model> Clone for Id<T> {
+impl<T, Allocator> Clone for Id<T, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    T: ?Sized + Record<Allocator>,
+{
     fn clone(&self) -> Self {
         match self {
             Id::New{value, ..} => Id::New{
                 value: *value,
-                phantom: PhantomData
+                _t: PhantomData,
             },
-            Id::Identifier{value, ..} => Id::Identifier{
+            Id::Permanent{value, ..} => Id::Permanent{
                 value: *value,
-                phantom: PhantomData,
+                _t: PhantomData,
             }
         }
     }
 }
 
-impl<T: ?Sized + Model> Copy for Id<T> {}
+impl<T, Allocator> Copy for Id<T, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    T: ?Sized + Record<Allocator>,
+{}
 
-impl<T: ?Sized + Model> fmt::Display for Id<T> {
+impl<T, Allocator> fmt::Display for Id<T, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    Allocator::Type: fmt::Display,
+    T: ?Sized + Record<Allocator>,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Id::New{value, ..} => value.fmt(f),
-            Id::Identifier{value, ..} => value.fmt(f),
+            Id::Permanent{value, ..} => value.fmt(f),
         }
         
     }
 }
 
-impl<T: ?Sized + Model> Id<T> {
+impl<T, Allocator> Id<T, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    T: ?Sized + Record<Allocator>,
+{
+    /// Creates new instance of the Id
+    /// 
+    /// Returns new temporary id
     #[must_use]
     pub fn new() -> Self {
-        let uuid = Uuid::new_v4();
-
         Id::New {
-            value: uuid,
-            phantom: PhantomData,
+            value: Allocator::new_id(),
+            _t: PhantomData,
         }
     }
 }
 
-impl<T: ?Sized + Model> Default for Id<T> {
+impl<T, Allocator> Default for Id<T, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    T: ?Sized + Record<Allocator>,
+{
     fn default() -> Self {
         Id::new()
     }
 }
 
-impl<T: ?Sized + Model> PartialEq for Id<T> {
+impl<T, Allocator> PartialEq for Id<T, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    T: ?Sized + Record<Allocator>,
+{
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Id::New{value: lhs, ..}, Id::New{value: rhs, ..}) => lhs.eq(rhs),
-            (Id::Identifier{value: lhs, ..}, Id::Identifier{value: rhs, ..}) => lhs.eq(rhs),
+            (Id::Permanent{value: lhs, ..}, Id::Permanent{value: rhs, ..}) => lhs.eq(rhs),
             _ => false
         }
     }
 }
 
-impl<T: ?Sized + Model> Eq for Id<T> {}
+impl<T, Allocator> Eq for Id<T, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    T: ?Sized + Record<Allocator>,
+{}
 
-impl<T: ?Sized + Model>Hash for Id<T> {
+impl<T, Allocator>Hash for Id<T, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    T: ?Sized + Record<Allocator>,
+{
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
             Id::New{value, ..} => value.hash(state),
-            Id::Identifier{value, ..} => value.hash(state)
+            Id::Permanent{value, ..} => value.hash(state)
         }
     }
 }
 
-impl<T: ?Sized + Model> fmt::Debug for Id<T> {
+impl<T, Allocator> fmt::Debug for Id<T, Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+    Allocator::Type: fmt::Debug,
+    T: ?Sized + Record<Allocator>,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Id::New{value, ..} => 
-                f.write_str(&format!("Id::New({})", value)),
-            Id::Identifier{value, ..} =>
-                f.write_str(&format!("Id::Identifier({})", value)),
+                f.debug_tuple("Id::New").field(value).finish(),
+            Id::Permanent{value, ..} =>
+                f.debug_tuple("Id::Permanent").field(value).finish(),
         }
 
     }
 }
 
-impl<T: 'static + ?Sized + Model> FromIterator<&'static Id<T>> for HashSet<Id<T>> {
-    fn from_iter<II: IntoIterator<Item = &'static Id<T>>>(iter: II) -> Self {
+impl<T, Allocator> FromIterator<&'static Id<T, Allocator>> for HashSet<Id<T, Allocator>> 
+where
+    Allocator: TemporaryIdAllocator,
+    T: 'static + ?Sized + Record<Allocator>,
+{
+    fn from_iter<II: IntoIterator<Item = &'static Id<T, Allocator>>>(iter: II) -> Self {
         iter.into_iter().map(|v| v.clone()).collect()
     }
 }

@@ -1,6 +1,9 @@
 mod data_store;
+mod widgets;
+
 pub use data_store::StoreViewImplHandler;
 
+use record::TemporaryIdAllocator;
 use reexport::relm4;
 
 use std::cell::RefCell;
@@ -13,15 +16,12 @@ use relm4::Sender;
 use relm4::factory::FactoryListView;
 use relm4::factory::FactoryView;
 
-use model::Identifiable;
-use model::Id;
+use record::Record;
+use record::Id;
 
 use super::DataStore;
-use super::DataStoreBase;
-use super::DataStoreListenable;
 use super::FactoryBuilder;
 use super::Handler;
-use super::IdentifiableStore;
 use super::Pagination;
 use super::Position;
 use super::RecordWithLocation;
@@ -32,10 +32,10 @@ use super::WindowChangeset;
 
 use super::math::Point;
 use super::math::Range;
-use super::widgets::Widgets;
 use super::window::WindowBehavior;
 use super::window::WindowTransition;
 
+use widgets::Widgets;
 /// View of the store
 /// 
 /// State of view reflects subset of the state of store. Like a page of the data.
@@ -44,26 +44,28 @@ use super::window::WindowTransition;
 /// 
 /// To interact with content you should use Store. Store will handle all the
 /// make sure all the updates are propagated to the view.
-pub struct StoreViewImplementation<Builder>
+pub struct StoreViewImplementation<Builder, Allocator>
 where
-    Builder: FactoryBuilder + 'static,
+    Builder: FactoryBuilder<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator,
 {
-    id: StoreId<Self>,
+    id: StoreId<Self, Allocator>,
     store: Rc<RefCell<Builder::Store>>,
-    handlers: RefCell<HashMap<StoreId<Self>, Box<dyn Handler<Self>>>>,
+    handlers: RefCell<HashMap<StoreId<Self, Allocator>, Box<dyn Handler<Self, Allocator>>>>,
     #[allow(clippy::type_complexity)]
-    view_data: RefCell<HashMap<Id<<Builder::Store as DataStoreBase>::Model>, <Builder::Store as DataStoreBase>::Model>>,
-    view: RefCell<VecDeque<Id<<Builder::Store as DataStoreBase>::Model>>>,
+    view_data: RefCell<HashMap<Id<<Builder::Store as DataStore<Allocator>>::Record>, <Builder::Store as DataStore<Allocator>>::Record>>,
+    view: RefCell<VecDeque<Id<<Builder::Store as DataStore<Allocator>>::Record>>>,
     #[allow(clippy::type_complexity)]
-    widgets: RefCell<HashMap<Id<<Builder::Store as DataStoreBase>::Model>, Widgets<Builder::RecordWidgets, <Builder::View as FactoryView<Builder::Root>>::Root>>>,
-    changes: RefCell<Vec<StoreMsg<<Builder::Store as DataStoreBase>::Model>>>,
+    widgets: RefCell<HashMap<Id<<Builder::Store as DataStore<Allocator>>::Record>, Widgets<Builder::RecordWidgets, <Builder::View as FactoryView<Builder::Root>>::Root>>>,
+    changes: RefCell<Vec<StoreMsg<<Builder::Store as DataStore<Allocator>>::Record>>>,
     range: RefCell<Range>,
     size: usize,
 }
 
-impl<'me, Builder> StoreViewImplementation<Builder> 
+impl<Builder, Allocator> StoreViewImplementation<Builder, Allocator> 
 where
-    Builder: FactoryBuilder + 'static,
+    Builder: FactoryBuilder<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator,
 {
     pub fn new(store: Rc<RefCell<Builder::Store>>, size: usize) -> Self {
         let range = RefCell::new(Range::new(0, size));
@@ -86,7 +88,7 @@ where
         }
     }
 
-    fn convert_to_transition(&self, range: &Range, message: &StoreMsg<<Builder::Store as DataStoreBase>::Model>) -> WindowTransition {
+    fn convert_to_transition(&self, range: &Range, message: &StoreMsg<<Builder::Store as DataStore<Allocator>>::Record>) -> WindowTransition {
         match message {
             StoreMsg::New(_record) => {
                 Builder::Window::insert(range, &Point::new(self.view_data.borrow().len()))
@@ -115,12 +117,12 @@ where
         }
     }
 
-    fn reload(&self, changeset: &mut WindowChangeset<Builder>) {
+    fn reload(&self, changeset: &mut WindowChangeset<Builder, Allocator>) {
 
         //TODO: Optimise it... it has loads of unnecessary updates
         let store = self.store.borrow();
         let range_of_changes = self.range.borrow().clone();
-        let new_items: Vec<<Self as DataStoreBase>::Model> = store.get_range(&range_of_changes);
+        let new_items: Vec<<Self as DataStore<Allocator>>::Record> = store.get_range(&range_of_changes);
         let mut view = self.view.borrow_mut();
 
         //remove unused data
@@ -148,12 +150,12 @@ where
         }
     }
 
-    fn insert_right(&self, changeset: &mut WindowChangeset<Builder>, pos: usize, by: usize) {
+    fn insert_right(&self, changeset: &mut WindowChangeset<Builder, Allocator>, pos: usize, by: usize) {
         let store = self.store.borrow();
         // let end = *self.range.borrow().end();
         let start = *self.range.borrow().start();
         let range_of_changes = Range::new(pos, pos+by);
-        let new_items: Vec<<Self as DataStoreBase>::Model> = store.get_range(&range_of_changes);
+        let new_items: Vec<<Self as DataStore<Allocator>>::Record> = store.get_range(&range_of_changes);
 
         let mut view = self.view.borrow_mut();
 
@@ -199,7 +201,7 @@ where
     ///
     /// Third case:
     /// 
-    fn insert_left(&self, changeset: &mut WindowChangeset<Builder>, pos: usize, by: usize) {
+    fn insert_left(&self, changeset: &mut WindowChangeset<Builder, Allocator>, pos: usize, by: usize) {
 
         println!("Insert left");
         let store = self.store.borrow();
@@ -232,7 +234,7 @@ where
             println!("\tend_pos: {}", end_pos);
             println!("\trange_of_changes: {}", range_of_changes);
 
-            let new_items: Vec<<Self as DataStoreBase>::Model> = store.get_range(&range_of_changes);
+            let new_items: Vec<<Self as DataStore<Allocator>>::Record> = store.get_range(&range_of_changes);
 
             let mut view = self.view.borrow_mut();
 
@@ -267,7 +269,7 @@ where
         }                    
     }
 
-    fn compile_changes(&self) -> WindowChangeset<Builder> {
+    fn compile_changes(&self) -> WindowChangeset<Builder, Allocator> {
         let mut changeset = WindowChangeset {
             widgets_to_remove: HashSet::new(),
             ids_to_add: HashSet::new(),
@@ -433,7 +435,7 @@ where
             if ids_to_update.contains(id) {
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
-                        <Builder as FactoryBuilder>::update_record(record, position, &widget.widgets);
+                        <Builder as FactoryBuilder<Allocator>>::update_record(record, position, &widget.widgets);
                     }
                 }
             }

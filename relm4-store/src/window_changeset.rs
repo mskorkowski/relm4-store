@@ -1,15 +1,22 @@
 use std::collections::HashSet;
 
-use model::Id;
+use record::Id;
+use record::TemporaryIdAllocator;
 
-use super::DataStoreBase;
+use super::DataStore;
 use super::FactoryBuilder;
 
-pub struct WindowChangeset<Builder> 
+/// WindowChangeset describes how the store view window has changed in response to the changes in the store
+pub struct WindowChangeset<Builder, Allocator>
 where
-    Builder: FactoryBuilder + 'static
+    Builder: FactoryBuilder<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator,
+
 {
-    pub widgets_to_remove: HashSet<Id<<Builder::Store as DataStoreBase>::Model>>,
-    pub ids_to_add: HashSet<Id<<Builder::Store as DataStoreBase>::Model>>,
-    pub ids_to_update: HashSet<Id<<Builder::Store as DataStoreBase>::Model>>,
+    /// Set of record id's of widgets which needs to be removed from the view
+    pub widgets_to_remove: HashSet<Id<<Builder::Store as DataStore<Allocator>>::Record>>,
+    /// Set of record id's of widgets which needs to be added to the view
+    pub ids_to_add: HashSet<Id<<Builder::Store as DataStore<Allocator>>::Record>>,
+    /// Set of record id's of widgets which needs to be updated
+    pub ids_to_update: HashSet<Id<<Builder::Store as DataStore<Allocator>>::Record>>,
 }

@@ -13,6 +13,13 @@
 //! 
 //! As side effect it simplifies relm4 factories usage.
 
+#![warn(
+    missing_debug_implementations,
+    missing_docs,
+    rust_2018_idioms,
+    unreachable_pub
+)]
+
 mod factory_builder;
 mod handler_wrapper;
 pub mod math;
@@ -25,18 +32,21 @@ mod store_msg;
 mod store_size;
 mod store_view_implementation;
 mod store_view_interface;
-pub mod widgets;
 pub mod window;
 mod window_changeset;
 
 use reexport::relm4;
 
+
 use std::fmt::Debug;
 use std::marker::Sized;
 use relm4::Model as ViewModel;
 
-use model::Identifiable;
-use model::Model;
+use record::DefaultIdAllocator;
+use record::Id;
+use record::Identifiable;
+use record::Record;
+use record::TemporaryIdAllocator;
 
 use crate::math::Range;
 
@@ -55,31 +65,9 @@ use window_changeset::WindowChangeset;
 pub use store_view_interface::StoreViewInterface;
 
 /// Implementations of this trait are used to send messages between the store and it's views
-pub trait Handler<Store: DataStore + ?Sized> {
+pub trait Handler<Store: DataStore<Allocator> + ?Sized, Allocator: TemporaryIdAllocator> {
     /// Method called when parent store needs to pass a message to the view
-    fn handle(&self, message: StoreMsg<<Store as DataStoreBase>::Model>) -> bool;
-}
-
-pub trait IdentifiableStore: Identifiable<Id=StoreId<Self>> {}
-
-pub trait DataStoreBase: IdentifiableStore {
-    type Model: Model + Debug + Clone;
-
-    fn inbox(&self, m: StoreMsg<Self::Model>);
-    fn len(&self) -> usize;
-    fn is_empty(&self) -> bool;
-    fn get(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Self::Model>;
-
-    /// Returns records which are in the store at the given range
-    ///
-    /// Returned vector doesn't need to be ordered by position.
-    /// If range is out of bounds returned vector will be empty.
-    fn get_range(&self, range: &Range) -> Vec<Self::Model>;
-}
-
-pub trait DataStoreListenable: IdentifiableStore + DataStoreBase {
-    fn listen(&self, id: StoreId<Self>, h: Box<dyn Handler<Self>>);
-    fn unlisten(&self, handler_ref: StoreId<Self>);
+    fn handle(&self, message: StoreMsg<<Store as DataStore<Allocator>>::Record>) -> bool;
 }
 
 /// DataStore is a trait describing collections specialized in housekeeping business model data
@@ -133,7 +121,58 @@ pub trait DataStoreListenable: IdentifiableStore + DataStoreBase {
 /// in the store. But which data you are talking about? Equality operation is not going to work since
 /// you just mutated them. That's way your model needs to provide an identifier which is good enough
 /// so the data store can depend on it to identify the instances of the data.
-pub trait DataStore: IdentifiableStore + DataStoreBase + DataStoreListenable{}
+/// 
+/// ## To the writers of the store
+/// 
+/// If you implement a store to be used by the external applications do yourself and users a favor and 
+/// please
+/// 
+/// 1. Expose StoreId allocator
+/// 2. Make sure your store will work with any sufficiently good enough `Id<Record>` without depending
+/// on the exact underlying id type. If you require any property to be present for an `Id` just add it
+/// to the list of requiremnts of your store and ask user to give you that.
+/// 
+/// If there are limitation on that please somewhere at the beginning of the docs note what limitations
+/// are around this values. It can easily become a deal breaker for users of your library.
+pub trait DataStore<Allocator>: Identifiable<Self, Allocator::Type, Id=StoreId<Self, Allocator>> 
+where Allocator: TemporaryIdAllocator
+{
+    /// Type of records kept in the data store
+    type Record: Record + Debug + Clone;
+
+    /// Registers message in the data store
+    /// 
+    /// Data store might handle it immediately or might do queue it for later. It's up to the store
+    /// implementation what to do with a message
+    fn inbox(&self, m: StoreMsg<Self::Record>);
+
+    /// Total amount of available records in the store
+    fn len(&self) -> usize;
+
+    /// Returns true if store doesn't contain any records yet
+    fn is_empty(&self) -> bool;
+
+    /// Returns the record from the store
+    /// 
+    /// If returns [None] then it means there is no such record in the store
+    fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record>;
+
+    /// Returns records which are in the store at the given range
+    ///
+    /// Returned vector doesn't need to be ordered by position.
+    /// If range is out of bounds returned vector will be empty.
+    fn get_range(&self, range: &Range) -> Vec<Self::Record>;
+
+    /// Attaches handler to the store
+    /// 
+    /// Handler is fired whenever there is a change in the store
+    fn listen(&self, id: StoreId<Self, Allocator>, h: Box<dyn Handler<Self, Allocator>>);
+
+    /// Removes handler from the store
+    /// 
+    /// Changes to the store will not be delivered after this handler is removed
+    fn unlisten(&self, handler_ref: StoreId<Self, Allocator>);
+}
 
 /// StoreView allows you to access part of the data in the data store
 /// 
@@ -146,18 +185,20 @@ pub trait DataStore: IdentifiableStore + DataStoreBase + DataStoreListenable{}
 ///   Your business model has two data sets `A` and `B` and there is `1-*` relationship between the data.
 ///   There are valid scenarios when you would like to edit item in `A` and give the ability to modify
 ///   related items in `B` at the same time. 
-pub trait StoreView: DataStore
+pub trait StoreView<Allocator>: DataStore<Allocator>
+where
+    Allocator: TemporaryIdAllocator,
 {
-    type Builder: FactoryBuilder;
+    type Builder: FactoryBuilder<Allocator>;
     fn window_size(&self) -> usize;
     fn get_window(&self) -> Range;
     fn set_window(&self, range: Range);
-    fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Model>>;
+    fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record>>;
 
     /// Returns the position of the record in the view
     /// 
     /// If returns `None` that means record is not in the view
-    fn get_position(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Position>;
+    fn get_position(&self, id: &Id<Self::Record>) -> Option<Position>;
 
     fn next_page(&self);
     fn prev_page(&self);
@@ -167,11 +208,12 @@ pub trait StoreView: DataStore
     fn inbox_queue_size(&self) -> usize;
 }
 
-
-
-pub trait Source {
+pub trait Source<Allocator> 
+where
+    Allocator: TemporaryIdAllocator,
+{
     type ParentViewModel : ViewModel;
-    type SV: StoreView;
+    type SV: StoreView<Allocator>;
 
     fn store(parent_model: &Self::ParentViewModel) -> Self::SV;
 }

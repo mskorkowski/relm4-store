@@ -27,7 +27,7 @@ use components::pagination::PaginationConfiguration;
 use components::pagination::PaginationViewModel;
 use model::Id;
 use model::Identifiable;
-use store::DataStoreBase;
+use store::DataStore;
 use store::FactoryBuilder;
 use store::FactoryContainerWidgets;
 use store::Position;

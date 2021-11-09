@@ -1,40 +1,49 @@
 use std::marker::PhantomData;
 
+use record::TemporaryIdAllocator;
+
 use super::DataStore;
-use super::DataStoreBase;
 use super::Handler;
 use super::StoreMsg;
 
-pub struct HandlerWrapper<Store, OtherStore>
+pub struct HandlerWrapper<Store, OtherStore, Allocator, OtherAllocator>
 where
-    OtherStore: DataStore + ?Sized,
-    Store: DataStore<Model=<OtherStore as DataStoreBase>::Model> + ?Sized,
+    OtherStore: DataStore<OtherAllocator> + ?Sized,
+    Store: DataStore<Allocator, Record=<OtherStore as DataStore<OtherAllocator>>::Record> + ?Sized,
+    OtherAllocator: TemporaryIdAllocator,
+    Allocator: TemporaryIdAllocator<Type=OtherAllocator::Type>,
 {
-    parent: Box<dyn Handler<Store>>,
-    _other: PhantomData<*const OtherStore>,
+    parent: Box<dyn Handler<Store, Allocator>>,
+    _other_store: PhantomData<*const OtherStore>,
+    _other_allocator: PhantomData<*const OtherAllocator>,
 }
 
-impl<Store, OtherStore> HandlerWrapper<Store, OtherStore>
+impl<Store, OtherStore, Allocator, OtherAllocator> HandlerWrapper<Store, OtherStore, Allocator, OtherAllocator>
 where
-    OtherStore: DataStore + ?Sized + 'static,
-    Store: DataStore<Model=<OtherStore as DataStoreBase>::Model> + ?Sized + 'static,
+    OtherStore: DataStore<OtherAllocator> + ?Sized + 'static,
+    Store: DataStore<Allocator, Record=<OtherStore as DataStore<OtherAllocator>>::Record> + ?Sized + 'static,
+    OtherAllocator: TemporaryIdAllocator + 'static,
+    Allocator: TemporaryIdAllocator<Type=OtherAllocator::Type> + 'static,
 {
-    pub fn from(parent: Box<dyn Handler<Store>>) -> Box<dyn Handler<OtherStore>> {
+    pub fn from(parent: Box<dyn Handler<Store, Allocator>>) -> Box<dyn Handler<OtherStore, OtherAllocator>> {
         Box::new(
             HandlerWrapper{
-                _other: PhantomData,
-                parent
+                parent,
+                _other_store: PhantomData,
+                _other_allocator: PhantomData,
             }
         )
     }
 }
 
-impl<Store, OtherStore> Handler<OtherStore> for HandlerWrapper<Store, OtherStore>
+impl<Store, OtherStore, Allocator, OtherAllocator> Handler<OtherStore, OtherAllocator> for HandlerWrapper<Store, OtherStore, Allocator, OtherAllocator>
 where
-    OtherStore: DataStore + ?Sized,
-    Store: DataStore<Model=<OtherStore as DataStoreBase>::Model> + ?Sized,
+    OtherStore: DataStore<OtherAllocator> + ?Sized,
+    Store: DataStore<Allocator, Record=<OtherStore as DataStore<OtherAllocator>>::Record> + ?Sized,
+    OtherAllocator: TemporaryIdAllocator,
+    Allocator: TemporaryIdAllocator<Type=OtherAllocator::Type>,
 {
-    fn handle(&self, message: StoreMsg<<OtherStore as DataStoreBase>::Model>) -> bool {
+    fn handle(&self, message: StoreMsg<<OtherStore as DataStore<OtherAllocator>>::Record>) -> bool {
         self.parent.handle(message)
     }
 }

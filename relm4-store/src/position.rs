@@ -14,6 +14,7 @@ impl Position {
         Point::new(self.0)
     }
 
+    
     pub fn get(&self) -> usize {
         self.0
     }

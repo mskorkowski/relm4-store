@@ -1,3 +1,4 @@
+use record::TemporaryIdAllocator;
 use reexport::gtk;
 use reexport::relm4;
 use reexport::log;
@@ -19,16 +20,15 @@ use relm4::factory::Factory;
 use relm4::factory::FactoryPrototype;
 use relm4::factory::FactoryView;
 
-use model::Identifiable;
+use record::Id;
+use record::Identifiable;
+use record::Record;
 
 use super::DataStore;
-use super::DataStoreBase;
-use super::DataStoreListenable;
 use super::Handler;
 use super::HandlerWrapper;
 use super::FactoryBuilder;
 use super::FactoryContainerWidgets;
-use super::IdentifiableStore;
 use super::math;
 use super::Position;
 use super::RecordWithLocation;
@@ -98,22 +98,24 @@ impl Debug for StoreViewInterfaceError {
     }
 }
 
-pub struct StoreViewInterface<Builder> 
+pub struct StoreViewInterface<Builder, Allocator> 
 where
-    Builder: FactoryBuilder + 'static,
+    Builder: FactoryBuilder<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator,
 {
-    view: Rc<RefCell<StoreViewImplementation<Builder>>>,
+    view: Rc<RefCell<StoreViewImplementation<Builder, Allocator>>>,
     _components: Builder::Components,
     _container: Rc<RefCell<Builder::ContainerWidgets>>,
     _view_model: Rc<RefCell<Builder>>,
-    root_widget: <Builder::ContainerWidgets as FactoryContainerWidgets<Builder>>::Root,
+    root_widget: <Builder::ContainerWidgets as FactoryContainerWidgets<Builder, Allocator>>::Root,
     sender: Sender<Builder::Msg>,
     redraw_sender: Sender<RedrawMessages>,
 }
 
-impl<Builder> StoreViewInterface<Builder> 
+impl<Builder, Allocator> StoreViewInterface<Builder, Allocator> 
 where 
-    Builder: FactoryBuilder + 'static,
+    Builder: FactoryBuilder<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator + 'static,
 {
     pub fn new(
         parent_view_model: &Builder::ParentViewModel, 
@@ -137,7 +139,7 @@ where
         let redraw_handler_view = view.clone();
 
         {
-            let s: RefMut<Builder::Store> = store.borrow_mut();
+            let s: RefMut<'_, Builder::Store> = store.borrow_mut();
             s.listen(
                 view_id.transfer(),
                 Box::new(
@@ -148,7 +150,7 @@ where
 
         let view_model = Builder::init_view_model(parent_view_model, view.clone());
         let container = {
-            let v: &StoreViewImplementation<Builder> = &view.borrow();
+            let v: &StoreViewImplementation<Builder, Allocator> = &view.borrow();
             Builder::ContainerWidgets::init_view(
                 &view_model,
                 v,
@@ -242,34 +244,32 @@ where
         self.sender.send(msg)
     }
 
-    pub fn root_widget(&self) -> &<Builder::ContainerWidgets as FactoryContainerWidgets<Builder>>::Root {
+    pub fn root_widget(&self) -> &<Builder::ContainerWidgets as FactoryContainerWidgets<Builder, Allocator>>::Root {
         &self.root_widget
     }
 }
 
-impl<Builder> Identifiable for StoreViewInterface<Builder>
+impl<Builder, Allocator> Identifiable<Self, Allocator::Type> for StoreViewInterface<Builder, Allocator>
 where
-    Builder: 'static + FactoryBuilder
+    Builder: 'static + FactoryBuilder<Allocator>,
+    Allocator: TemporaryIdAllocator + 'static,
+
 {
-    type Id = StoreId<Self>;
+    type Id = StoreId<Self, Allocator>;
 
     fn get_id(&self) -> Self::Id {
         self.view.borrow().get_id().transfer()
     }
 }
 
-impl<Builder> IdentifiableStore for StoreViewInterface<Builder>
+impl<Builder, Allocator> DataStore<Allocator> for StoreViewInterface<Builder, Allocator>
 where
-    Builder: 'static + FactoryBuilder,
-{}
-
-impl<Builder> DataStoreBase for StoreViewInterface<Builder>
-where
-    Builder: 'static + FactoryBuilder,
+    Builder: 'static + FactoryBuilder<Allocator>,
+    Allocator: TemporaryIdAllocator + 'static,
 {
-    type Model = <Builder::Store as DataStoreBase>::Model;
+    type Record = <Builder::Store as DataStore<Allocator>>::Record;
 
-    fn inbox(&self, msg: StoreMsg<<Self as DataStoreBase>::Model>) {
+    fn inbox(&self, msg: StoreMsg<<Self as DataStore<Allocator>>::Record>) {
         println!("[StoreViewInterface::inbox] StoreViewInterface received message");
         self.view.borrow().inbox(msg);
         let redraw_sender = self.redraw_sender.clone();
@@ -284,39 +284,30 @@ where
         self.view.borrow().is_empty()
     }
 
-    fn get(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Self::Model> { 
+    fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record> { 
         self.view.borrow().get(id)
      }
 
-    fn get_range(&self, range: &math::Range) -> std::vec::Vec<Self::Model> {
+    fn get_range(&self, range: &math::Range) -> std::vec::Vec<Self::Record> {
         self.view.borrow().get_range(range)
     }
-}
 
-impl<Builder> DataStoreListenable for StoreViewInterface<Builder>
-where
-    Builder: 'static + FactoryBuilder,
-{
-    fn listen(&self, handler_ref: StoreId<Self>,  handler: std::boxed::Box<(dyn Handler<Self> + 'static)>) { 
+    fn listen(&self, handler_ref: StoreId<Self, Allocator>,  handler: std::boxed::Box<(dyn Handler<Self, Allocator> + 'static)>) { 
         self.view.borrow_mut().listen(
             handler_ref.transfer(),
             HandlerWrapper::from(handler)
         )
      }
 
-    fn unlisten(&self, id: StoreId<Self>) { 
+    fn unlisten(&self, id: StoreId<Self, Allocator>) { 
         self.view.borrow_mut().unlisten(id.transfer())
     }
 }
 
-impl<Builder> DataStore for StoreViewInterface<Builder>
+impl<Builder, Allocator> StoreView<Allocator> for StoreViewInterface<Builder, Allocator>
 where
-    Builder: 'static + FactoryBuilder,
-{}
-
-impl<Builder> StoreView for StoreViewInterface<Builder>
-where
-    Builder: 'static + FactoryBuilder,
+    Builder: 'static + FactoryBuilder<Allocator>,
+    Allocator: TemporaryIdAllocator + 'static,
 {
     type Builder = Builder;
 
@@ -324,7 +315,7 @@ where
         self.view.borrow().window_size()
     }
 
-    fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Model>> {
+    fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record>> {
         self.view.borrow().get_view_data()
     }
 
@@ -348,7 +339,7 @@ where
         self.view.borrow().get_window()
     }
 
-    fn get_position(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Position> {
+    fn get_position(&self, id: &Id<Self::Record>) -> Option<Position> {
         self.view.borrow().get_position(id)
     }
 
@@ -361,9 +352,10 @@ where
     }
 }
 
-impl<Builder> FactoryPrototype for StoreViewInterface<Builder>
+impl<Builder, Allocator> FactoryPrototype for StoreViewInterface<Builder, Allocator>
 where
-    Builder: FactoryBuilder + 'static,
+    Builder: FactoryBuilder<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator + 'static,
 {
     type Factory = Self;
     type Msg = Builder::Msg;
@@ -399,7 +391,7 @@ where
     ) {
         let model = self.view.borrow().get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
         let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
-        <Builder as FactoryBuilder>::update_record(model, position, widgets)
+        <Builder as FactoryBuilder<Allocator>>::update_record(model, position, widgets)
     }
 
     /// Get the outermost widget from the widgets.
@@ -408,11 +400,12 @@ where
     }
 }
 
-impl<Builder> Factory<StoreViewInterface<Builder>, Builder::View> for StoreViewInterface<Builder>
+impl<Builder, Allocator> Factory<StoreViewInterface<Builder, Allocator>, Builder::View> for StoreViewInterface<Builder, Allocator>
 where
-    Builder: FactoryBuilder + 'static,
+    Builder: FactoryBuilder<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator + 'static,
 {
-    type Key = <<Builder::Store as DataStoreBase>::Model as Identifiable>::Id;
+    type Key = Id<<Builder::Store as DataStore<Allocator>>::Record>;
 
     fn generate(&self, view: &Builder::View, sender: Sender<Builder::Msg>) {
         let view_impl = self.view.borrow();
