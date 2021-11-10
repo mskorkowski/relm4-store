@@ -20,14 +20,18 @@ use crate::window::WindowBehavior;
 use super::DataStore;
 use super::position::Position;
 
-
+/// Configuration of the [StoreViewComponent]
 pub trait FactoryConfiguration<Allocator=DefaultIdAllocator>: ViewModel<Widgets = Self::ContainerWidgets> 
 where
     Allocator: TemporaryIdAllocator,
 {
+    /// Store type wich will be a backend for your data
     type Store: DataStore<Allocator>;
+    /// Structure with widgets used by this component
     type RecordWidgets: Debug;
+    /// Type of root widget in [FactoryConfiguration::RecordWidgets]
     type Root: WidgetExt;
+    
     type View: FactoryView<Self::Root> + FactoryListView<Self::Root>;
     type Window: WindowBehavior;
     type ContainerWidgets: FactoryContainerWidgets<Self, Allocator>;
@@ -67,6 +71,7 @@ where
     fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root;
 }
 
+/// Trait describing what do we need from widgets to be usable for the [StoreViewComponent]
 pub trait FactoryContainerWidgets<FactoryViewModel: FactoryConfiguration<Allocator, Widgets=Self, ContainerWidgets=Self>, Allocator=DefaultIdAllocator> 
 where
     Allocator: TemporaryIdAllocator,
@@ -75,7 +80,7 @@ where
 
     fn init_view(
         view_model: &FactoryViewModel, 
-        store_view: &StoreViewImplementation<FactoryViewModel, Allocator>, 
+        store_view: &StoreViewImplementation<FactoryViewModel, Allocator>,
         sender: Sender<<FactoryViewModel as ViewModel>::Msg>
     ) -> Self;
     
