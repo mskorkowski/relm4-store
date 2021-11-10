@@ -46,7 +46,6 @@ use crate::math::Range;
 
 pub use factory_configuration::FactoryConfiguration;
 pub use factory_configuration::FactoryContainerWidgets;
-use handler_wrapper::HandlerWrapper;
 pub use pagination::Pagination;
 pub use position::Position;
 pub use record_with_location::RecordWithLocation;
@@ -56,7 +55,6 @@ pub use store_size::StoreSize;
 pub use store_view_implementation::StoreViewImplementation;
 pub use store_view_implementation::StoreViewImplHandler;
 pub use store_view_interface::StoreViewComponent;
-pub use store_view_interface::StoreViewComponentExt;
 pub use store_view_interface::StoreViewInterfaceError;
 
 /// Implementations of this trait are used to send messages between the store and it's views

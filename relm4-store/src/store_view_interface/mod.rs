@@ -28,15 +28,8 @@ use record::Record;
 use crate::store_view_implementation::StoreViewImplHandler;
 
 use super::DataStore;
-use super::Handler;
-use super::HandlerWrapper;
 use super::FactoryConfiguration;
 use super::FactoryContainerWidgets;
-use super::math;
-use super::Position;
-use super::RecordWithLocation;
-use super::StoreId;
-use super::StoreMsg;
 use super::StoreSize;
 use super::StoreView;
 use super::StoreViewImplementation;
@@ -101,29 +94,6 @@ impl Debug for StoreViewInterfaceError {
     }
 }
 
-/// Interface of [StoreViewComponent].
-pub trait StoreViewComponentExt<Configuration, Allocator=DefaultIdAllocator> 
-where
-    Configuration: FactoryConfiguration<Allocator> + 'static,
-    Allocator: TemporaryIdAllocator,
-{
-    /// Creates instance of [StoreViewComponent]
-    fn init_component(
-        parent_view_model: &Configuration::ParentViewModel, 
-        store: Rc<RefCell<Configuration::Store>>, 
-        size: StoreSize
-    ) -> Self;
-
-    /// Returns sender for this component
-    fn sender(&self) -> Sender<Configuration::Msg>;
-
-    /// Send a message to this component
-    fn send(&self, msg: Configuration::Msg) -> Result<(), std::sync::mpsc::SendError<Configuration::Msg>>;
-
-    /// Returns root widget of this component. In most cases it's gtk widget
-    fn root_widget(&self) -> &<Configuration::ContainerWidgets as FactoryContainerWidgets<Configuration, Allocator>>::Root;
-}
-
 /// Specialized kind of component to handle store view 
 /// 
 /// 
@@ -142,13 +112,13 @@ where
     redraw_sender: Sender<RedrawMessages>,
 }
 
-impl<Configuration, Allocator> StoreViewComponentExt<Configuration, Allocator> for StoreViewComponent<Configuration, Allocator> 
+impl<Configuration, Allocator> StoreViewComponent<Configuration, Allocator> 
 where 
     Configuration: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
 {
     /// Creates new instance of the [StoreViewInterface]
-    fn init_component(
+    pub fn new(
         parent_view_model: &Configuration::ParentViewModel, 
         store: Rc<RefCell<Configuration::Store>>, 
         size: StoreSize
@@ -267,15 +237,15 @@ where
         }
     }
 
-    fn sender(&self) -> Sender<Configuration::Msg> {
+    pub fn sender(&self) -> Sender<Configuration::Msg> {
         self.sender.clone()
     }
 
-    fn send(&self, msg: Configuration::Msg) -> Result<(), std::sync::mpsc::SendError<Configuration::Msg>> {
+    pub fn send(&self, msg: Configuration::Msg) -> Result<(), std::sync::mpsc::SendError<Configuration::Msg>> {
         self.sender.send(msg)
     }
 
-    fn root_widget(&self) -> &<Configuration::ContainerWidgets as FactoryContainerWidgets<Configuration, Allocator>>::Root {
+    pub fn root_widget(&self) -> &<Configuration::ContainerWidgets as FactoryContainerWidgets<Configuration, Allocator>>::Root {
         &self.root_widget
     }
 }
