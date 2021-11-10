@@ -52,7 +52,7 @@ pub trait Record<Allocator: TemporaryIdAllocator=DefaultIdAllocator> {
 /// Provides a way to create temporary id's
 pub trait TemporaryIdAllocator {
     /// Type of values on which `Id` is based of
-    type Type: Copy + PartialEq + Hash + Eq;
+    type Type: Copy + PartialEq + Hash + Eq + std::fmt::Debug;
     /// Returns value of new **temporary** id
     /// 
     /// Every call must return new different value otherwise it's possible to have a conflict which could end up

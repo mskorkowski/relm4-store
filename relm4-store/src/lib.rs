@@ -61,6 +61,7 @@ pub use store_size::StoreSize;
 pub use store_view_implementation::StoreViewImplementation;
 pub use store_view_implementation::StoreViewImplHandler;
 pub use store_view_interface::StoreViewComponent;
+pub use store_view_interface::StoreViewComponentExt;
 pub use store_view_interface::StoreViewInterfaceError;
 
 /// Implementations of this trait are used to send messages between the store and it's views
@@ -207,12 +208,12 @@ where
     fn inbox_queue_size(&self) -> usize;
 }
 
-pub trait Source<Allocator=DefaultIdAllocator> 
+pub trait Source<Configuration, Allocator=DefaultIdAllocator> 
 where
     Allocator: TemporaryIdAllocator,
+    Configuration: FactoryConfiguration<Allocator>,
 {
     type ParentViewModel : ViewModel;
-    type SV: StoreView<Allocator>;
 
-    fn store(parent_model: &Self::ParentViewModel) -> Self::SV;
+    fn store(parent_model: &Self::ParentViewModel) -> StoreViewComponent<Configuration, Allocator>;
 }

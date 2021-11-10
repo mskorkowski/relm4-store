@@ -3,7 +3,7 @@ use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::GtkWindowExt;
 use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets};
 use relm4_macros::widget;
-use store::{Source, StoreSize, StoreViewComponent};
+use store::{Source, StoreSize, StoreViewComponent, StoreViewComponentExt};
 
 use crate::{
     store::Tasks,
@@ -49,12 +49,11 @@ impl Components<MainWindowViewModel> for MainWindowComponents {
     }
 }
 
-impl Source for MainWindowComponents {
+impl Source<TasksListViewModel<Self>> for MainWindowComponents {
     type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewComponent<TasksListViewModel<Self>>;
 
-    fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewComponent::new(
+    fn store(parent_model: &Self::ParentViewModel) -> StoreViewComponent<TasksListViewModel<Self>> {
+        StoreViewComponent::init_component(
             parent_model, 
             parent_model.tasks.clone(), 
             StoreSize::Items(
@@ -64,7 +63,7 @@ impl Source for MainWindowComponents {
     }
 }
 
-impl TasksListConfiguration for MainWindowComponents {
+impl TasksListConfiguration<TasksListViewModel<Self>> for MainWindowComponents {
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
     }

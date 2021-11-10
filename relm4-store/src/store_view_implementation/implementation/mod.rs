@@ -8,6 +8,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
+use std::fmt;
+use std::fmt::Debug;
 use std::rc::Rc;
 
 use relm4::Sender;
@@ -23,7 +25,6 @@ use crate::Handler;
 use crate::Position;
 use crate::StoreId;
 use crate::StoreMsg;
-
 
 use crate::math::Point;
 use crate::math::Range;
@@ -61,11 +62,28 @@ where
     size: usize,
 }
 
+impl<Builder, Allocator> Debug for StoreViewImplementation<Builder, Allocator>
+where
+    Builder: FactoryConfiguration<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("StoreViewImplementation")
+            .field("id", &self.id)
+            .field("size", &self.size)
+            .finish_non_exhaustive()
+    }
+}
+
 impl<Builder, Allocator> StoreViewImplementation<Builder, Allocator> 
 where
     Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
+    ///Creates  new instance of this struct
+    /// 
+    /// - **store** store which will provide a source data
+    /// - **size** size of the page
     pub fn new(store: Rc<RefCell<Builder::Store>>, size: usize) -> Self {
         let range = RefCell::new(Range::new(0, size));
 

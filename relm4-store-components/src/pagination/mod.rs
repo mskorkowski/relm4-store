@@ -42,7 +42,6 @@ pub enum PaginationMsg {
 pub trait PaginationConfiguration<Allocator=DefaultIdAllocator> 
 where Allocator: TemporaryIdAllocator,
 {
-    type SV: StoreView<Allocator>;
     type ParentViewModel: ViewModel + FactoryConfiguration<Allocator>;
 
     fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentViewModel, Allocator>>>;

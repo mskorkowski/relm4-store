@@ -101,7 +101,28 @@ impl Debug for StoreViewInterfaceError {
     }
 }
 
+pub trait StoreViewComponentExt<Configuration, Allocator=DefaultIdAllocator> 
+where
+    Configuration: FactoryConfiguration<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator,
+{
+    fn init_component(
+        parent_view_model: &Configuration::ParentViewModel, 
+        store: Rc<RefCell<Configuration::Store>>, 
+        size: StoreSize
+    ) -> Self;
 
+    fn sender(&self) -> Sender<Configuration::Msg>;
+
+    fn send(&self, msg: Configuration::Msg) -> Result<(), std::sync::mpsc::SendError<Configuration::Msg>>;
+
+    fn root_widget(&self) -> &<Configuration::ContainerWidgets as FactoryContainerWidgets<Configuration, Allocator>>::Root;
+}
+
+/// Specialized kind of component to handle store view 
+/// 
+/// 
+#[derive(Debug)]
 pub struct StoreViewComponent<Configuration, Allocator= DefaultIdAllocator> 
 where
     Configuration: FactoryConfiguration<Allocator> + 'static,
@@ -116,13 +137,13 @@ where
     redraw_sender: Sender<RedrawMessages>,
 }
 
-impl<Configuration, Allocator> StoreViewComponent<Configuration, Allocator> 
+impl<Configuration, Allocator> StoreViewComponentExt<Configuration, Allocator> for StoreViewComponent<Configuration, Allocator> 
 where 
     Configuration: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
 {
     /// Creates new instance of the [StoreViewInterface]
-    pub fn new(
+    fn init_component(
         parent_view_model: &Configuration::ParentViewModel, 
         store: Rc<RefCell<Configuration::Store>>, 
         size: StoreSize
@@ -241,121 +262,121 @@ where
         }
     }
 
-    pub fn sender(&self) -> Sender<Configuration::Msg> {
+    fn sender(&self) -> Sender<Configuration::Msg> {
         self.sender.clone()
     }
 
-    pub fn send(&self, msg: Configuration::Msg) -> Result<(), std::sync::mpsc::SendError<Configuration::Msg>> {
+    fn send(&self, msg: Configuration::Msg) -> Result<(), std::sync::mpsc::SendError<Configuration::Msg>> {
         self.sender.send(msg)
     }
 
-    pub fn root_widget(&self) -> &<Configuration::ContainerWidgets as FactoryContainerWidgets<Configuration, Allocator>>::Root {
+    fn root_widget(&self) -> &<Configuration::ContainerWidgets as FactoryContainerWidgets<Configuration, Allocator>>::Root {
         &self.root_widget
     }
 }
 
-impl<Configuration, Allocator> Identifiable<Self, Allocator::Type> for StoreViewComponent<Configuration, Allocator>
-where
-    Configuration: 'static + FactoryConfiguration<Allocator>,
-    Allocator: TemporaryIdAllocator + 'static,
+// impl<Configuration, Allocator> Identifiable<Self, Allocator::Type> for StoreViewComponent<Configuration, Allocator>
+// where
+//     Configuration: 'static + FactoryConfiguration<Allocator>,
+//     Allocator: TemporaryIdAllocator + 'static,
 
-{
-    type Id = StoreId<Self, Allocator>;
+// {
+//     type Id = StoreId<Self, Allocator>;
 
-    fn get_id(&self) -> Self::Id {
-        self.view.borrow().get_id().transfer()
-    }
-}
+//     fn get_id(&self) -> Self::Id {
+//         self.view.borrow().get_id().transfer()
+//     }
+// }
 
-impl<Configuration, Allocator> DataStore<Allocator> for StoreViewComponent<Configuration, Allocator>
-where
-    Configuration: 'static + FactoryConfiguration<Allocator>,
-    Allocator: TemporaryIdAllocator + 'static,
-{
-    type Record = <Configuration::Store as DataStore<Allocator>>::Record;
+// impl<Configuration, Allocator> DataStore<Allocator> for StoreViewComponent<Configuration, Allocator>
+// where
+//     Configuration: 'static + FactoryConfiguration<Allocator>,
+//     Allocator: TemporaryIdAllocator + 'static,
+// {
+//     type Record = <Configuration::Store as DataStore<Allocator>>::Record;
 
-    fn inbox(&self, msg: StoreMsg<<Self as DataStore<Allocator>>::Record>) {
-        println!("[StoreViewInterface::inbox] StoreViewInterface received message");
-        self.view.borrow().inbox(msg);
-        let redraw_sender = self.redraw_sender.clone();
-        send!(redraw_sender, RedrawMessages::Redraw);
-    }
+//     fn inbox(&self, msg: StoreMsg<<Self as DataStore<Allocator>>::Record>) {
+//         println!("[StoreViewInterface::inbox] StoreViewInterface received message");
+//         self.view.borrow().inbox(msg);
+//         let redraw_sender = self.redraw_sender.clone();
+//         send!(redraw_sender, RedrawMessages::Redraw);
+//     }
 
-    fn len(&self) -> usize { 
-        self.view.borrow().len()
-    }
+//     fn len(&self) -> usize { 
+//         self.view.borrow().len()
+//     }
 
-    fn is_empty(&self) -> bool { 
-        self.view.borrow().is_empty()
-    }
+//     fn is_empty(&self) -> bool { 
+//         self.view.borrow().is_empty()
+//     }
 
-    fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record> { 
-        self.view.borrow().get(id)
-     }
+//     fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record> { 
+//         self.view.borrow().get(id)
+//      }
 
-    fn get_range(&self, range: &math::Range) -> std::vec::Vec<Self::Record> {
-        self.view.borrow().get_range(range)
-    }
+//     fn get_range(&self, range: &math::Range) -> std::vec::Vec<Self::Record> {
+//         self.view.borrow().get_range(range)
+//     }
 
-    fn listen(&self, handler_ref: StoreId<Self, Allocator>,  handler: std::boxed::Box<(dyn Handler<Self, Allocator> + 'static)>) { 
-        self.view.borrow_mut().listen(
-            handler_ref.transfer(),
-            HandlerWrapper::from(handler)
-        )
-     }
+//     fn listen(&self, handler_ref: StoreId<Self, Allocator>,  handler: std::boxed::Box<(dyn Handler<Self, Allocator> + 'static)>) { 
+//         self.view.borrow_mut().listen(
+//             handler_ref.transfer(),
+//             HandlerWrapper::from(handler)
+//         )
+//      }
 
-    fn unlisten(&self, id: StoreId<Self, Allocator>) { 
-        self.view.borrow_mut().unlisten(id.transfer())
-    }
-}
+//     fn unlisten(&self, id: StoreId<Self, Allocator>) { 
+//         self.view.borrow_mut().unlisten(id.transfer())
+//     }
+// }
 
-impl<Configuration, Allocator> StoreView<Allocator> for StoreViewComponent<Configuration, Allocator>
-where
-    Configuration: 'static + FactoryConfiguration<Allocator>,
-    Allocator: TemporaryIdAllocator + 'static,
-{
-    type Configuration = Configuration;
+// impl<Configuration, Allocator> StoreView<Allocator> for StoreViewComponent<Configuration, Allocator>
+// where
+//     Configuration: 'static + FactoryConfiguration<Allocator>,
+//     Allocator: TemporaryIdAllocator + 'static,
+// {
+//     type Configuration = Configuration;
 
-    fn window_size(&self) -> usize {
-        self.view.borrow().window_size()
-    }
+//     fn window_size(&self) -> usize {
+//         self.view.borrow().window_size()
+//     }
 
-    fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record>> {
-        self.view.borrow().get_view_data()
-    }
+//     fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record>> {
+//         self.view.borrow().get_view_data()
+//     }
 
-    fn first_page(&self) {
-        self.view.borrow().first_page();
-    }
+//     fn first_page(&self) {
+//         self.view.borrow().first_page();
+//     }
 
-    fn prev_page(&self) {
-        self.view.borrow().prev_page();
-    }
+//     fn prev_page(&self) {
+//         self.view.borrow().prev_page();
+//     }
 
-    fn next_page(&self) {
-        self.view.borrow().next_page();
-    }
+//     fn next_page(&self) {
+//         self.view.borrow().next_page();
+//     }
 
-    fn last_page(&self) {
-        self.view.borrow().last_page();
-    }
+//     fn last_page(&self) {
+//         self.view.borrow().last_page();
+//     }
 
-    fn get_window(&self) -> math::Range {
-        self.view.borrow().get_window()
-    }
+//     fn get_window(&self) -> math::Range {
+//         self.view.borrow().get_window()
+//     }
 
-    fn get_position(&self, id: &Id<Self::Record>) -> Option<Position> {
-        self.view.borrow().get_position(id)
-    }
+//     fn get_position(&self, id: &Id<Self::Record>) -> Option<Position> {
+//         self.view.borrow().get_position(id)
+//     }
 
-    fn set_window(&self, range: math::Range) {
-        self.view.borrow().set_window(range);
-    }
+//     fn set_window(&self, range: math::Range) {
+//         self.view.borrow().set_window(range);
+//     }
 
-    fn inbox_queue_size(&self) -> usize {
-        self.view.borrow().inbox_queue_size()
-    }
-}
+//     fn inbox_queue_size(&self) -> usize {
+//         self.view.borrow().inbox_queue_size()
+//     }
+// }
 
 impl<Configuration, Allocator> FactoryPrototype for StoreViewComponent<Configuration, Allocator>
 where
@@ -373,8 +394,9 @@ where
         key: &<Self::Factory as Factory<Self, Self::View>>::Key,
         sender: Sender<Configuration::Msg>,
     ) -> Self::Widgets {
-        let model = self.view.borrow().get(key).expect("Key doesn't point to the model in the store while generating! WTF?");
-        let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
+        let view = self.view.borrow();
+        let model = view.get(key).expect("Key doesn't point to the model in the store while generating! WTF?");
+        let position = view.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
         Configuration::generate(&model, position, sender)
     }
 
@@ -383,8 +405,9 @@ where
         &self,
         key: &<Self::Factory as Factory<Self, Self::View>>::Key,
     ) -> <Self::View as FactoryView<Self::Root>>::Position {
-        let model = self.view.borrow().get(key).expect("Key doesn't point to the model in the store while positioning! WTF?");
-        let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
+        let view = self.view.borrow();
+        let model = view.get(key).expect("Key doesn't point to the model in the store while positioning! WTF?");
+        let position = view.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
         Configuration::position(model, position)
     }
 
@@ -394,8 +417,9 @@ where
         key: &<Self::Factory as Factory<Self, Self::View>>::Key,
         widgets: &Self::Widgets,
     ) {
-        let model = self.view.borrow().get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
-        let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
+        let view = self.view.borrow();
+        let model = view.get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
+        let position = view.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
         <Configuration as FactoryConfiguration<Allocator>>::update_record(model, position, widgets)
     }
 

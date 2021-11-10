@@ -57,12 +57,12 @@ pub struct TaskWidgets {
     root: Box,
 }
 
-pub trait TasksListConfiguration : Source {
+pub trait TasksListConfiguration<Configuration: FactoryConfiguration> : Source<Configuration> {
     fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
 }
 
 pub struct TasksListViewModel<Config> 
-where Config: TasksListConfiguration + 'static,
+where Config: TasksListConfiguration<Self> + 'static,
 {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
@@ -71,15 +71,15 @@ where Config: TasksListConfiguration + 'static,
 }
 
 impl<Config> ViewModel for TasksListViewModel<Config> 
-where Config: TasksListConfiguration + 'static,
+where Config: TasksListConfiguration<Self> + 'static,
 {
     type Msg = TaskMsg;
     type Widgets = TasksListViewWidgets<Config>;
     type Components = TasksListComponents<Config>;
 }
 
-impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel<Config> 
-where Config: TasksListConfiguration + 'static,
+impl<Config> FactoryConfiguration for TasksListViewModel<Config> 
+where Config: TasksListConfiguration<Self> + 'static,
 {
     type Store = Tasks;
     type RecordWidgets = TaskWidgets;
@@ -193,12 +193,12 @@ where Config: TasksListConfiguration + 'static,
 }
 
 pub struct TasksListComponents<Config>
-where Config: TasksListConfiguration + 'static {
+where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static {
     pagination: RelmComponent<PaginationViewModel<Self>, TasksListViewModel<Config>>
 }
 
 impl<Config> Components<TasksListViewModel<Config>> for TasksListComponents<Config> 
-where Config: TasksListConfiguration,
+where Config: TasksListConfiguration<TasksListViewModel<Config>>,
 {
     fn init_components(
         parent_model: &TasksListViewModel<Config>, 
@@ -212,9 +212,8 @@ where Config: TasksListConfiguration,
 }
 
 impl<Config> PaginationConfiguration for TasksListComponents<Config>
-where Config: TasksListConfiguration + 'static {
+where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static {
     type ParentViewModel = TasksListViewModel<Config>;
-    type SV = Config::SV;
 
     fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentViewModel>>> {
         parent_view_model.store_view.clone()
@@ -225,7 +224,9 @@ where Config: TasksListConfiguration + 'static {
     }
 }
 
-pub struct TasksListViewWidgets<Config: TasksListConfiguration> {
+pub struct TasksListViewWidgets<Config> 
+where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static
+{
     root: gtk::Box,
     input: gtk::Entry,
     scrolled_box: gtk::Box,
@@ -234,7 +235,7 @@ pub struct TasksListViewWidgets<Config: TasksListConfiguration> {
 }
 
 impl<Config> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets<Config> 
-where Config: TasksListConfiguration + 'static,
+where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static,
 {
     type Root = gtk::Box;
 

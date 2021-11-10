@@ -57,13 +57,13 @@ pub struct TaskWidgets {
     root: Box,
 }
 
-pub trait TasksListConfiguration : Source {
+pub trait TasksListConfiguration<Configuration: FactoryConfiguration> : Source<Configuration> {
     fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
     fn page_size(parent_view_model: &Self::ParentViewModel) -> usize;
 }
 
 pub struct TasksListViewModel<Config> 
-where Config: TasksListConfiguration + 'static,
+where Config: TasksListConfiguration<Self> + 'static,
 {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
@@ -73,15 +73,15 @@ where Config: TasksListConfiguration + 'static,
 }
 
 impl<Config> ViewModel for TasksListViewModel<Config> 
-where Config: TasksListConfiguration + 'static,
+where Config: TasksListConfiguration<Self> + 'static,
 {
     type Msg = TaskMsg;
     type Widgets = TasksListViewWidgets<Config>;
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel<Config> 
-where Config: TasksListConfiguration + 'static,
+impl<Config: TasksListConfiguration<Self>> FactoryConfiguration for TasksListViewModel<Config> 
+where Config: TasksListConfiguration<Self> + 'static,
 {
     type Store = Tasks;
     type RecordWidgets = TaskWidgets;
@@ -207,7 +207,9 @@ where Config: TasksListConfiguration + 'static,
     }
 }
 
-pub struct TasksListViewWidgets<Config: TasksListConfiguration> {
+pub struct TasksListViewWidgets<Config> 
+where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static
+{
     root: gtk::Box,
     input: gtk::Entry,
     viewport: gtk::Box,
@@ -217,7 +219,7 @@ pub struct TasksListViewWidgets<Config: TasksListConfiguration> {
 }
 
 impl<Config> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets<Config> 
-where Config: TasksListConfiguration + 'static,
+where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static,
 {
     type Root = gtk::Box;
 

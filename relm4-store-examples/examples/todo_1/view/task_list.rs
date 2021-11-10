@@ -52,23 +52,25 @@ pub struct TaskWidgets {
     root: Box,
 }
 
-pub trait TasksListConfiguration : Source {
+pub trait TasksListConfiguration<Configuration> : Source<Configuration> 
+where Configuration: FactoryConfiguration
+{
     fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
 }
 
-pub struct TasksListViewModel<Config: TasksListConfiguration> {
+pub struct TasksListViewModel<Config: TasksListConfiguration<Self>> {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
     _config: PhantomData<*const Config>
 }
 
-impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
+impl<Config: TasksListConfiguration<Self>> ViewModel for TasksListViewModel<Config> {
     type Msg = TaskMsg;
     type Widgets = TasksListViewWidgets<Config>;
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel<Config> {
+impl<Config: TasksListConfiguration<Self>> FactoryConfiguration for TasksListViewModel<Config> {
     type Store = Tasks;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
@@ -178,7 +180,7 @@ impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel
     }
 }
 
-pub struct TasksListViewWidgets<Config: TasksListConfiguration> {
+pub struct TasksListViewWidgets<Config: TasksListConfiguration<TasksListViewModel<Config>>> {
     root: gtk::Box,
     _input: gtk::Entry,
     scrolled_box: gtk::Box,
@@ -186,7 +188,7 @@ pub struct TasksListViewWidgets<Config: TasksListConfiguration> {
     _config: PhantomData<*const Config>,
 }
 
-impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets<Config> {
+impl<Config: TasksListConfiguration<TasksListViewModel<Config>>> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets<Config> {
     type Root = gtk::Box;
 
     fn init_view(view_model: &TasksListViewModel<Config>, store_view: &StoreViewImplementation<TasksListViewModel<Config>>, sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) -> Self {
