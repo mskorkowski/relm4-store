@@ -25,6 +25,8 @@ use record::Id;
 use record::Identifiable;
 use record::Record;
 
+use crate::store_view_implementation::StoreViewImplHandler;
+
 use super::DataStore;
 use super::Handler;
 use super::HandlerWrapper;
@@ -38,7 +40,6 @@ use super::StoreMsg;
 use super::StoreSize;
 use super::StoreView;
 use super::StoreViewImplementation;
-use super::StoreViewImplHandler;
 
 use crate::redraw_messages::RedrawMessages;
 

@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use record::Id;
 use record::TemporaryIdAllocator;
 
-use super::DataStore;
-use super::FactoryConfiguration;
+use crate::DataStore;
+use crate::FactoryConfiguration;
 
 /// WindowChangeset describes how the store view window has changed in response to the changes in the store
 pub struct WindowChangeset<Builder, Allocator>

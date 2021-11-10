@@ -20,7 +20,7 @@
     unreachable_pub
 )]
 
-mod factory_builder;
+mod factory_configuration;
 mod handler_wrapper;
 pub mod math;
 mod pagination;
@@ -33,7 +33,6 @@ mod store_size;
 mod store_view_implementation;
 mod store_view_interface;
 pub mod window;
-mod window_changeset;
 
 use reexport::relm4;
 
@@ -50,8 +49,8 @@ use record::TemporaryIdAllocator;
 
 use crate::math::Range;
 
-pub use factory_builder::FactoryConfiguration;
-pub use factory_builder::FactoryContainerWidgets;
+pub use factory_configuration::FactoryConfiguration;
+pub use factory_configuration::FactoryContainerWidgets;
 use handler_wrapper::HandlerWrapper;
 pub use pagination::Pagination;
 pub use position::Position;
@@ -60,8 +59,7 @@ pub use store_id::StoreId;
 pub use store_msg::StoreMsg;
 pub use store_size::StoreSize;
 pub use store_view_implementation::StoreViewImplementation;
-use store_view_implementation::StoreViewImplHandler;
-use window_changeset::WindowChangeset;
+pub use store_view_implementation::StoreViewImplHandler;
 pub use store_view_interface::StoreViewInterface;
 
 /// Implementations of this trait are used to send messages between the store and it's views
@@ -130,7 +128,7 @@ pub trait Handler<Store: DataStore<Allocator> + ?Sized, Allocator: TemporaryIdAl
 /// 1. Expose StoreId allocator
 /// 2. Make sure your store will work with any sufficiently good enough `Id<Record>` without depending
 /// on the exact underlying id type. If you require any property to be present for an `Id` just add it
-/// to the list of requiremnts of your store and ask user to give you that.
+/// to the list of requirements of your store and ask user to give you that.
 /// 
 /// If there are limitation on that please somewhere at the beginning of the docs note what limitations
 /// are around this values. It can easily become a deal breaker for users of your library.

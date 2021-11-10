@@ -10,20 +10,20 @@ use relm4::Sender;
 use record::Id;
 use record::Identifiable;
 
-use super::DataStore;
-use super::FactoryConfiguration;
-use super::Handler;
-use super::Pagination;
-use super::Position;
-use super::RecordWithLocation;
-use super::StoreId;
-use super::StoreMsg;
-use super::StoreView;
-use super::StoreViewImplementation;
+use crate::DataStore;
+use crate::FactoryConfiguration;
+use crate::Handler;
+use crate::Pagination;
+use crate::Position;
+use crate::RecordWithLocation;
+use crate::StoreId;
+use crate::StoreMsg;
+use crate::StoreView;
 
 use crate::math::Range;
 use crate::redraw_messages::RedrawMessages;
 
+use super::StoreViewImplementation;
 impl<Builder, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Builder, Allocator>
 where
     Builder: FactoryConfiguration<Allocator>,
