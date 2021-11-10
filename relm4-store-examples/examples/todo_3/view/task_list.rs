@@ -32,7 +32,6 @@ use store::DataStore;
 use store::FactoryConfiguration;
 use store::FactoryContainerWidgets;
 use store::Position;
-use store::Source;
 use store::StoreViewImplementation;
 
 use crate::model::Task;
@@ -57,7 +56,8 @@ pub struct TaskWidgets {
     root: Box,
 }
 
-pub trait TasksListConfiguration<Configuration: FactoryConfiguration> : Source<Configuration> {
+pub trait TasksListConfiguration<Configuration: FactoryConfiguration> {
+    type ParentViewModel: ViewModel;
     type Window: WindowBehavior;
     fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
 }

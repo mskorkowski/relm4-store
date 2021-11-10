@@ -101,21 +101,26 @@ impl Debug for StoreViewInterfaceError {
     }
 }
 
+/// Interface of [StoreViewComponent].
 pub trait StoreViewComponentExt<Configuration, Allocator=DefaultIdAllocator> 
 where
     Configuration: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
+    /// Creates instance of [StoreViewComponent]
     fn init_component(
         parent_view_model: &Configuration::ParentViewModel, 
         store: Rc<RefCell<Configuration::Store>>, 
         size: StoreSize
     ) -> Self;
 
+    /// Returns sender for this component
     fn sender(&self) -> Sender<Configuration::Msg>;
 
+    /// Send a message to this component
     fn send(&self, msg: Configuration::Msg) -> Result<(), std::sync::mpsc::SendError<Configuration::Msg>>;
 
+    /// Returns root widget of this component. In most cases it's gtk widget
     fn root_widget(&self) -> &<Configuration::ContainerWidgets as FactoryContainerWidgets<Configuration, Allocator>>::Root;
 }
 
@@ -274,109 +279,6 @@ where
         &self.root_widget
     }
 }
-
-// impl<Configuration, Allocator> Identifiable<Self, Allocator::Type> for StoreViewComponent<Configuration, Allocator>
-// where
-//     Configuration: 'static + FactoryConfiguration<Allocator>,
-//     Allocator: TemporaryIdAllocator + 'static,
-
-// {
-//     type Id = StoreId<Self, Allocator>;
-
-//     fn get_id(&self) -> Self::Id {
-//         self.view.borrow().get_id().transfer()
-//     }
-// }
-
-// impl<Configuration, Allocator> DataStore<Allocator> for StoreViewComponent<Configuration, Allocator>
-// where
-//     Configuration: 'static + FactoryConfiguration<Allocator>,
-//     Allocator: TemporaryIdAllocator + 'static,
-// {
-//     type Record = <Configuration::Store as DataStore<Allocator>>::Record;
-
-//     fn inbox(&self, msg: StoreMsg<<Self as DataStore<Allocator>>::Record>) {
-//         println!("[StoreViewInterface::inbox] StoreViewInterface received message");
-//         self.view.borrow().inbox(msg);
-//         let redraw_sender = self.redraw_sender.clone();
-//         send!(redraw_sender, RedrawMessages::Redraw);
-//     }
-
-//     fn len(&self) -> usize { 
-//         self.view.borrow().len()
-//     }
-
-//     fn is_empty(&self) -> bool { 
-//         self.view.borrow().is_empty()
-//     }
-
-//     fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record> { 
-//         self.view.borrow().get(id)
-//      }
-
-//     fn get_range(&self, range: &math::Range) -> std::vec::Vec<Self::Record> {
-//         self.view.borrow().get_range(range)
-//     }
-
-//     fn listen(&self, handler_ref: StoreId<Self, Allocator>,  handler: std::boxed::Box<(dyn Handler<Self, Allocator> + 'static)>) { 
-//         self.view.borrow_mut().listen(
-//             handler_ref.transfer(),
-//             HandlerWrapper::from(handler)
-//         )
-//      }
-
-//     fn unlisten(&self, id: StoreId<Self, Allocator>) { 
-//         self.view.borrow_mut().unlisten(id.transfer())
-//     }
-// }
-
-// impl<Configuration, Allocator> StoreView<Allocator> for StoreViewComponent<Configuration, Allocator>
-// where
-//     Configuration: 'static + FactoryConfiguration<Allocator>,
-//     Allocator: TemporaryIdAllocator + 'static,
-// {
-//     type Configuration = Configuration;
-
-//     fn window_size(&self) -> usize {
-//         self.view.borrow().window_size()
-//     }
-
-//     fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record>> {
-//         self.view.borrow().get_view_data()
-//     }
-
-//     fn first_page(&self) {
-//         self.view.borrow().first_page();
-//     }
-
-//     fn prev_page(&self) {
-//         self.view.borrow().prev_page();
-//     }
-
-//     fn next_page(&self) {
-//         self.view.borrow().next_page();
-//     }
-
-//     fn last_page(&self) {
-//         self.view.borrow().last_page();
-//     }
-
-//     fn get_window(&self) -> math::Range {
-//         self.view.borrow().get_window()
-//     }
-
-//     fn get_position(&self, id: &Id<Self::Record>) -> Option<Position> {
-//         self.view.borrow().get_position(id)
-//     }
-
-//     fn set_window(&self, range: math::Range) {
-//         self.view.borrow().set_window(range);
-//     }
-
-//     fn inbox_queue_size(&self) -> usize {
-//         self.view.borrow().inbox_queue_size()
-//     }
-// }
 
 impl<Configuration, Allocator> FactoryPrototype for StoreViewComponent<Configuration, Allocator>
 where

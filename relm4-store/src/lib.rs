@@ -34,14 +34,9 @@ mod store_view_implementation;
 mod store_view_interface;
 pub mod window;
 
-use reexport::relm4;
-
-
 use std::fmt::Debug;
 use std::marker::Sized;
-use relm4::Model as ViewModel;
 
-use record::DefaultIdAllocator;
 use record::Id;
 use record::Identifiable;
 use record::Record;
@@ -208,12 +203,13 @@ where
     fn inbox_queue_size(&self) -> usize;
 }
 
-pub trait Source<Configuration, Allocator=DefaultIdAllocator> 
-where
-    Allocator: TemporaryIdAllocator,
-    Configuration: FactoryConfiguration<Allocator>,
-{
-    type ParentViewModel : ViewModel;
 
-    fn store(parent_model: &Self::ParentViewModel) -> StoreViewComponent<Configuration, Allocator>;
-}
+// pub trait Source<Configuration, Allocator=DefaultIdAllocator> 
+// where
+//     Allocator: TemporaryIdAllocator,
+//     Configuration: FactoryConfiguration<Allocator>,
+// {
+//     type ParentViewModel : ViewModel;
+
+//     fn store(parent_model: &Self::ParentViewModel) -> StoreViewComponent<Configuration, Allocator>;
+// }

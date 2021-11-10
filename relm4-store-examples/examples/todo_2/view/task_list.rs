@@ -31,7 +31,6 @@ use store::DataStore;
 use store::FactoryConfiguration;
 use store::FactoryContainerWidgets;
 use store::Position;
-use store::Source;
 use store::StoreViewImplementation;
 use store::window::PositionTrackingWindow;
 
@@ -57,12 +56,14 @@ pub struct TaskWidgets {
     root: Box,
 }
 
-pub trait TasksListConfiguration<Configuration: FactoryConfiguration> : Source<Configuration> {
+pub trait TasksListConfiguration {
+    type ParentViewModel: ViewModel;
+
     fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
 }
 
 pub struct TasksListViewModel<Config> 
-where Config: TasksListConfiguration<Self> + 'static,
+where Config: TasksListConfiguration + 'static,
 {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
@@ -71,7 +72,7 @@ where Config: TasksListConfiguration<Self> + 'static,
 }
 
 impl<Config> ViewModel for TasksListViewModel<Config> 
-where Config: TasksListConfiguration<Self> + 'static,
+where Config: TasksListConfiguration + 'static,
 {
     type Msg = TaskMsg;
     type Widgets = TasksListViewWidgets<Config>;
@@ -79,7 +80,7 @@ where Config: TasksListConfiguration<Self> + 'static,
 }
 
 impl<Config> FactoryConfiguration for TasksListViewModel<Config> 
-where Config: TasksListConfiguration<Self> + 'static,
+where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
     type RecordWidgets = TaskWidgets;
@@ -193,12 +194,12 @@ where Config: TasksListConfiguration<Self> + 'static,
 }
 
 pub struct TasksListComponents<Config>
-where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static {
+where Config: TasksListConfiguration + 'static {
     pagination: RelmComponent<PaginationViewModel<Self>, TasksListViewModel<Config>>
 }
 
 impl<Config> Components<TasksListViewModel<Config>> for TasksListComponents<Config> 
-where Config: TasksListConfiguration<TasksListViewModel<Config>>,
+where Config: TasksListConfiguration,
 {
     fn init_components(
         parent_model: &TasksListViewModel<Config>, 
@@ -212,7 +213,7 @@ where Config: TasksListConfiguration<TasksListViewModel<Config>>,
 }
 
 impl<Config> PaginationConfiguration for TasksListComponents<Config>
-where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static {
+where Config: TasksListConfiguration + 'static {
     type ParentViewModel = TasksListViewModel<Config>;
 
     fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentViewModel>>> {
@@ -225,7 +226,7 @@ where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static {
 }
 
 pub struct TasksListViewWidgets<Config> 
-where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static
+where Config: TasksListConfiguration + 'static
 {
     root: gtk::Box,
     input: gtk::Entry,
@@ -235,7 +236,7 @@ where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static
 }
 
 impl<Config> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets<Config> 
-where Config: TasksListConfiguration<TasksListViewModel<Config>> + 'static,
+where Config: TasksListConfiguration + 'static,
 {
     type Root = gtk::Box;
 
