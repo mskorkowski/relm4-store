@@ -50,7 +50,7 @@ use record::TemporaryIdAllocator;
 
 use crate::math::Range;
 
-pub use factory_builder::FactoryBuilder;
+pub use factory_builder::FactoryConfiguration;
 pub use factory_builder::FactoryContainerWidgets;
 use handler_wrapper::HandlerWrapper;
 pub use pagination::Pagination;
@@ -189,7 +189,7 @@ pub trait StoreView<Allocator>: DataStore<Allocator>
 where
     Allocator: TemporaryIdAllocator,
 {
-    type Builder: FactoryBuilder<Allocator>;
+    type Builder: FactoryConfiguration<Allocator>;
     fn window_size(&self) -> usize;
     fn get_window(&self) -> Range;
     fn set_window(&self, range: Range);

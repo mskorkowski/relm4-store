@@ -25,7 +25,7 @@ use relm4::WidgetPlus;
 use record::Id;
 use record::Record;
 use store::DataStore;
-use store::FactoryBuilder;
+use store::FactoryConfiguration;
 use store::FactoryContainerWidgets;
 use store::Position;
 use store::Source;
@@ -80,7 +80,7 @@ where Config: TasksListConfiguration + 'static,
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryBuilder for TasksListViewModel<Config> 
+impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel<Config> 
 where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
@@ -285,7 +285,7 @@ where Config: TasksListConfiguration + 'static,
         self.root.clone()
     }
 
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryBuilder>::View {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration>::View {
         &self.viewport
     }
 }

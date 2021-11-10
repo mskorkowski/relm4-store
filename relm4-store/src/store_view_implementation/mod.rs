@@ -21,7 +21,7 @@ use record::Record;
 use record::Id;
 
 use super::DataStore;
-use super::FactoryBuilder;
+use super::FactoryConfiguration;
 use super::Handler;
 use super::Pagination;
 use super::Position;
@@ -47,7 +47,7 @@ use widgets::Widgets;
 /// make sure all the updates are propagated to the view.
 pub struct StoreViewImplementation<Builder, Allocator=DefaultIdAllocator>
 where
-    Builder: FactoryBuilder<Allocator> + 'static,
+    Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
     id: StoreId<Self, Allocator>,
@@ -65,7 +65,7 @@ where
 
 impl<Builder, Allocator> StoreViewImplementation<Builder, Allocator> 
 where
-    Builder: FactoryBuilder<Allocator> + 'static,
+    Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
     pub fn new(store: Rc<RefCell<Builder::Store>>, size: usize) -> Self {
@@ -436,7 +436,7 @@ where
             if ids_to_update.contains(id) {
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
-                        <Builder as FactoryBuilder<Allocator>>::update_record(record, position, &widget.widgets);
+                        <Builder as FactoryConfiguration<Allocator>>::update_record(record, position, &widget.widgets);
                     }
                 }
             }

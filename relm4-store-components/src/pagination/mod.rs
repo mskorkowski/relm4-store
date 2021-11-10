@@ -4,7 +4,7 @@ use reexport::gtk;
 use reexport::relm4;
 use reexport::relm4_macros;
 use store::DataStore;
-use store::FactoryBuilder;
+use store::FactoryConfiguration;
 use store::StoreViewImplementation;
 
 use std::cell::RefCell;
@@ -43,7 +43,7 @@ pub trait PaginationConfiguration<Allocator=DefaultIdAllocator>
 where Allocator: TemporaryIdAllocator,
 {
     type SV: StoreView<Allocator>;
-    type ParentViewModel: ViewModel + FactoryBuilder<Allocator>;
+    type ParentViewModel: ViewModel + FactoryConfiguration<Allocator>;
 
     fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentViewModel, Allocator>>>;
 

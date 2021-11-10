@@ -24,7 +24,7 @@ use relm4::WidgetPlus;
 use record::Id;
 use record::Record;
 use store::DataStore;
-use store::FactoryBuilder;
+use store::FactoryConfiguration;
 use store::FactoryContainerWidgets;
 use store::Position;
 use store::Source;
@@ -68,7 +68,7 @@ impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryBuilder for TasksListViewModel<Config> {
+impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel<Config> {
     type Store = Tasks;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
@@ -231,7 +231,7 @@ impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<
         self.root.clone()
     }
 
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryBuilder>::View {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration>::View {
         &self.scrolled_box
     }
 }

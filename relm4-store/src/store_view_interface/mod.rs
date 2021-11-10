@@ -28,7 +28,7 @@ use record::Record;
 use super::DataStore;
 use super::Handler;
 use super::HandlerWrapper;
-use super::FactoryBuilder;
+use super::FactoryConfiguration;
 use super::FactoryContainerWidgets;
 use super::math;
 use super::Position;
@@ -101,7 +101,7 @@ impl Debug for StoreViewInterfaceError {
 
 pub struct StoreViewInterface<Builder, Allocator= DefaultIdAllocator> 
 where
-    Builder: FactoryBuilder<Allocator> + 'static,
+    Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
     view: Rc<RefCell<StoreViewImplementation<Builder, Allocator>>>,
@@ -115,7 +115,7 @@ where
 
 impl<Builder, Allocator> StoreViewInterface<Builder, Allocator> 
 where 
-    Builder: FactoryBuilder<Allocator> + 'static,
+    Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
 {
     pub fn new(
@@ -252,7 +252,7 @@ where
 
 impl<Builder, Allocator> Identifiable<Self, Allocator::Type> for StoreViewInterface<Builder, Allocator>
 where
-    Builder: 'static + FactoryBuilder<Allocator>,
+    Builder: 'static + FactoryConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator + 'static,
 
 {
@@ -265,7 +265,7 @@ where
 
 impl<Builder, Allocator> DataStore<Allocator> for StoreViewInterface<Builder, Allocator>
 where
-    Builder: 'static + FactoryBuilder<Allocator>,
+    Builder: 'static + FactoryConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator + 'static,
 {
     type Record = <Builder::Store as DataStore<Allocator>>::Record;
@@ -307,7 +307,7 @@ where
 
 impl<Builder, Allocator> StoreView<Allocator> for StoreViewInterface<Builder, Allocator>
 where
-    Builder: 'static + FactoryBuilder<Allocator>,
+    Builder: 'static + FactoryConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator + 'static,
 {
     type Builder = Builder;
@@ -355,7 +355,7 @@ where
 
 impl<Builder, Allocator> FactoryPrototype for StoreViewInterface<Builder, Allocator>
 where
-    Builder: FactoryBuilder<Allocator> + 'static,
+    Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
 {
     type Factory = Self;
@@ -392,7 +392,7 @@ where
     ) {
         let model = self.view.borrow().get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
         let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
-        <Builder as FactoryBuilder<Allocator>>::update_record(model, position, widgets)
+        <Builder as FactoryConfiguration<Allocator>>::update_record(model, position, widgets)
     }
 
     /// Get the outermost widget from the widgets.
@@ -403,7 +403,7 @@ where
 
 impl<Builder, Allocator> Factory<StoreViewInterface<Builder, Allocator>, Builder::View> for StoreViewInterface<Builder, Allocator>
 where
-    Builder: FactoryBuilder<Allocator> + 'static,
+    Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
 {
     type Key = Id<<Builder::Store as DataStore<Allocator>>::Record>;

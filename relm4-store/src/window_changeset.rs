@@ -4,12 +4,12 @@ use record::Id;
 use record::TemporaryIdAllocator;
 
 use super::DataStore;
-use super::FactoryBuilder;
+use super::FactoryConfiguration;
 
 /// WindowChangeset describes how the store view window has changed in response to the changes in the store
 pub struct WindowChangeset<Builder, Allocator>
 where
-    Builder: FactoryBuilder<Allocator> + 'static,
+    Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 
 {

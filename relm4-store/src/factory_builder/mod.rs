@@ -21,7 +21,7 @@ use super::DataStore;
 use super::position::Position;
 
 
-pub trait FactoryBuilder<Allocator=DefaultIdAllocator>: ViewModel<Widgets = Self::ContainerWidgets> 
+pub trait FactoryConfiguration<Allocator=DefaultIdAllocator>: ViewModel<Widgets = Self::ContainerWidgets> 
 where
     Allocator: TemporaryIdAllocator,
 {
@@ -67,7 +67,7 @@ where
     fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root;
 }
 
-pub trait FactoryContainerWidgets<FactoryViewModel: FactoryBuilder<Allocator, Widgets=Self, ContainerWidgets=Self>, Allocator=DefaultIdAllocator> 
+pub trait FactoryContainerWidgets<FactoryViewModel: FactoryConfiguration<Allocator, Widgets=Self, ContainerWidgets=Self>, Allocator=DefaultIdAllocator> 
 where
     Allocator: TemporaryIdAllocator,
 {
@@ -90,5 +90,5 @@ where
 
     fn connect_components(&self, _model: &FactoryViewModel, _components: &FactoryViewModel::Components) {}
 
-    fn container_widget(&self) -> &<FactoryViewModel as FactoryBuilder<Allocator>>::View;
+    fn container_widget(&self) -> &<FactoryViewModel as FactoryConfiguration<Allocator>>::View;
 }

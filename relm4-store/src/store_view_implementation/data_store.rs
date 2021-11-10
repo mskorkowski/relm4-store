@@ -11,7 +11,7 @@ use record::Id;
 use record::Identifiable;
 
 use super::DataStore;
-use super::FactoryBuilder;
+use super::FactoryConfiguration;
 use super::Handler;
 use super::Pagination;
 use super::Position;
@@ -26,7 +26,7 @@ use crate::redraw_messages::RedrawMessages;
 
 impl<Builder, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Builder, Allocator>
 where
-    Builder: FactoryBuilder<Allocator>,
+    Builder: FactoryConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator,
 {
     type Id = StoreId<Self, Allocator>;
@@ -38,7 +38,7 @@ where
 
 impl<Builder, Allocator> DataStore<Allocator> for StoreViewImplementation<Builder, Allocator> 
 where 
-    Builder: FactoryBuilder<Allocator> + 'static,
+    Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
     type Record = <Builder::Store as DataStore<Allocator>>::Record;
@@ -74,7 +74,7 @@ where
 
 impl<Builder, Allocator> StoreView<Allocator> for StoreViewImplementation<Builder, Allocator> 
 where
-    Builder: FactoryBuilder<Allocator> + 'static,
+    Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
     type Builder = Builder;
@@ -164,7 +164,7 @@ where
 
 pub struct StoreViewImplHandler<Builder, Allocator>
 where
-    Builder: FactoryBuilder<Allocator> + 'static,
+    Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
     view: Weak<RefCell<StoreViewImplementation<Builder, Allocator>>>,
@@ -173,7 +173,7 @@ where
 
 impl<Builder, Allocator> StoreViewImplHandler<Builder, Allocator>
 where
-    Builder: FactoryBuilder<Allocator> + 'static,
+    Builder: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
     pub fn new(view: Weak<RefCell<StoreViewImplementation<Builder, Allocator>>>, sender: Sender<RedrawMessages>) -> Self {
@@ -186,7 +186,7 @@ where
 
 impl<Builder, Allocator> Handler<Builder::Store, Allocator> for StoreViewImplHandler<Builder, Allocator> 
 where
-    Builder: 'static + FactoryBuilder<Allocator>,
+    Builder: 'static + FactoryConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator,
 {
     fn handle(&self, message: StoreMsg<<Builder::Store as DataStore<Allocator>>::Record>) -> bool {
