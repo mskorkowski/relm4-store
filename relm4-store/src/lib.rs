@@ -201,13 +201,3 @@ where
     fn inbox_queue_size(&self) -> usize;
 }
 
-
-// pub trait Source<Configuration, Allocator=DefaultIdAllocator> 
-// where
-//     Allocator: TemporaryIdAllocator,
-//     Configuration: FactoryConfiguration<Allocator>,
-// {
-//     type ParentViewModel : ViewModel;
-
-//     fn store(parent_model: &Self::ParentViewModel) -> StoreViewComponent<Configuration, Allocator>;
-// }
