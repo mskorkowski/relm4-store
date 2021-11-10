@@ -3,6 +3,7 @@ mod widgets;
 
 pub use data_store::StoreViewImplHandler;
 
+use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
 use reexport::relm4;
 
@@ -44,7 +45,7 @@ use widgets::Widgets;
 /// 
 /// To interact with content you should use Store. Store will handle all the
 /// make sure all the updates are propagated to the view.
-pub struct StoreViewImplementation<Builder, Allocator>
+pub struct StoreViewImplementation<Builder, Allocator=DefaultIdAllocator>
 where
     Builder: FactoryBuilder<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,

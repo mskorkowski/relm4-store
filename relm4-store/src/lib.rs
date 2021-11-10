@@ -208,7 +208,7 @@ where
     fn inbox_queue_size(&self) -> usize;
 }
 
-pub trait Source<Allocator> 
+pub trait Source<Allocator=DefaultIdAllocator> 
 where
     Allocator: TemporaryIdAllocator,
 {

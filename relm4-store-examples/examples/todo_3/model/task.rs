@@ -1,5 +1,10 @@
-use std::fmt::{Debug, Display, Formatter, Result};
-use model::{Id, Identifiable, Model};
+use reexport::uuid;
+
+use std::fmt::{self, Debug, Display, Formatter};
+
+use uuid::Uuid;
+
+use record::{Id, Record};
 
 #[derive(Clone)]
 pub struct Task {
@@ -18,19 +23,19 @@ impl Task {
     }
 }
 
-impl Identifiable for Task {
-    type Id = Id<Task>;
-
+impl Record for Task {
     fn get_id(&self) -> Id<Task> {
         self.id
     }
+
+    fn set_permanent_id(&mut self, value: Uuid) -> Result<(), record::IdentityError> {
+        self.id = Id::from(value);
+        Ok( () )
+    }
 }
 
-
-impl Model for Task {}
-
 impl Debug for Task {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Task")
             .field("id", &self.id)
             .field("description", &self.description)
@@ -40,7 +45,7 @@ impl Debug for Task {
 }
 
 impl Display for Task {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let completed = if self.completed {'x'} else {' '};
         f.write_str(&format!("[{}] {}", completed, self.description))
     }

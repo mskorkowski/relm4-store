@@ -21,8 +21,8 @@ use relm4::send;
 use relm4::Sender;
 use relm4::WidgetPlus;
 
-use model::Id;
-use model::Identifiable;
+use record::Id;
+use record::Record;
 use store::DataStore;
 use store::FactoryBuilder;
 use store::FactoryContainerWidgets;

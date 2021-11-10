@@ -22,7 +22,7 @@ pub trait InMemoryBackendConfiguration {
     fn initial_data() -> Vec<Self::Record>;
 }
 
-pub struct InMemoryBackend<Builder, Allocator> 
+pub struct InMemoryBackend<Builder, Allocator = DefaultIdAllocator> 
 where 
     Builder: InMemoryBackendConfiguration,
     Allocator: TemporaryIdAllocator,

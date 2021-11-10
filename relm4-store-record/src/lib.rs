@@ -11,8 +11,6 @@ mod uuid_allocator;
 
 use std::hash::Hash;
 
-use reexport::uuid::Uuid;
-
 pub use id::Id;
 pub use uuid_allocator::UuidAllocator;
 

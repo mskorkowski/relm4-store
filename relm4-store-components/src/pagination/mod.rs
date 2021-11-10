@@ -1,3 +1,4 @@
+use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
 use reexport::gtk;
 use reexport::relm4;
@@ -38,7 +39,7 @@ pub enum PaginationMsg {
     Reload,
 }
 
-pub trait PaginationConfiguration<Allocator> 
+pub trait PaginationConfiguration<Allocator=DefaultIdAllocator> 
 where Allocator: TemporaryIdAllocator,
 {
     type SV: StoreView<Allocator>;
@@ -49,7 +50,7 @@ where Allocator: TemporaryIdAllocator,
     fn update_message() -> <Self::ParentViewModel as ViewModel>::Msg;
 }
 
-pub struct PaginationViewModel<Config, Allocator> 
+pub struct PaginationViewModel<Config, Allocator=DefaultIdAllocator> 
 where 
     Config: PaginationConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,

@@ -8,9 +8,9 @@ pub struct TasksBuilder {}
 
 impl InMemoryBackendConfiguration for TasksBuilder
 {
-    type DataModel = Task;
+    type Record = Task;
 
-    fn initial_data() -> Vec<Self::DataModel> {
+    fn initial_data() -> Vec<Self::Record> {
         let mut initial_tasks = Vec::new();
 
         for i in 0..1000015 {

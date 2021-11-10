@@ -156,6 +156,16 @@ where
             _t: PhantomData,
         }
     }
+
+    /// Creates new instance of the Id
+    ///
+    /// Returns permanent id
+    pub fn from(value: Allocator::Type) -> Self {
+        Id::Permanent {
+            value,
+            _t: PhantomData,
+        }
+    }
 }
 
 impl<T, Allocator> Default for Id<T, Allocator> 

@@ -1,3 +1,4 @@
+use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
 use reexport::gtk;
 use reexport::relm4;
@@ -20,7 +21,7 @@ use super::DataStore;
 use super::position::Position;
 
 
-pub trait FactoryBuilder<Allocator>: ViewModel<Widgets = Self::ContainerWidgets> 
+pub trait FactoryBuilder<Allocator=DefaultIdAllocator>: ViewModel<Widgets = Self::ContainerWidgets> 
 where
     Allocator: TemporaryIdAllocator,
 {
@@ -66,7 +67,7 @@ where
     fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root;
 }
 
-pub trait FactoryContainerWidgets<FactoryViewModel: FactoryBuilder<Allocator, Widgets=Self, ContainerWidgets=Self>, Allocator> 
+pub trait FactoryContainerWidgets<FactoryViewModel: FactoryBuilder<Allocator, Widgets=Self, ContainerWidgets=Self>, Allocator=DefaultIdAllocator> 
 where
     Allocator: TemporaryIdAllocator,
 {

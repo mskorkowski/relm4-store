@@ -1,3 +1,4 @@
+use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
 use reexport::gtk;
 use reexport::relm4;
@@ -98,7 +99,7 @@ impl Debug for StoreViewInterfaceError {
     }
 }
 
-pub struct StoreViewInterface<Builder, Allocator> 
+pub struct StoreViewInterface<Builder, Allocator= DefaultIdAllocator> 
 where
     Builder: FactoryBuilder<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,

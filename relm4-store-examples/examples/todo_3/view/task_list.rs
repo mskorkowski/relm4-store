@@ -26,8 +26,8 @@ use relm4::WidgetPlus;
 
 use components::pagination::PaginationConfiguration;
 use components::pagination::PaginationViewModel;
-use model::Id;
-use model::Identifiable;
+use record::Id;
+use record::Record;
 use store::DataStore;
 use store::FactoryBuilder;
 use store::FactoryContainerWidgets;
