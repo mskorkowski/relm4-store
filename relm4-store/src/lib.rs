@@ -60,7 +60,8 @@ pub use store_msg::StoreMsg;
 pub use store_size::StoreSize;
 pub use store_view_implementation::StoreViewImplementation;
 pub use store_view_implementation::StoreViewImplHandler;
-pub use store_view_interface::StoreViewInterface;
+pub use store_view_interface::StoreViewComponent;
+pub use store_view_interface::StoreViewInterfaceError;
 
 /// Implementations of this trait are used to send messages between the store and it's views
 pub trait Handler<Store: DataStore<Allocator> + ?Sized, Allocator: TemporaryIdAllocator> {
@@ -187,7 +188,7 @@ pub trait StoreView<Allocator>: DataStore<Allocator>
 where
     Allocator: TemporaryIdAllocator,
 {
-    type Builder: FactoryConfiguration<Allocator>;
+    type Configuration: FactoryConfiguration<Allocator>;
     fn window_size(&self) -> usize;
     fn get_window(&self) -> Range;
     fn set_window(&self, range: Range);

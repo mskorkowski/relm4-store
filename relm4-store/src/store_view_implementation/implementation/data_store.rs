@@ -24,9 +24,9 @@ use crate::math::Range;
 use crate::redraw_messages::RedrawMessages;
 
 use super::StoreViewImplementation;
-impl<Builder, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Builder, Allocator>
+impl<Configuration, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Configuration, Allocator>
 where
-    Builder: FactoryConfiguration<Allocator>,
+    Configuration: FactoryConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator,
 {
     type Id = StoreId<Self, Allocator>;
@@ -36,12 +36,12 @@ where
     }
 }
 
-impl<Builder, Allocator> DataStore<Allocator> for StoreViewImplementation<Builder, Allocator> 
+impl<Configuration, Allocator> DataStore<Allocator> for StoreViewImplementation<Configuration, Allocator> 
 where 
-    Builder: FactoryConfiguration<Allocator> + 'static,
+    Configuration: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
-    type Record = <Builder::Store as DataStore<Allocator>>::Record;
+    type Record = <Configuration::Store as DataStore<Allocator>>::Record;
 
     fn len(&self) -> usize {
         self.store.borrow().len()
@@ -55,7 +55,7 @@ where
         self.changes.borrow_mut().push(message);
     }
 
-    fn get_range(&self, range: &Range) -> Vec<<Builder::Store as DataStore<Allocator>>::Record> {
+    fn get_range(&self, range: &Range) -> Vec<<Configuration::Store as DataStore<Allocator>>::Record> {
         self.store.borrow().get_range(range)
     }
 
@@ -72,18 +72,18 @@ where
     }
 }
 
-impl<Builder, Allocator> StoreView<Allocator> for StoreViewImplementation<Builder, Allocator> 
+impl<Configuration, Allocator> StoreView<Allocator> for StoreViewImplementation<Configuration, Allocator> 
 where
-    Builder: FactoryConfiguration<Allocator> + 'static,
+    Configuration: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
-    type Builder = Builder;
+    type Configuration = Configuration;
 
     fn window_size(&self) -> usize {
         self.range.borrow().len()
     }
 
-    fn get_view_data(&self) -> Vec<RecordWithLocation<<Builder::Store as DataStore<Allocator>>::Record>> {
+    fn get_view_data(&self) -> Vec<RecordWithLocation<<Configuration::Store as DataStore<Allocator>>::Record>> {
         let mut result = Vec::new();
 
         let data = self.get_range(&self.range.borrow());
@@ -162,21 +162,21 @@ where
     }
 }
 
-pub struct StoreViewImplHandler<Builder, Allocator>
+pub struct StoreViewImplHandler<Configuration, Allocator>
 where
-    Builder: FactoryConfiguration<Allocator> + 'static,
+    Configuration: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
-    view: Weak<RefCell<StoreViewImplementation<Builder, Allocator>>>,
+    view: Weak<RefCell<StoreViewImplementation<Configuration, Allocator>>>,
     sender: Sender<RedrawMessages>,
 }
 
-impl<Builder, Allocator> StoreViewImplHandler<Builder, Allocator>
+impl<Configuration, Allocator> StoreViewImplHandler<Configuration, Allocator>
 where
-    Builder: FactoryConfiguration<Allocator> + 'static,
+    Configuration: FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
-    pub fn new(view: Weak<RefCell<StoreViewImplementation<Builder, Allocator>>>, sender: Sender<RedrawMessages>) -> Self {
+    pub fn new(view: Weak<RefCell<StoreViewImplementation<Configuration, Allocator>>>, sender: Sender<RedrawMessages>) -> Self {
         Self {
             view,
             sender,
@@ -184,12 +184,12 @@ where
     }
 }
 
-impl<Builder, Allocator> Handler<Builder::Store, Allocator> for StoreViewImplHandler<Builder, Allocator> 
+impl<Configuration, Allocator> Handler<Configuration::Store, Allocator> for StoreViewImplHandler<Configuration, Allocator> 
 where
-    Builder: 'static + FactoryConfiguration<Allocator>,
+Configuration: 'static + FactoryConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator,
 {
-    fn handle(&self, message: StoreMsg<<Builder::Store as DataStore<Allocator>>::Record>) -> bool {
+    fn handle(&self, message: StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>) -> bool {
         if let Some(view) = self.view.upgrade() {
             view.borrow().inbox(message);
             let sender = &self.sender;
