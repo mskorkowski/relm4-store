@@ -30,7 +30,7 @@ mod store_id;
 mod store_msg;
 mod store_size;
 mod store_view_implementation;
-mod store_view_interface;
+mod store_view_component;
 pub mod window;
 
 use std::fmt::Debug;
@@ -54,8 +54,8 @@ pub use store_size::StoreSize;
 pub use store_view_implementation::StoreViewImplementation;
 pub use store_view_implementation::StoreViewImplHandler;
 pub use store_view_implementation::WindowChangeset;
-pub use store_view_interface::StoreViewComponent;
-pub use store_view_interface::StoreViewInterfaceError;
+pub use store_view_component::StoreViewComponent;
+pub use store_view_component::StoreViewInterfaceError;
 
 /// Implementations of this trait are used to send messages between the store and it's views
 pub trait Handler<Store: DataStore<Allocator> + ?Sized, Allocator: TemporaryIdAllocator>: std::fmt::Debug {
