@@ -58,7 +58,7 @@ pub use store_view_interface::StoreViewComponent;
 pub use store_view_interface::StoreViewInterfaceError;
 
 /// Implementations of this trait are used to send messages between the store and it's views
-pub trait Handler<Store: DataStore<Allocator> + ?Sized, Allocator: TemporaryIdAllocator> {
+pub trait Handler<Store: DataStore<Allocator> + ?Sized, Allocator: TemporaryIdAllocator>: std::fmt::Debug {
     /// Method called when parent store needs to pass a message to the view
     fn handle(&self, message: StoreMsg<<Store as DataStore<Allocator>>::Record>) -> bool;
 }

@@ -1,3 +1,5 @@
+//! Pagination component for store view
+
 use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
 use reexport::gtk;
@@ -31,26 +33,41 @@ use relm4::WidgetPlus;
 use relm4_macros::widget;
 
 /// Messages sent to pagination component
+#[derive(Debug)]
 pub enum PaginationMsg {
+    /// Go to first page
     First,
+    /// Go to last page
     Last,
+    /// Go to next page
     Next,
+    /// Go to previous page
     Prev,
+    /// Go to page
     ToPage,
+    /// Reload store
     Reload,
 }
 
+/// Configuration of the pagination component
 pub trait PaginationConfiguration<Allocator=DefaultIdAllocator> 
 where Allocator: TemporaryIdAllocator,
 {
+    /// Type of parent view widgets
+    /// 
+    /// Type of ViewWidgets used by component which holds pagination component
     type ParentWidgets: FactoryContainerWidgets<Self::ParentViewModel, Allocator>;
+    /// Type of parent view model
+    /// 
+    /// Type of model used by component which holds pagination component
     type ParentViewModel: ViewModel + FactoryConfiguration<Self::ParentWidgets, Allocator>;
 
+    /// Returns a view which will be used by the pagination component
     fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentWidgets, Self::ParentViewModel, Allocator>>>;
-
-    fn update_message() -> <Self::ParentViewModel as ViewModel>::Msg;
 }
 
+/// View model of the pagination component
+#[derive(Debug)]
 pub struct PaginationViewModel<Config, Allocator=DefaultIdAllocator> 
 where 
     Config: PaginationConfiguration<Allocator> + 'static,
@@ -94,7 +111,7 @@ where
         msg: Self::Msg, 
         _components: &Self::Components, 
         _sender: relm4::Sender<Self::Msg>, 
-        parent_sender: relm4::Sender<<Config::ParentViewModel as ViewModel>::Msg>
+        _parent_sender: relm4::Sender<<Config::ParentViewModel as ViewModel>::Msg>
     ) {
         match msg {
             PaginationMsg::First => 
@@ -110,13 +127,13 @@ where
                 self.view.borrow().inbox(StoreMsg::Reload),
         }
 
-        send!(parent_sender, Config::update_message());
         self.pages_total = self.view.borrow().total_pages().to_string();
         self.page.set_text(&self.view.borrow().current_page().to_string());
 
     }
 }
 
+/// Widgets for pagination component
 #[widget(visibility=pub, relm4=relm4)]
 impl<Config, Allocator> Widgets<PaginationViewModel<Config, Allocator>, Config::ParentViewModel> for PaginationWidgets 
 where 

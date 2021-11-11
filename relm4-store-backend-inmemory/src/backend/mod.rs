@@ -16,12 +16,17 @@ use store::StoreId;
 use store::StoreMsg;
 use store::math::Range;
 
+/// Configuration trait for the InMemoryBackend
 pub trait InMemoryBackendConfiguration {
+    /// Type of data in the in memory store
     type Record: 'static + Record + Debug + Clone;
 
+    /// Returns initial dataset for the store
     fn initial_data() -> Vec<Self::Record>;
 }
 
+/// In memory implementation of the data store
+#[derive(Debug)]
 pub struct InMemoryBackend<Builder, Allocator = DefaultIdAllocator> 
 where 
     Builder: InMemoryBackendConfiguration,
@@ -43,6 +48,7 @@ where
     Builder: InMemoryBackendConfiguration,
     Allocator: TemporaryIdAllocator
 {
+    /// Creates new instance of the InMemoryBackend
     pub fn new() -> Self {
         let backend = InMemoryBackend{
             id: StoreId::new(),

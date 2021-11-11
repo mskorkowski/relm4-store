@@ -45,7 +45,6 @@ pub enum TaskMsg {
         id: Id<Task>,
     },
     New,
-    Reload,
 }
 
 #[derive(Debug)]
@@ -181,7 +180,6 @@ where
                     tasks.inbox(StoreMsg::Commit(updated));
                 }
             },
-            TaskMsg::Reload => {},
         }
     }
 
@@ -226,10 +224,6 @@ where
     
     fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentWidgets, Self::ParentViewModel>>> {
         parent_view_model.store_view.clone()
-    }
-
-    fn update_message() -> <Self::ParentViewModel as ViewModel>::Msg {
-        TaskMsg::Reload
     }
 }
 

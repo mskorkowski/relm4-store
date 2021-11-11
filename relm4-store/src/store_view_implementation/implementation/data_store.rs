@@ -167,7 +167,6 @@ where
 }
 
 /// Handler which is used by the [StoreViewImplementation] to bind to the underlying data stores
-#[derive(Debug)]
 pub struct StoreViewImplHandler<Widgets, Configuration, Allocator>
 where
     Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
@@ -210,5 +209,16 @@ where
         else {
             true
         }
+    }
+}
+
+impl<Widgets, Configuration, Allocator> std::fmt::Debug for StoreViewImplHandler<Widgets, Configuration, Allocator> 
+where
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
+    Configuration: 'static + FactoryConfiguration<Widgets, Allocator>,
+    Allocator: TemporaryIdAllocator,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StoreViewImplHandler").finish_non_exhaustive()
     }
 }
