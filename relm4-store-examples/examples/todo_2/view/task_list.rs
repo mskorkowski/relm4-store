@@ -68,7 +68,6 @@ where Config: TasksListConfiguration + 'static,
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
     store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self>>>,
-    _config: PhantomData<*const Config>,
 }
 
 impl<Config> ViewModel for TasksListViewModel<Config> 
@@ -187,7 +186,6 @@ where Config: TasksListConfiguration + 'static,
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
             store_view,
-            _config: PhantomData,
         }
     }
 }
@@ -242,7 +240,6 @@ where Config: TasksListConfiguration + 'static,
 
     fn init_view(
         view_model: &TasksListViewModel<Config>, 
-        store_view: &StoreViewImplementation<Self, TasksListViewModel<Config>>, 
         sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>
     ) -> Self {
         let root = gtk::Box::default();
@@ -257,7 +254,7 @@ where Config: TasksListConfiguration + 'static,
 
         let scrolled_box = gtk::Box::default();
         scrolled_box.set_orientation(gtk::Orientation::Vertical);
-        store_view.generate(&scrolled_box, sender.clone());
+        view_model.store_view.borrow().generate(&scrolled_box, sender.clone());
 
 
         let scrolled_window = gtk::ScrolledWindow::default();
@@ -283,7 +280,7 @@ where Config: TasksListConfiguration + 'static,
 
     }
 
-    fn view(&mut self, _view_model: &TasksListViewModel<Config>, _store_view: &StoreViewImplementation<Self, TasksListViewModel<Config>>, _sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) {
+    fn view(&mut self, _view_model: &TasksListViewModel<Config>, _sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) {
         println!("Updating the view");
     }
 

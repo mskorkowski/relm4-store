@@ -78,7 +78,7 @@ where
 {
     type Msg = TaskMsg;
     type Widgets = TasksListViewWidgets<Config>;
-    type Components = TasksListComponents<TasksListViewWidgets<Config>, Config>;
+    type Components = TasksListComponents<Config>;
 }
 
 impl<Config> FactoryConfiguration<TasksListViewWidgets<Config>> for TasksListViewModel<Config> 
@@ -171,7 +171,7 @@ where
                 let description = self.new_task_description.text();
                 let task = Task::new(description, false);
                 self.new_task_description.set_text("");
-                self.tasks.borrow().inbox(StoreMsg::New(task));
+                self.tasks.borrow().inbox(StoreMsg::Commit(task));
             },
             TaskMsg::Toggle{ complete, id } => {
                 let tasks = self.tasks.borrow();
@@ -195,17 +195,15 @@ where
     }
 }
 
-pub struct TasksListComponents<Widgets, Config>
+pub struct TasksListComponents<Config>
 where
-    Widgets: FactoryContainerWidgets<Self>,
     Config: TasksListConfiguration + 'static,
 {
     pagination: RelmComponent<PaginationViewModel<Self>, TasksListViewModel<Config>>
 }
 
-impl<Widgets, Config> Components<TasksListViewModel<Config>> for TasksListComponents<Widgets, Config> 
+impl<Config> Components<TasksListViewModel<Config>> for TasksListComponents<Config> 
 where
-    Widgets: FactoryContainerWidgets<Self>,
     Config: TasksListConfiguration + 'static,
 {
     fn init_components(
@@ -219,15 +217,14 @@ where
     }
 }
 
-impl<Widgets, Config> PaginationConfiguration for TasksListComponents<Widgets, Config>
+impl<Config> PaginationConfiguration for TasksListComponents<Config>
 where
-    Widgets: FactoryContainerWidgets<Self>,
     Config: TasksListConfiguration + 'static,
 {
     type ParentViewModel = TasksListViewModel<Config>;
     type ParentWidgets = TasksListViewWidgets<Config>;
     
-    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Widgets, Self::ParentViewModel>>> {
+    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentWidgets, Self::ParentViewModel>>> {
         parent_view_model.store_view.clone()
     }
 
@@ -253,7 +250,6 @@ where Config: TasksListConfiguration + 'static,
 
     fn init_view(
         view_model: &TasksListViewModel<Config>, 
-        store_view: &StoreViewImplementation<Self, TasksListViewModel<Config>>, 
         sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>
     ) -> Self {
         let root = gtk::Box::default();
@@ -268,7 +264,7 @@ where Config: TasksListConfiguration + 'static,
 
         let scrolled_box = gtk::Box::default();
         scrolled_box.set_orientation(gtk::Orientation::Vertical);
-        store_view.generate(&scrolled_box, sender.clone());
+        view_model.store_view.borrow().generate(&scrolled_box, sender.clone());
 
 
         let scrolled_window = gtk::ScrolledWindow::default();
@@ -301,7 +297,6 @@ where Config: TasksListConfiguration + 'static,
     fn view(
         &mut self, 
         _view_model: &TasksListViewModel<Config>, 
-        _store_view: &StoreViewImplementation<Self, TasksListViewModel<Config>>, 
         _sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>
     ) {
         println!("Updating the view");
