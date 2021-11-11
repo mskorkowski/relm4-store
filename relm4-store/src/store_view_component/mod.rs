@@ -133,7 +133,7 @@ where
 
         let view = Rc::new(
             RefCell::new(
-                StoreViewImplementation::new(store.clone(), size.items())
+                StoreViewImplementation::new(store.clone(), size.items(), redraw_sender.clone())
             )
         );
         let view_id = view.borrow().get_id();

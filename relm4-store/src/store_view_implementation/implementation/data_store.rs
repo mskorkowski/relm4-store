@@ -56,6 +56,7 @@ where
 
     fn inbox(&self, message: StoreMsg<Self::Record>) {
         self.changes.borrow_mut().push(message);
+        self.redraw_sender.send(RedrawMessages::Redraw).expect("Unexpected failure while sending message via redraw_sender");
     }
 
     fn get_range(&self, range: &Range) -> Vec<<Configuration::Store as DataStore<Allocator>>::Record> {

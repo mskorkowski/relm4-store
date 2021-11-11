@@ -28,6 +28,7 @@ use crate::StoreId;
 use crate::StoreMsg;
 
 use crate::math::Range;
+use crate::redraw_messages::RedrawMessages;
 use crate::window::WindowBehavior;
 use crate::window::WindowTransition;
 
@@ -61,6 +62,7 @@ where
     changes: RefCell<Vec<StoreMsg<<Builder::Store as DataStore<Allocator>>::Record>>>,
     range: RefCell<Range>,
     size: usize,
+    redraw_sender: Sender<RedrawMessages>,
 }
 
 impl<Widgets, Builder, Allocator> Debug for StoreViewImplementation<Widgets, Builder, Allocator>
@@ -87,7 +89,7 @@ where
     /// 
     /// - **store** store which will provide a source data
     /// - **size** size of the page
-    pub fn new(store: Rc<RefCell<Builder::Store>>, size: usize) -> Self {
+    pub fn new(store: Rc<RefCell<Builder::Store>>, size: usize, redraw_sender: Sender<RedrawMessages>) -> Self {
         let range = RefCell::new(Range::new(0, size));
 
         let view_data = RefCell::new(HashMap::new());
@@ -105,6 +107,7 @@ where
             changes,
             range,
             size,
+            redraw_sender,
         }
     }
 
