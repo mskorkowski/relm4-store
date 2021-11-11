@@ -21,7 +21,7 @@ fn main() {
     println!();
 
     
-    let app_id = "store.reml4.example.todo-2-single-scroll";
+    let app_id = "store.relm4.example.todo-2-single-scroll";
     
     gtk::init().expect("Couldn't initialize gtk");
     let application = gtk::Application::builder()
