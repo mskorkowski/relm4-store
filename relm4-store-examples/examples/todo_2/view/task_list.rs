@@ -67,7 +67,7 @@ where Config: TasksListConfiguration + 'static,
 {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<Self>>>,
+    store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self>>>,
     _config: PhantomData<*const Config>,
 }
 
@@ -79,7 +79,7 @@ where Config: TasksListConfiguration + 'static,
     type Components = TasksListComponents<Config>;
 }
 
-impl<Config> FactoryConfiguration for TasksListViewModel<Config> 
+impl<Config> FactoryConfiguration<TasksListViewWidgets<Config>> for TasksListViewModel<Config> 
 where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
@@ -87,7 +87,6 @@ where Config: TasksListConfiguration + 'static,
     type Root = gtk::Box;
     type View = gtk::Box;
     type Window = PositionTrackingWindow;
-    type ContainerWidgets = TasksListViewWidgets<Config>;
     type ParentViewModel = Config::ParentViewModel;
 
 
@@ -183,7 +182,7 @@ where Config: TasksListConfiguration + 'static,
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self>>>) -> Self {
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
@@ -215,8 +214,9 @@ where Config: TasksListConfiguration,
 impl<Config> PaginationConfiguration for TasksListComponents<Config>
 where Config: TasksListConfiguration + 'static {
     type ParentViewModel = TasksListViewModel<Config>;
+    type ParentWidgets = TasksListViewWidgets<Config>;
 
-    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentViewModel>>> {
+    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentWidgets, Self::ParentViewModel>>> {
         parent_view_model.store_view.clone()
     }
 
@@ -242,7 +242,7 @@ where Config: TasksListConfiguration + 'static,
 
     fn init_view(
         view_model: &TasksListViewModel<Config>, 
-        store_view: &StoreViewImplementation<TasksListViewModel<Config>>, 
+        store_view: &StoreViewImplementation<Self, TasksListViewModel<Config>>, 
         sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>
     ) -> Self {
         let root = gtk::Box::default();
@@ -283,7 +283,7 @@ where Config: TasksListConfiguration + 'static,
 
     }
 
-    fn view(&mut self, _view_model: &TasksListViewModel<Config>, _store_view: &StoreViewImplementation<TasksListViewModel<Config>>, _sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) {
+    fn view(&mut self, _view_model: &TasksListViewModel<Config>, _store_view: &StoreViewImplementation<Self, TasksListViewModel<Config>>, _sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) {
         println!("Updating the view");
     }
 
@@ -291,7 +291,7 @@ where Config: TasksListConfiguration + 'static,
         self.root.clone()
     }
 
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration>::View {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<Self>>::View {
         &self.scrolled_box
     }
 }

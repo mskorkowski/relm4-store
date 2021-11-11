@@ -21,7 +21,6 @@
 )]
 
 mod factory_configuration;
-mod handler_wrapper;
 pub mod math;
 mod pagination;
 mod position;
@@ -54,6 +53,7 @@ pub use store_msg::StoreMsg;
 pub use store_size::StoreSize;
 pub use store_view_implementation::StoreViewImplementation;
 pub use store_view_implementation::StoreViewImplHandler;
+pub use store_view_implementation::WindowChangeset;
 pub use store_view_interface::StoreViewComponent;
 pub use store_view_interface::StoreViewInterfaceError;
 
@@ -178,14 +178,29 @@ where Allocator: TemporaryIdAllocator
 ///   Your business model has two data sets `A` and `B` and there is `1-*` relationship between the data.
 ///   There are valid scenarios when you would like to edit item in `A` and give the ability to modify
 ///   related items in `B` at the same time. 
-pub trait StoreView<Allocator>: DataStore<Allocator>
+pub trait StoreView<Widgets, Allocator>: DataStore<Allocator>
 where
+    Widgets: ?Sized + FactoryContainerWidgets<Self::Configuration, Allocator>,
     Allocator: TemporaryIdAllocator,
 {
-    type Configuration: FactoryConfiguration<Allocator>;
+    /// Type describing configuration parts of the store view behavior
+    type Configuration: FactoryConfiguration<Widgets, Allocator>;
+
+    /// How many records should be visible at any point of time
+    /// 
+    /// If there is less elements in the store/page it's possible that less records will be shown.
+    /// StoreView should never show more records then this value
     fn window_size(&self) -> usize;
+
+    /// Returns range in the parent store for data in the current window
     fn get_window(&self) -> Range;
+
+    /// Moves the window to the new range
     fn set_window(&self, range: Range);
+
+    /// Returns vector with list of records in the current view
+    /// 
+    /// Returned records are **clones** of the actual records
     fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record>>;
 
     /// Returns the position of the record in the view
@@ -193,11 +208,19 @@ where
     /// If returns `None` that means record is not in the view
     fn get_position(&self, id: &Id<Self::Record>) -> Option<Position>;
 
+    /// Advance the store view to the next page (if it exists) of underlying store
     fn next_page(&self);
+
+    /// Goes back the the previous page (if it exists) of underlying store
     fn prev_page(&self);
+
+    /// Goes to the first page of data in the underlying store
     fn first_page(&self);
+
+    /// Goes to the last page of the data in the underlying store
     fn last_page(&self);
 
+    /// Returns current size of unhandled messages in the view
     fn inbox_queue_size(&self) -> usize;
 }
 

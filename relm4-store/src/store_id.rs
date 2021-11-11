@@ -7,7 +7,6 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::marker::PhantomData;
 
-use record::DefaultIdAllocator;
 use record::Identity;
 use record::TemporaryIdAllocator;
 

@@ -10,6 +10,8 @@ use crate::{
     view::{task_list::TasksListConfiguration, task_list::TasksListViewModel}
 };
 
+use super::task_list::TasksListViewWidgets;
+
 pub enum MainWindowMsg {}
 
 pub struct MainWindowViewModel {
@@ -35,10 +37,10 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list_1: StoreViewComponent<TasksListViewModel<TaskList1Configuration>>,
-    tasks_list_2: StoreViewComponent<TasksListViewModel<TaskList2Configuration>>,
-    tasks_list_3: StoreViewComponent<TasksListViewModel<TaskList3Configuration>>,
-    tasks_list_4: StoreViewComponent<TasksListViewModel<TaskList4Configuration>>,
+    tasks_list_1: StoreViewComponent<TasksListViewWidgets<TaskList1Configuration>, TasksListViewModel<TaskList1Configuration>>,
+    tasks_list_2: StoreViewComponent<TasksListViewWidgets<TaskList2Configuration>, TasksListViewModel<TaskList2Configuration>>,
+    tasks_list_3: StoreViewComponent<TasksListViewWidgets<TaskList3Configuration>, TasksListViewModel<TaskList3Configuration>>,
+    tasks_list_4: StoreViewComponent<TasksListViewWidgets<TaskList4Configuration>, TasksListViewModel<TaskList4Configuration>>,
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
@@ -57,7 +59,7 @@ impl Components<MainWindowViewModel> for MainWindowComponents {
 }
 
 struct TaskList1Configuration {}
-impl TasksListConfiguration<TasksListViewModel<Self>> for TaskList1Configuration {
+impl TasksListConfiguration for TaskList1Configuration {
     type ParentViewModel = MainWindowViewModel;
     type Window = ValueTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
@@ -66,7 +68,7 @@ impl TasksListConfiguration<TasksListViewModel<Self>> for TaskList1Configuration
 }
 
 struct TaskList2Configuration {}
-impl TasksListConfiguration<TasksListViewModel<Self>> for TaskList2Configuration {
+impl TasksListConfiguration for TaskList2Configuration {
     type ParentViewModel = MainWindowViewModel;
     type Window = PositionTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
@@ -75,7 +77,7 @@ impl TasksListConfiguration<TasksListViewModel<Self>> for TaskList2Configuration
 }
 
 struct TaskList3Configuration {}
-impl TasksListConfiguration<TasksListViewModel<Self>> for TaskList3Configuration {
+impl TasksListConfiguration for TaskList3Configuration {
     type ParentViewModel = MainWindowViewModel;
     type Window = PositionTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
@@ -84,7 +86,7 @@ impl TasksListConfiguration<TasksListViewModel<Self>> for TaskList3Configuration
 }
 
 struct TaskList4Configuration {}
-impl TasksListConfiguration<TasksListViewModel<Self>> for TaskList4Configuration {
+impl TasksListConfiguration for TaskList4Configuration {
     type ParentViewModel = MainWindowViewModel;
     type Window = PositionTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {

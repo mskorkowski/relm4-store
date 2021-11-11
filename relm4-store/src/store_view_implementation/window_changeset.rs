@@ -5,11 +5,14 @@ use record::TemporaryIdAllocator;
 
 use crate::DataStore;
 use crate::FactoryConfiguration;
+use crate::FactoryContainerWidgets;
 
 /// WindowChangeset describes how the store view window has changed in response to the changes in the store
-pub struct WindowChangeset<Builder, Allocator>
+#[derive(Debug)]
+pub struct WindowChangeset<Widgets, Builder, Allocator>
 where
-    Builder: FactoryConfiguration<Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Builder, Allocator>,
+    Builder: FactoryConfiguration<Widgets, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 
 {

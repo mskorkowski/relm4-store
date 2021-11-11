@@ -10,6 +10,7 @@ use record::Record;
 use super::Position;
 
 /// Passes information about record and it's order in store
+#[derive(Debug)]
 pub struct RecordWithLocation<T>
 where T: Record + Clone + Debug
 {

@@ -9,6 +9,7 @@ use super::WindowTransition;
 /// If you implement kind of logging tool it might be a thing.
 /// For example if you implement git client list of git command
 /// issued might use this window behavior.
+#[derive(Debug)]
 pub struct KeepOnBottom {}
 
 impl WindowBehavior for KeepOnBottom {

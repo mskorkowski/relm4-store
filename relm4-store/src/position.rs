@@ -14,7 +14,7 @@ impl Position {
         Point::new(self.0)
     }
 
-    
+    /// Index in the data store
     pub fn get(&self) -> usize {
         self.0
     }

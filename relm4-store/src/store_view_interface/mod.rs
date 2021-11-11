@@ -98,23 +98,25 @@ impl Debug for StoreViewInterfaceError {
 /// 
 /// 
 #[derive(Debug)]
-pub struct StoreViewComponent<Configuration, Allocator= DefaultIdAllocator> 
+pub struct StoreViewComponent<Widgets, Configuration, Allocator= DefaultIdAllocator> 
 where
-    Configuration: FactoryConfiguration<Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
-    view: Rc<RefCell<StoreViewImplementation<Configuration, Allocator>>>,
+    view: Rc<RefCell<StoreViewImplementation<Widgets, Configuration, Allocator>>>,
     _components: Configuration::Components,
-    _container: Rc<RefCell<Configuration::ContainerWidgets>>,
+    _container: Rc<RefCell<Widgets>>,
     _view_model: Rc<RefCell<Configuration>>,
-    root_widget: <Configuration::ContainerWidgets as FactoryContainerWidgets<Configuration, Allocator>>::Root,
+    root_widget: <Widgets as FactoryContainerWidgets<Configuration, Allocator>>::Root,
     sender: Sender<Configuration::Msg>,
     redraw_sender: Sender<RedrawMessages>,
 }
 
-impl<Configuration, Allocator> StoreViewComponent<Configuration, Allocator> 
+impl<Widgets, Configuration, Allocator> StoreViewComponent<Widgets, Configuration, Allocator> 
 where 
-    Configuration: FactoryConfiguration<Allocator> + 'static,
+    Widgets: FactoryContainerWidgets<Configuration, Allocator> + 'static,
+    Configuration: FactoryConfiguration<Widgets, Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
 {
     /// Creates new instance of the [StoreViewInterface]
@@ -151,8 +153,8 @@ where
 
         let view_model = Configuration::init_view_model(parent_view_model, view.clone());
         let container = {
-            let v: &StoreViewImplementation<Configuration, Allocator> = &view.borrow();
-            Configuration::ContainerWidgets::init_view(
+            let v: &StoreViewImplementation<Widgets, Configuration, Allocator> = &view.borrow();
+            Widgets::init_view(
                 &view_model,
                 v,
                 sender.clone(),
@@ -179,7 +181,13 @@ where
                 if let Ok(store_view) = handler_view.try_borrow() {
                     if let Ok(mut view_model) = handler_view_model.try_borrow_mut() {
                         if let Ok(mut container) = handler_container.try_borrow_mut() {
+                            // update store view if there are any unhandled messages in the inbox of the store-view
+                            container.view(&view_model, &store_view, handler_sender.clone());
+                            // update the view using fully resolved store-view
                             Configuration::update(&mut view_model, msg, handler_sender.clone());
+                            // in case some messages were added to the store view re run the update for the new messages
+                            // this way `update` has seen fully resolved store-view and in case some messages were sent
+                            // they are resolved also
                             container.view(&view_model, &store_view, handler_sender.clone());
                             send!(handler_redraw_sender, RedrawMessages::Redraw);
                         }
@@ -237,22 +245,26 @@ where
         }
     }
 
+    /// Returns a sender for this component
     pub fn sender(&self) -> Sender<Configuration::Msg> {
         self.sender.clone()
     }
 
+    /// Sends a message to this component
     pub fn send(&self, msg: Configuration::Msg) -> Result<(), std::sync::mpsc::SendError<Configuration::Msg>> {
         self.sender.send(msg)
     }
 
-    pub fn root_widget(&self) -> &<Configuration::ContainerWidgets as FactoryContainerWidgets<Configuration, Allocator>>::Root {
+    /// Returns root widget for this component, in most cases gtk widget
+    pub fn root_widget(&self) -> &<Widgets as FactoryContainerWidgets<Configuration, Allocator>>::Root {
         &self.root_widget
     }
 }
 
-impl<Configuration, Allocator> FactoryPrototype for StoreViewComponent<Configuration, Allocator>
+impl<Widgets, Configuration, Allocator> FactoryPrototype for StoreViewComponent<Widgets, Configuration, Allocator>
 where
-    Configuration: FactoryConfiguration<Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
 {
     type Factory = Self;
@@ -292,7 +304,7 @@ where
         let view = self.view.borrow();
         let model = view.get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
         let position = view.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
-        <Configuration as FactoryConfiguration<Allocator>>::update_record(model, position, widgets)
+        <Configuration as FactoryConfiguration<Widgets, Allocator>>::update_record(model, position, widgets)
     }
 
     /// Get the outermost widget from the widgets.
@@ -301,9 +313,10 @@ where
     }
 }
 
-impl<Builder, Allocator> Factory<StoreViewComponent<Builder, Allocator>, Builder::View> for StoreViewComponent<Builder, Allocator>
+impl<Widgets, Builder, Allocator> Factory<StoreViewComponent<Widgets, Builder, Allocator>, Builder::View> for StoreViewComponent<Widgets, Builder, Allocator>
 where
-    Builder: FactoryConfiguration<Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Builder, Allocator>,
+    Builder: FactoryConfiguration<Widgets, Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
 {
     type Key = Id<<Builder::Store as DataStore<Allocator>>::Record>;

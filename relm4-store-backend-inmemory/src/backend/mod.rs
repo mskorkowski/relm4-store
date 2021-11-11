@@ -52,7 +52,7 @@ where
         };
 
         for record in initial_data {
-            backend.inbox(StoreMsg::New(record));
+            backend.inbox(StoreMsg::Commit(record));
         }
 
         //we don't have any views so we don't need to notify anybody yet
@@ -124,23 +124,22 @@ where
 
     fn inbox(&self, msg: StoreMsg<Builder::Record>) {
         match msg {
-            StoreMsg::New(record) => {
-                let position = self.add(record);
-
-                self.fire_handlers(
-                    StoreMsg::NewAt(position)
-                );
-            },
             StoreMsg::Commit(record) => {
                 let id = record.get_id();
                 {
                     let mut data = self.data.borrow_mut();
                     
+                    if id.is_new() {
+                        let position = self.add(record);
+                        self.fire_handlers(StoreMsg::NewAt(position));
+                    }
+                    else {
+                        data.insert(id, record);
+                        self.fire_handlers(StoreMsg::Update(id))
+                    }
                     // let old_record = data.get(&id);
-                    data.insert(id, record);
                 }
 
-                self.fire_handlers(StoreMsg::Update(id))
             },
             StoreMsg::Reload => {
                 //it's in memory store so nothing to do...

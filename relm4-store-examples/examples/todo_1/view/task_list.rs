@@ -68,13 +68,12 @@ impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel<Config> {
+impl<Config: TasksListConfiguration> FactoryConfiguration<TasksListViewWidgets<Config>> for TasksListViewModel<Config> {
     type Store = Tasks;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
     type Window = PositionTrackingWindow;
-    type ContainerWidgets = TasksListViewWidgets<Config>;
     type ParentViewModel = Config::ParentViewModel;
 
 
@@ -169,7 +168,7 @@ impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, _store_view: Rc<RefCell<StoreViewImplementation<Self>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, _store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self>>>) -> Self {
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
@@ -189,7 +188,7 @@ pub struct TasksListViewWidgets<Config: TasksListConfiguration> {
 impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets<Config> {
     type Root = gtk::Box;
 
-    fn init_view(view_model: &TasksListViewModel<Config>, store_view: &StoreViewImplementation<TasksListViewModel<Config>>, sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) -> Self {
+    fn init_view(view_model: &TasksListViewModel<Config>, store_view: &StoreViewImplementation<Self, TasksListViewModel<Config>>, sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) -> Self {
         let root = gtk::Box::default();
         root.set_margin_all(12);
         root.set_orientation(gtk::Orientation::Vertical);
@@ -223,7 +222,7 @@ impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<
         }
     }
 
-    fn view(&mut self, _view_model: &TasksListViewModel<Config>, _store_view: &StoreViewImplementation<TasksListViewModel<Config>>, _sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) {
+    fn view(&mut self, _view_model: &TasksListViewModel<Config>, _store_view: &StoreViewImplementation<Self, TasksListViewModel<Config>>, _sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) {
         println!("Updating the view");
     }
 
@@ -231,7 +230,7 @@ impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<
         self.root.clone()
     }
 
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration>::View {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<Self>>::View {
         &self.scrolled_box
     }
 }

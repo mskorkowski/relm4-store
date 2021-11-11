@@ -5,6 +5,7 @@ use reexport::relm4;
 use reexport::relm4_macros;
 use store::DataStore;
 use store::FactoryConfiguration;
+use store::FactoryContainerWidgets;
 use store::StoreViewImplementation;
 
 use std::cell::RefCell;
@@ -42,9 +43,10 @@ pub enum PaginationMsg {
 pub trait PaginationConfiguration<Allocator=DefaultIdAllocator> 
 where Allocator: TemporaryIdAllocator,
 {
-    type ParentViewModel: ViewModel + FactoryConfiguration<Allocator>;
+    type ParentWidgets: FactoryContainerWidgets<Self::ParentViewModel, Allocator>;
+    type ParentViewModel: ViewModel + FactoryConfiguration<Self::ParentWidgets, Allocator>;
 
-    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentViewModel, Allocator>>>;
+    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentWidgets, Self::ParentViewModel, Allocator>>>;
 
     fn update_message() -> <Self::ParentViewModel as ViewModel>::Msg;
 }
@@ -54,7 +56,7 @@ where
     Config: PaginationConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
 {
-    view: Rc<RefCell<StoreViewImplementation<Config::ParentViewModel, Allocator>>>,
+    view: Rc<RefCell<StoreViewImplementation<Config::ParentWidgets, Config::ParentViewModel, Allocator>>>,
     page: gtk::EntryBuffer,
     pages_total: String,
 }

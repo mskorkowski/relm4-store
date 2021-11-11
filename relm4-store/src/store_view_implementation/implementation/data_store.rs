@@ -12,6 +12,7 @@ use record::Identifiable;
 
 use crate::DataStore;
 use crate::FactoryConfiguration;
+use crate::FactoryContainerWidgets;
 use crate::Handler;
 use crate::Pagination;
 use crate::Position;
@@ -24,9 +25,10 @@ use crate::math::Range;
 use crate::redraw_messages::RedrawMessages;
 
 use super::StoreViewImplementation;
-impl<Configuration, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Configuration, Allocator>
+impl<Widgets, Configuration, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Widgets, Configuration, Allocator>
 where
-    Configuration: FactoryConfiguration<Allocator>,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Allocator>,
     Allocator: TemporaryIdAllocator,
 {
     type Id = StoreId<Self, Allocator>;
@@ -36,9 +38,10 @@ where
     }
 }
 
-impl<Configuration, Allocator> DataStore<Allocator> for StoreViewImplementation<Configuration, Allocator> 
+impl<Widgets, Configuration, Allocator> DataStore<Allocator> for StoreViewImplementation<Widgets, Configuration, Allocator> 
 where 
-    Configuration: FactoryConfiguration<Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
     type Record = <Configuration::Store as DataStore<Allocator>>::Record;
@@ -72,9 +75,10 @@ where
     }
 }
 
-impl<Configuration, Allocator> StoreView<Allocator> for StoreViewImplementation<Configuration, Allocator> 
+impl<Widgets, Configuration, Allocator> StoreView<Widgets, Allocator> for StoreViewImplementation<Widgets, Configuration, Allocator> 
 where
-    Configuration: FactoryConfiguration<Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
     type Configuration = Configuration;
@@ -162,21 +166,27 @@ where
     }
 }
 
-pub struct StoreViewImplHandler<Configuration, Allocator>
+/// Handler which is used by the [StoreViewImplementation] to bind to the underlying data stores
+#[derive(Debug)]
+pub struct StoreViewImplHandler<Widgets, Configuration, Allocator>
 where
-    Configuration: FactoryConfiguration<Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
-    view: Weak<RefCell<StoreViewImplementation<Configuration, Allocator>>>,
+    view: Weak<RefCell<StoreViewImplementation<Widgets, Configuration, Allocator>>>,
     sender: Sender<RedrawMessages>,
 }
 
-impl<Configuration, Allocator> StoreViewImplHandler<Configuration, Allocator>
+impl<Widgets, Configuration, Allocator> StoreViewImplHandler<Widgets, Configuration, Allocator>
 where
-    Configuration: FactoryConfiguration<Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
 {
-    pub fn new(view: Weak<RefCell<StoreViewImplementation<Configuration, Allocator>>>, sender: Sender<RedrawMessages>) -> Self {
+
+    /// Creates new instance of this handler
+    pub fn new(view: Weak<RefCell<StoreViewImplementation<Widgets, Configuration, Allocator>>>, sender: Sender<RedrawMessages>) -> Self {
         Self {
             view,
             sender,
@@ -184,9 +194,10 @@ where
     }
 }
 
-impl<Configuration, Allocator> Handler<Configuration::Store, Allocator> for StoreViewImplHandler<Configuration, Allocator> 
+impl<Widgets, Configuration, Allocator> Handler<Configuration::Store, Allocator> for StoreViewImplHandler<Widgets, Configuration, Allocator> 
 where
-Configuration: 'static + FactoryConfiguration<Allocator>,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
+    Configuration: 'static + FactoryConfiguration<Widgets, Allocator>,
     Allocator: TemporaryIdAllocator,
 {
     fn handle(&self, message: StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>) -> bool {
