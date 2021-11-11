@@ -5,6 +5,9 @@ use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets};
 use relm4_macros::widget;
 use store::{StoreSize, StoreViewComponent};
 
+use std::io::stdout;
+use std::io::Write;
+
 use crate::{
     store::Tasks,
     view::{ task_list::TasksListConfiguration, task_list::TasksListViewModel}
@@ -45,14 +48,22 @@ impl Components<MainWindowViewModel> for MainWindowComponents {
         _parent_widgets: &MainWindowWidgets,
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
+        stdout().write("\tCreating list component\n".as_bytes()).unwrap();
+        stdout().flush().unwrap();
+
+        let tasks_list=  StoreViewComponent::new(
+            parent_model, 
+            parent_model.tasks.clone(), 
+            StoreSize::Items(
+                Self::page_size(parent_model)
+            )
+        );
+
+        stdout().write("\t\tDone\n".as_bytes()).unwrap();
+        stdout().flush().unwrap();
+
         Self {
-            tasks_list: StoreViewComponent::new(
-                parent_model, 
-                parent_model.tasks.clone(), 
-                StoreSize::Items(
-                    Self::page_size(parent_model)
-                )
-            ),
+            tasks_list,
         }
     }
 }

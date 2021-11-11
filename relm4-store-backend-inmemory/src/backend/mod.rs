@@ -43,7 +43,7 @@ where
     Builder: InMemoryBackendConfiguration,
     Allocator: TemporaryIdAllocator
 {
-    pub fn new(initial_data: Vec<Builder::Record>) -> Self {
+    pub fn new() -> Self {
         let backend = InMemoryBackend{
             id: StoreId::new(),
             order: RefCell::new(VecDeque::new()),
@@ -51,7 +51,7 @@ where
             handlers: RefCell::new(HashMap::new()),
         };
 
-        for record in initial_data {
+        for record in Builder::initial_data() {
             backend.inbox(StoreMsg::Commit(record));
         }
 
@@ -127,13 +127,13 @@ where
             StoreMsg::Commit(record) => {
                 let id = record.get_id();
                 {
-                    let mut data = self.data.borrow_mut();
                     
                     if id.is_new() {
                         let position = self.add(record);
                         self.fire_handlers(StoreMsg::NewAt(position));
                     }
                     else {
+                        let mut data = self.data.borrow_mut();
                         data.insert(id, record);
                         self.fire_handlers(StoreMsg::Update(id))
                     }
