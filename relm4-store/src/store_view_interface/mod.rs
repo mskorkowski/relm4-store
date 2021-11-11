@@ -138,7 +138,6 @@ where
         );
         let view_id = view.borrow().get_id();
         let weak_view = Rc::downgrade(&view);
-        let handler_view = view.clone();
         let redraw_handler_view = view.clone();
 
         {
@@ -153,10 +152,8 @@ where
 
         let view_model = Configuration::init_view_model(parent_view_model, view.clone());
         let container = {
-            let v: &StoreViewImplementation<Widgets, Configuration, Allocator> = &view.borrow();
             Widgets::init_view(
                 &view_model,
-                v,
                 sender.clone(),
             )
         };
@@ -177,30 +174,24 @@ where
         {
             let context = glib::MainContext::default();
             receiver.attach(Some(&context), move |msg| {
-
-                if let Ok(store_view) = handler_view.try_borrow() {
-                    if let Ok(mut view_model) = handler_view_model.try_borrow_mut() {
-                        if let Ok(mut container) = handler_container.try_borrow_mut() {
-                            // update store view if there are any unhandled messages in the inbox of the store-view
-                            container.view(&view_model, &store_view, handler_sender.clone());
-                            // update the view using fully resolved store-view
-                            Configuration::update(&mut view_model, msg, handler_sender.clone());
-                            // in case some messages were added to the store view re run the update for the new messages
-                            // this way `update` has seen fully resolved store-view and in case some messages were sent
-                            // they are resolved also
-                            container.view(&view_model, &store_view, handler_sender.clone());
-                            send!(handler_redraw_sender, RedrawMessages::Redraw);
-                        }
-                        else {
-                            log::warn!(target: "relm4-store", "Could not borrow the container. Make sure you dropped all references to container after user");
-                        }
+                if let Ok(mut view_model) = handler_view_model.try_borrow_mut() {
+                    if let Ok(mut container) = handler_container.try_borrow_mut() {
+                        // update store view if there are any unhandled messages in the inbox of the store-view
+                        container.view(&view_model, handler_sender.clone());
+                        // update the view using fully resolved store-view
+                        Configuration::update(&mut view_model, msg, handler_sender.clone());
+                        // in case some messages were added to the store view re run the update for the new messages
+                        // this way `update` has seen fully resolved store-view and in case some messages were sent
+                        // they are resolved also
+                        container.view(&view_model, handler_sender.clone());
+                        send!(handler_redraw_sender, RedrawMessages::Redraw);
                     }
                     else {
-                        log::warn!(target: "relm4-store", "Could not borrow the view model. Make sure you dropped all references to view model after use");
+                        log::warn!(target: "relm4-store", "Could not borrow the container. Make sure you dropped all references to container after user");
                     }
                 }
                 else {
-                    log::warn!(target: "relm4-store", "Could not borrow the store view. Make sure you dropped all references to store view after use");
+                    log::warn!(target: "relm4-store", "Could not borrow the view model. Make sure you dropped all references to view model after use");
                 }
 
                 glib::Continue(true)
@@ -213,7 +204,7 @@ where
                 if let Ok(store_view) = redraw_handler_view.try_borrow() {
                     if let Ok(view_model) = redraw_handler_view_model.try_borrow() {
                         if let Ok(mut container) = redraw_handler_container.try_borrow_mut() {
-                            container.view(&view_model,&store_view, redraw_handler_sender.clone());
+                            container.view(&view_model, redraw_handler_sender.clone());
                             if store_view.inbox_queue_size() > 0 { //only redraw if there is an update awaiting
                                 store_view.generate(container.container_widget(), redraw_handler_sender.clone());
                             }

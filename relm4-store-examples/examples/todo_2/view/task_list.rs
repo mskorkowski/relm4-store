@@ -168,7 +168,7 @@ where Config: TasksListConfiguration + 'static,
                 let description = self.new_task_description.text();
                 let task = Task::new(description, false);
                 self.new_task_description.set_text("");
-                self.tasks.borrow().inbox(StoreMsg::New(task));
+                self.tasks.borrow().inbox(StoreMsg::Commit(task));
             },
             TaskMsg::Toggle{ complete, id } => {
                 let tasks = self.tasks.borrow();

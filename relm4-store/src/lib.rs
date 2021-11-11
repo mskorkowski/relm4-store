@@ -65,6 +65,8 @@ pub trait Handler<Store: DataStore<Allocator> + ?Sized, Allocator: TemporaryIdAl
 
 /// DataStore is a trait describing collections specialized in housekeeping business model data
 /// 
+/// DataStore is designed with upsert in mind.
+/// 
 /// ## DataStore implementations are collections
 /// 
 /// That means they own (in terms of borrow checker) some instances of your business model data.

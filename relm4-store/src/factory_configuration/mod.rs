@@ -75,6 +75,8 @@ where
     );
 
     /// Creates new instance of [FactoryConfiguration]
+    /// 
+    /// If you wish to use store view in widgets you must save it in your model
     fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Widgets, Self, Allocator>>>) -> Self;
 
     /// Returns position of record inside the widget
@@ -100,7 +102,6 @@ where
     /// Creates new instance of this
     fn init_view(
         view_model: &FactoryViewModel, 
-        store_view: &StoreViewImplementation<Self, FactoryViewModel, Allocator>,
         sender: Sender<<FactoryViewModel as ViewModel>::Msg>
     ) -> Self;
     
@@ -108,7 +109,6 @@ where
     fn view(
         &mut self, 
         view_model: &FactoryViewModel, 
-        store_view: &StoreViewImplementation<Self, FactoryViewModel, Allocator>,
         sender: Sender<<FactoryViewModel as ViewModel>::Msg>
     );
     
