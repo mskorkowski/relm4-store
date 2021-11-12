@@ -10,7 +10,7 @@ use crate::{
     view::{task_list::TasksListConfiguration, task_list::TasksListViewModel}
 };
 
-use super::task_list::TasksListViewWidgets;
+use super::task_list::{TasksListComponents, TasksListViewWidgets};
 
 pub enum MainWindowMsg {}
 
@@ -36,7 +36,7 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list: StoreViewComponent<TasksListViewWidgets<Self>, TasksListViewModel<Self>>,
+    tasks_list: StoreViewComponent<TasksListViewWidgets<Self>, TasksListViewModel<Self>, TasksListComponents<Self>>,
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {

@@ -59,7 +59,7 @@ pub trait TasksListConfiguration {
 pub struct TasksListViewModel<Config: TasksListConfiguration + 'static> {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self>>>,
+    store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self, ()>>>,
 }
 
 impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
@@ -68,7 +68,7 @@ impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryConfiguration<TasksListViewWidgets<Config>> for TasksListViewModel<Config> {
+impl<Config: TasksListConfiguration> FactoryConfiguration<TasksListViewWidgets<Config>, ()> for TasksListViewModel<Config> {
     type Store = Tasks;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
@@ -168,7 +168,7 @@ impl<Config: TasksListConfiguration> FactoryConfiguration<TasksListViewWidgets<C
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self, ()>>>) -> Self {
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
@@ -185,7 +185,7 @@ pub struct TasksListViewWidgets<Config: TasksListConfiguration> {
     _config: PhantomData<*const Config>,
 }
 
-impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets<Config> {
+impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>, ()> for TasksListViewWidgets<Config> {
     type Root = gtk::Box;
 
     fn init_view(view_model: &TasksListViewModel<Config>, sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>) -> Self {
@@ -229,7 +229,7 @@ impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<
         self.root.clone()
     }
 
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<Self>>::View {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<Self, ()>>::View {
         &self.scrolled_box
     }
 }

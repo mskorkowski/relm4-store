@@ -68,7 +68,7 @@ where Config: TasksListConfiguration + 'static,
 {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self>>>,
+    store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self, ()>>>,
     scroll_adjustment: gtk::Adjustment,
 }
 
@@ -80,7 +80,7 @@ where Config: TasksListConfiguration + 'static,
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryConfiguration<TasksListViewWidgets<Config>> for TasksListViewModel<Config> 
+impl<Config: TasksListConfiguration> FactoryConfiguration<TasksListViewWidgets<Config>, ()> for TasksListViewModel<Config> 
 where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
@@ -193,7 +193,7 @@ where Config: TasksListConfiguration + 'static,
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self::Widgets, Self>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self::Widgets, Self, ()>>>) -> Self {
         let view_length = store_view.borrow().len();
 
         TasksListViewModel{
@@ -216,7 +216,7 @@ where Config: TasksListConfiguration + 'static
     config: PhantomData<*const Config>,
 }
 
-impl<Config> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets<Config> 
+impl<Config> FactoryContainerWidgets<TasksListViewModel<Config>, ()> for TasksListViewWidgets<Config> 
 where Config: TasksListConfiguration + 'static,
 {
     type Root = gtk::Box;
@@ -284,7 +284,7 @@ where Config: TasksListConfiguration + 'static,
         self.root.clone()
     }
 
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<Self>>::View {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<Self, ()>>::View {
         &self.viewport
     }
 }

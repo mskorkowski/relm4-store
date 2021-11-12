@@ -1,3 +1,5 @@
+mod impls;
+
 use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
 use reexport::gtk;
@@ -21,11 +23,12 @@ use super::DataStore;
 use super::position::Position;
 
 /// Configuration of the [StoreViewComponent]
-pub trait FactoryConfiguration<Widgets, Allocator=DefaultIdAllocator>: ViewModel<Widgets = Widgets> 
+pub trait FactoryConfiguration<Widgets, Components, Allocator=DefaultIdAllocator>: ViewModel<Widgets = Widgets, Components=Components> 
 where
-    Widgets: FactoryContainerWidgets<Self, Allocator>,
+    Widgets: FactoryContainerWidgets<Self, Components, Allocator>,
     Allocator: TemporaryIdAllocator,
     Widgets: ?Sized,
+    Components: StoreViewInnerComponent<Self>
 {
     /// Store type which will be a backend for your data
     type Store: DataStore<Allocator>;
@@ -77,7 +80,7 @@ where
     /// Creates new instance of [FactoryConfiguration]
     /// 
     /// If you wish to use store view in widgets you must save it in your model
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Widgets, Self, Allocator>>>) -> Self;
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Widgets, Self, Components, Allocator>>>) -> Self;
 
     /// Returns position of record inside the widget
     /// 
@@ -92,9 +95,10 @@ where
 }
 
 /// Trait describing what do we need from widgets to be usable for the [StoreViewComponent]
-pub trait FactoryContainerWidgets<FactoryViewModel: FactoryConfiguration<Self, Allocator>, Allocator=DefaultIdAllocator> 
+pub trait FactoryContainerWidgets<FactoryViewModel: FactoryConfiguration<Self, Components, Allocator>, Components, Allocator=DefaultIdAllocator> 
 where
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<FactoryViewModel>,
 {
     /// Type of the root widget for this widgets
     type Root: std::fmt::Debug;
@@ -119,5 +123,14 @@ where
     fn connect_components(&self, _model: &FactoryViewModel, _components: &FactoryViewModel::Components) {}
 
     /// Returns reference to the widget containing the records from the store view
-    fn container_widget(&self) -> &<FactoryViewModel as FactoryConfiguration<Self, Allocator>>::View;
+    fn container_widget(&self) -> &<FactoryViewModel as FactoryConfiguration<Self, Components, Allocator>>::View;
+}
+
+/// Extra methods required by components embedded in StoreViewComponent
+pub trait StoreViewInnerComponent<ParentModel: ?Sized + ViewModel>: relm4::Components<ParentModel> {
+    /// This method is called when the store or store view was updated
+    /// 
+    /// Implementation of this method should send appropriate messages to the components defined in
+    /// Self, so they can update themselves
+    fn on_store_update(&mut self);
 }

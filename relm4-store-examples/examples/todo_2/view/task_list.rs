@@ -1,5 +1,7 @@
+use components::pagination::PaginationMsg;
 use reexport::gtk;
 use reexport::relm4;
+use store::StoreViewInnerComponent;
 
 use std::cell::RefCell;
 use std::marker::PhantomData;
@@ -66,7 +68,7 @@ where Config: TasksListConfiguration + 'static,
 {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self>>>,
+    store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self, TasksListComponents<Config>>>>,
 }
 
 impl<Config> ViewModel for TasksListViewModel<Config> 
@@ -77,7 +79,7 @@ where Config: TasksListConfiguration + 'static,
     type Components = TasksListComponents<Config>;
 }
 
-impl<Config> FactoryConfiguration<TasksListViewWidgets<Config>> for TasksListViewModel<Config> 
+impl<Config> FactoryConfiguration<TasksListViewWidgets<Config>, TasksListComponents<Config>> for TasksListViewModel<Config> 
 where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
@@ -179,7 +181,7 @@ where Config: TasksListConfiguration + 'static,
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self, TasksListComponents<Config>>>>) -> Self {
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
@@ -211,9 +213,17 @@ impl<Config> PaginationConfiguration for TasksListComponents<Config>
 where Config: TasksListConfiguration + 'static {
     type ParentViewModel = TasksListViewModel<Config>;
     type ParentWidgets = TasksListViewWidgets<Config>;
+    type ParentComponents = TasksListComponents<Config>;
 
-    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentWidgets, Self::ParentViewModel>>> {
+    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentWidgets, Self::ParentViewModel, TasksListComponents<Config>>>> {
         parent_view_model.store_view.clone()
+    }
+}
+
+impl<Config> StoreViewInnerComponent<TasksListViewModel<Config>> for TasksListComponents<Config>
+where Config: TasksListConfiguration + 'static {
+    fn on_store_update(&mut self) {
+        self.pagination.send(PaginationMsg::StoreUpdated).unwrap();
     }
 }
 
@@ -227,7 +237,7 @@ where Config: TasksListConfiguration + 'static
     config: PhantomData<*const Config>,
 }
 
-impl<Config> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets<Config> 
+impl<Config> FactoryContainerWidgets<TasksListViewModel<Config>, TasksListComponents<Config>> for TasksListViewWidgets<Config> 
 where Config: TasksListConfiguration + 'static,
 {
     type Root = gtk::Box;
@@ -282,7 +292,7 @@ where Config: TasksListConfiguration + 'static,
         self.root.clone()
     }
 
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<Self>>::View {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<Self, TasksListComponents<Config>>>::View {
         &self.scrolled_box
     }
 }

@@ -45,6 +45,7 @@ use crate::math::Range;
 
 pub use factory_configuration::FactoryConfiguration;
 pub use factory_configuration::FactoryContainerWidgets;
+pub use factory_configuration::StoreViewInnerComponent;
 pub use pagination::Pagination;
 pub use position::Position;
 pub use record_with_location::RecordWithLocation;
@@ -180,13 +181,14 @@ where Allocator: TemporaryIdAllocator
 ///   Your business model has two data sets `A` and `B` and there is `1-*` relationship between the data.
 ///   There are valid scenarios when you would like to edit item in `A` and give the ability to modify
 ///   related items in `B` at the same time. 
-pub trait StoreView<Widgets, Allocator>: DataStore<Allocator>
+pub trait StoreView<Widgets, Components, Allocator>: DataStore<Allocator>
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Self::Configuration, Allocator>,
+    Widgets: ?Sized + FactoryContainerWidgets<Self::Configuration, Components, Allocator>,
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<Self::Configuration>,
 {
     /// Type describing configuration parts of the store view behavior
-    type Configuration: FactoryConfiguration<Widgets, Allocator>;
+    type Configuration: FactoryConfiguration<Widgets, Components, Allocator>;
 
     /// How many records should be visible at any point of time
     /// 

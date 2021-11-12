@@ -2,13 +2,15 @@ use record::TemporaryIdAllocator;
 
 use crate::FactoryContainerWidgets;
 use crate::StoreView;
+use crate::factory_configuration::StoreViewInnerComponent;
 
 /// Generic pagination methods which could be carpet implemented for any store-view
-pub trait Pagination<Widgets, SV, Allocator> 
+pub trait Pagination<Widgets, SV, Components, Allocator> 
 where
-    Widgets: ?Sized + FactoryContainerWidgets<SV::Configuration, Allocator>, 
-    SV: StoreView<Widgets, Allocator>, 
+    Widgets: ?Sized + FactoryContainerWidgets<SV::Configuration, Components, Allocator>, 
+    SV: StoreView<Widgets, Components, Allocator>, 
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<SV::Configuration>,
 {
     /// Total amount of pages in store view
     fn total_pages(&self) -> usize;
@@ -16,11 +18,12 @@ where
     fn current_page(&self) -> usize;
 }
 
-impl<Widgets, SV, Allocator> Pagination<Widgets, SV, Allocator> for SV 
+impl<Widgets, SV, Components, Allocator> Pagination<Widgets, SV, Components, Allocator> for SV 
 where
-    Widgets: ?Sized + FactoryContainerWidgets<SV::Configuration, Allocator>, 
-    SV: StoreView<Widgets, Allocator>, 
+    Widgets: ?Sized + FactoryContainerWidgets<SV::Configuration, Components, Allocator>, 
+    SV: StoreView<Widgets, Components, Allocator>, 
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<SV::Configuration>,
 {
     fn total_pages(&self) -> usize {
         let len = self.len();

@@ -27,6 +27,7 @@ use crate::Position;
 use crate::StoreId;
 use crate::StoreMsg;
 
+use crate::factory_configuration::StoreViewInnerComponent;
 use crate::math::Range;
 use crate::redraw_messages::RedrawMessages;
 use crate::window::WindowBehavior;
@@ -45,11 +46,12 @@ pub use data_store::StoreViewImplHandler;
 /// 
 /// To interact with content you should use Store. Store will handle all the
 /// make sure all the updates are propagated to the view.
-pub struct StoreViewImplementation<Widgets, Builder, Allocator=DefaultIdAllocator>
+pub struct StoreViewImplementation<Widgets, Builder, Components, Allocator=DefaultIdAllocator>
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Builder, Allocator>,
-    Builder: FactoryConfiguration<Widgets, Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Builder, Components, Allocator>,
+    Builder: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<Builder>,
 {
     id: StoreId<Self, Allocator>,
     store: Rc<RefCell<Builder::Store>>,
@@ -65,11 +67,12 @@ where
     redraw_sender: Sender<RedrawMessages>,
 }
 
-impl<Widgets, Builder, Allocator> Debug for StoreViewImplementation<Widgets, Builder, Allocator>
+impl<Widgets, Builder, Components, Allocator> Debug for StoreViewImplementation<Widgets, Builder, Components, Allocator>
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Builder, Allocator>,
-    Builder: FactoryConfiguration<Widgets, Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Builder, Components, Allocator>,
+    Builder: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<Builder>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("StoreViewImplementation")
@@ -79,11 +82,12 @@ where
     }
 }
 
-impl<Widgets, Builder, Allocator> StoreViewImplementation<Widgets, Builder, Allocator> 
+impl<Widgets, Builder, Components, Allocator> StoreViewImplementation<Widgets, Builder, Components, Allocator> 
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Builder, Allocator>,
-    Builder: FactoryConfiguration<Widgets, Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Builder, Components, Allocator>,
+    Builder: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<Builder>,
 {
     ///Creates  new instance of this struct
     /// 
@@ -137,7 +141,7 @@ where
         }
     }
 
-    fn reload(&self, changeset: &mut WindowChangeset<Widgets, Builder, Allocator>) {
+    fn reload(&self, changeset: &mut WindowChangeset<Widgets, Builder, Components, Allocator>) {
 
         //TODO: Optimise it... it has loads of unnecessary updates
         let store = self.store.borrow();
@@ -170,7 +174,7 @@ where
         }
     }
 
-    fn insert_right(&self, changeset: &mut WindowChangeset<Widgets, Builder, Allocator>, pos: usize, by: usize) {
+    fn insert_right(&self, changeset: &mut WindowChangeset<Widgets, Builder, Components, Allocator>, pos: usize, by: usize) {
         let store = self.store.borrow();
         // let end = *self.range.borrow().end();
         let start = *self.range.borrow().start();
@@ -221,7 +225,7 @@ where
     ///
     /// Third case:
     /// 
-    fn insert_left(&self, changeset: &mut WindowChangeset<Widgets, Builder, Allocator>, pos: usize, by: usize) {
+    fn insert_left(&self, changeset: &mut WindowChangeset<Widgets, Builder, Components, Allocator>, pos: usize, by: usize) {
 
         println!("Insert left");
         let store = self.store.borrow();
@@ -289,7 +293,7 @@ where
         }                    
     }
 
-    fn compile_changes(&self) -> WindowChangeset<Widgets, Builder, Allocator> {
+    fn compile_changes(&self) -> WindowChangeset<Widgets, Builder, Components, Allocator> {
         let mut changeset = WindowChangeset {
             widgets_to_remove: HashSet::new(),
             ids_to_add: HashSet::new(),
@@ -456,7 +460,7 @@ where
             if ids_to_update.contains(id) {
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
-                        <Builder as FactoryConfiguration<Widgets, Allocator>>::update_record(record, position, &widget.widgets);
+                        <Builder as FactoryConfiguration<Widgets, Components, Allocator>>::update_record(record, position, &widget.widgets);
                     }
                 }
             }

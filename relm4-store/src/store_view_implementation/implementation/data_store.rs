@@ -21,15 +21,17 @@ use crate::StoreId;
 use crate::StoreMsg;
 use crate::StoreView;
 
+use crate::factory_configuration::StoreViewInnerComponent;
 use crate::math::Range;
 use crate::redraw_messages::RedrawMessages;
 
 use super::StoreViewImplementation;
-impl<Widgets, Configuration, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Widgets, Configuration, Allocator>
+impl<Widgets, Configuration, Components, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Widgets, Configuration, Components, Allocator>
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
-    Configuration: FactoryConfiguration<Widgets, Allocator>,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Components, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Components, Allocator>,
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<Configuration>,
 {
     type Id = StoreId<Self, Allocator>;
 
@@ -38,11 +40,12 @@ where
     }
 }
 
-impl<Widgets, Configuration, Allocator> DataStore<Allocator> for StoreViewImplementation<Widgets, Configuration, Allocator> 
+impl<Widgets, Configuration, Components, Allocator> DataStore<Allocator> for StoreViewImplementation<Widgets, Configuration, Components, Allocator> 
 where 
-    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
-    Configuration: FactoryConfiguration<Widgets, Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Components, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<Configuration>,
 {
     type Record = <Configuration::Store as DataStore<Allocator>>::Record;
 
@@ -76,11 +79,12 @@ where
     }
 }
 
-impl<Widgets, Configuration, Allocator> StoreView<Widgets, Allocator> for StoreViewImplementation<Widgets, Configuration, Allocator> 
+impl<Widgets, Configuration, Components, Allocator> StoreView<Widgets, Components, Allocator> for StoreViewImplementation<Widgets, Configuration, Components, Allocator> 
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
-    Configuration: FactoryConfiguration<Widgets, Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Components, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<Configuration>,
 {
     type Configuration = Configuration;
 
@@ -168,25 +172,27 @@ where
 }
 
 /// Handler which is used by the [StoreViewImplementation] to bind to the underlying data stores
-pub struct StoreViewImplHandler<Widgets, Configuration, Allocator>
+pub struct StoreViewImplHandler<Widgets, Configuration, Components, Allocator>
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
-    Configuration: FactoryConfiguration<Widgets, Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Components, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<Configuration>,
 {
-    view: Weak<RefCell<StoreViewImplementation<Widgets, Configuration, Allocator>>>,
+    view: Weak<RefCell<StoreViewImplementation<Widgets, Configuration, Components, Allocator>>>,
     sender: Sender<RedrawMessages>,
 }
 
-impl<Widgets, Configuration, Allocator> StoreViewImplHandler<Widgets, Configuration, Allocator>
+impl<Widgets, Configuration, Components, Allocator> StoreViewImplHandler<Widgets, Configuration, Components, Allocator>
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
-    Configuration: FactoryConfiguration<Widgets, Allocator> + 'static,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Components, Allocator>,
+    Configuration: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<Configuration>,
 {
 
     /// Creates new instance of this handler
-    pub fn new(view: Weak<RefCell<StoreViewImplementation<Widgets, Configuration, Allocator>>>, sender: Sender<RedrawMessages>) -> Self {
+    pub fn new(view: Weak<RefCell<StoreViewImplementation<Widgets, Configuration, Components, Allocator>>>, sender: Sender<RedrawMessages>) -> Self {
         Self {
             view,
             sender,
@@ -194,11 +200,12 @@ where
     }
 }
 
-impl<Widgets, Configuration, Allocator> Handler<Configuration::Store, Allocator> for StoreViewImplHandler<Widgets, Configuration, Allocator> 
+impl<Widgets, Configuration, Components, Allocator> Handler<Configuration::Store, Allocator> for StoreViewImplHandler<Widgets, Configuration, Components, Allocator> 
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
-    Configuration: 'static + FactoryConfiguration<Widgets, Allocator>,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Components, Allocator>,
+    Configuration: 'static + FactoryConfiguration<Widgets, Components, Allocator>,
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<Configuration>,
 {
     fn handle(&self, message: StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>) -> bool {
         if let Some(view) = self.view.upgrade() {
@@ -213,11 +220,12 @@ where
     }
 }
 
-impl<Widgets, Configuration, Allocator> std::fmt::Debug for StoreViewImplHandler<Widgets, Configuration, Allocator> 
+impl<Widgets, Configuration, Components, Allocator> std::fmt::Debug for StoreViewImplHandler<Widgets, Configuration, Components, Allocator> 
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Allocator>,
-    Configuration: 'static + FactoryConfiguration<Widgets, Allocator>,
+    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Components, Allocator>,
+    Configuration: 'static + FactoryConfiguration<Widgets, Components, Allocator>,
     Allocator: TemporaryIdAllocator,
+    Components: StoreViewInnerComponent<Configuration>,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StoreViewImplHandler").finish_non_exhaustive()

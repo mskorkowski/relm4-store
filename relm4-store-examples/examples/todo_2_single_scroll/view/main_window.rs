@@ -39,7 +39,7 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list: StoreViewComponent<TasksListViewWidgets<Self>, TasksListViewModel<Self>>,
+    tasks_list: StoreViewComponent<TasksListViewWidgets<Self>, TasksListViewModel<Self>, ()>,
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
