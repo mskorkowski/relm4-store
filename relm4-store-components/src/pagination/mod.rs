@@ -19,12 +19,10 @@ use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
 use store::DataStore;
 use store::FactoryConfiguration;
-use store::FactoryContainerWidgets;
 use store::Pagination;
 use store::StoreMsg;
 use store::StoreView;
 use store::StoreViewImplementation;
-use store::StoreViewInnerComponent;
 
 use relm4::ComponentUpdate;
 use relm4::Model as ViewModel;
@@ -57,11 +55,6 @@ pub enum PaginationMsg {
 pub trait PaginationConfiguration<Allocator=DefaultIdAllocator> 
 where 
     Allocator: TemporaryIdAllocator,
-    <<Self::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel as ViewModel>::Widgets: 
-        relm4::Widgets<<Self::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel, <Self::FactoryConfiguration as FactoryConfiguration<Allocator>>::ParentViewModel> +
-        FactoryContainerWidgets<Self::FactoryConfiguration, Allocator>,
-    <<Self::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel as ViewModel>::Components: 
-        StoreViewInnerComponent<<Self::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel>,
 {
     /// Type of parent view model
     /// 
@@ -99,11 +92,6 @@ impl<Config, Allocator> ComponentUpdate<<Config::FactoryConfiguration as Factory
 where 
     Config: PaginationConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator,
-    <<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel as ViewModel>::Widgets: 
-        relm4::Widgets<<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel, <Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ParentViewModel> +
-        FactoryContainerWidgets<Config::FactoryConfiguration, Allocator>,
-    <<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel as ViewModel>::Components: 
-        StoreViewInnerComponent<<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel>,
 {
     fn init_model(parent_model: &<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel) -> Self {
         let view = Config::get_view(parent_model); 

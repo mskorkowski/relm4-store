@@ -1,4 +1,5 @@
 mod data_store;
+mod factory;
 
 use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
@@ -12,6 +13,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::rc::Rc;
 
+use relm4::Model as ViewModel;
 use relm4::Sender;
 use relm4::factory::FactoryListView;
 use relm4::factory::FactoryView;
@@ -26,7 +28,6 @@ use crate::Position;
 use crate::StoreId;
 use crate::StoreMsg;
 
-use crate::StoreViewModel;
 use crate::math::Range;
 use crate::redraw_messages::RedrawMessages;
 use crate::window::WindowBehavior;
@@ -391,7 +392,7 @@ where
     }
 
     /// Implementation of the [relm4::factory::FactoryPrototype::generate]
-    pub fn generate(&self, view: &Configuration::View, sender: Sender<<Configuration::ViewModel as StoreViewModel>::Msg>) {
+    pub fn view(&self, view: &Configuration::View, sender: Sender<<Configuration::ViewModel as ViewModel>::Msg>) {
         println!("[StoreViewImplementation::generate]");
 
         let empty = {

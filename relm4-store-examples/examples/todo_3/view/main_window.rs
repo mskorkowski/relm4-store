@@ -10,8 +10,6 @@ use crate::{
     view::{task_list::TasksListConfiguration, task_list::TasksListViewModel}
 };
 
-use super::task_list::{TasksListComponents, TasksListViewWidgets};
-
 pub enum MainWindowMsg {}
 
 pub struct MainWindowViewModel {
@@ -37,23 +35,23 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list_1: StoreViewComponent<TasksListViewWidgets<TaskList1Configuration>, TasksListViewModel<TaskList1Configuration>, TasksListComponents<TaskList1Configuration>>,
-    tasks_list_2: StoreViewComponent<TasksListViewWidgets<TaskList2Configuration>, TasksListViewModel<TaskList2Configuration>, TasksListComponents<TaskList2Configuration>>,
-    tasks_list_3: StoreViewComponent<TasksListViewWidgets<TaskList3Configuration>, TasksListViewModel<TaskList3Configuration>, TasksListComponents<TaskList3Configuration>>,
-    tasks_list_4: StoreViewComponent<TasksListViewWidgets<TaskList4Configuration>, TasksListViewModel<TaskList4Configuration>, TasksListComponents<TaskList4Configuration>>,
+    tasks_list_1: StoreViewComponent<TasksListViewModel<TaskList1Configuration>>,
+    tasks_list_2: StoreViewComponent<TasksListViewModel<TaskList2Configuration>>,
+    tasks_list_3: StoreViewComponent<TasksListViewModel<TaskList3Configuration>>,
+    tasks_list_4: StoreViewComponent<TasksListViewModel<TaskList4Configuration>>,
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
     fn init_components(
         parent_view_model: &MainWindowViewModel,
-        _parent_widgets: &MainWindowWidgets,
+        parent_widgets: &MainWindowWidgets,
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            tasks_list_1: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
-            tasks_list_2: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
-            tasks_list_3: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
-            tasks_list_4: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            tasks_list_1: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            tasks_list_2: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            tasks_list_3: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            tasks_list_4: StoreViewComponent::new(parent_view_model, parent_widgets,parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
         }
     }
 }

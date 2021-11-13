@@ -10,8 +10,6 @@ use crate::{
     view::{task_list::TasksListConfiguration, task_list::TasksListViewModel}
 };
 
-use super::task_list::{TasksListComponents, TasksListViewWidgets};
-
 pub enum MainWindowMsg {}
 
 pub struct MainWindowViewModel {
@@ -36,17 +34,17 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list: StoreViewComponent<TasksListViewWidgets<Self>, TasksListViewModel<Self>, TasksListComponents<Self>>,
+    tasks_list: StoreViewComponent<TasksListViewModel<Self>>,
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
     fn init_components(
         parent_model: &MainWindowViewModel,
-        _parent_widgets: &MainWindowWidgets,
+        parent_widgets: &MainWindowWidgets,
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            tasks_list: StoreViewComponent::new(parent_model, parent_model.tasks.clone(), StoreSize::Items(50)),
+            tasks_list: StoreViewComponent::new(parent_model, parent_widgets, parent_model.tasks.clone(), StoreSize::Items(50)),
         }
     }
 }

@@ -1,7 +1,7 @@
 use reexport::gtk;
 use reexport::relm4;
-use store::StoreViewInnerComponent;
-use store::window::WindowBehavior;
+use reexport::relm4_macros;
+
 
 use std::cell::RefCell;
 use std::marker::PhantomData;
@@ -23,13 +23,18 @@ use relm4::Model as ViewModel;
 use relm4::RelmComponent;
 use relm4::send;
 use relm4::Sender;
+use relm4::Widgets;
 use relm4::WidgetPlus;
+
+use relm4_macros::widget;
 
 use components::pagination::PaginationConfiguration;
 use components::pagination::PaginationViewModel;
 use components::pagination::PaginationMsg;
 use record::Id;
 use record::Record;
+use store::StoreViewInnerComponent;
+use store::window::WindowBehavior;
 use store::DataStore;
 use store::FactoryConfiguration;
 use store::FactoryContainerWidgets;
@@ -69,7 +74,7 @@ where
 {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<<Self as ViewModel>::Widgets, Self, TasksListComponents<Config>>>>,
+    store_view: Rc<RefCell<StoreViewImplementation<Self>>>,
     _config: PhantomData<*const Config>,
 }
 
@@ -78,11 +83,11 @@ where
     Config: TasksListConfiguration + 'static,
 {
     type Msg = TaskMsg;
-    type Widgets = TasksListViewWidgets<Config>;
+    type Widgets = TasksListViewWidgets;
     type Components = TasksListComponents<Config>;
 }
 
-impl<Config> FactoryConfiguration<TasksListViewWidgets<Config>, TasksListComponents<Config>> for TasksListViewModel<Config> 
+impl<Config> FactoryConfiguration for TasksListViewModel<Config> 
 where
     Config: TasksListConfiguration + 'static,
 {
@@ -91,6 +96,7 @@ where
     type Root = gtk::Box;
     type View = gtk::Box;
     type Window = Config::Window;
+    type ViewModel = Self;
     type ParentViewModel = Config::ParentViewModel;
 
 
@@ -164,18 +170,18 @@ where
         &widgets.root
     }
 
-    fn update(&mut self, msg: Self::Msg, _sender: Sender<Self::Msg>) {
+    fn update(view_model: &mut Self, msg: <Self as ViewModel>::Msg, _sender: Sender<<Self as ViewModel>::Msg>) {
         println!("[TasksListViewModel::update] message received, updating data");
 
         match msg {
             TaskMsg::New => {
-                let description = self.new_task_description.text();
+                let description = view_model.new_task_description.text();
                 let task = Task::new(description, false);
-                self.new_task_description.set_text("");
-                self.tasks.borrow().inbox(StoreMsg::Commit(task));
+                view_model.new_task_description.set_text("");
+                view_model.tasks.borrow().inbox(StoreMsg::Commit(task));
             },
             TaskMsg::Toggle{ complete, id } => {
-                let tasks = self.tasks.borrow();
+                let tasks = view_model.tasks.borrow();
                 if let Some(record) = tasks.get(&id) {
                     let mut updated = record.clone();
                     updated.completed = complete;
@@ -185,7 +191,7 @@ where
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<TasksListViewWidgets<Config>, Self, TasksListComponents<Config>>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self>>>) -> Self {
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
@@ -208,7 +214,7 @@ where
 {
     fn init_components(
         parent_model: &TasksListViewModel<Config>, 
-        parent_widget: &TasksListViewWidgets<Config>, 
+        parent_widget: &TasksListViewWidgets, 
         parent_sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>
     ) -> Self {
         Self {
@@ -221,11 +227,9 @@ impl<Config> PaginationConfiguration for TasksListComponents<Config>
 where
     Config: TasksListConfiguration + 'static,
 {
-    type ParentViewModel = TasksListViewModel<Config>;
-    type ParentWidgets = TasksListViewWidgets<Config>;
-    type ParentComponents = Self;
+    type FactoryConfiguration = TasksListViewModel<Config>;
     
-    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentWidgets, Self::ParentViewModel, TasksListComponents<Config>>>> {
+    fn get_view(parent_view_model: &<Self::FactoryConfiguration as FactoryConfiguration>::ViewModel) -> Rc<RefCell<StoreViewImplementation<Self::FactoryConfiguration>>> {
         parent_view_model.store_view.clone()
     }
 }
@@ -239,80 +243,32 @@ where
     }
 }
 
-pub struct TasksListViewWidgets<Config> 
-where Config: TasksListConfiguration + 'static
-{
-    root: gtk::Box,
-    input: gtk::Entry,
-    scrolled_box: gtk::Box,
-    scrolled_window: gtk::ScrolledWindow,
-    config: PhantomData<*const Config>,
+#[widget(visibility=pub, relm4=reexport::relm4)]
+impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config::ParentViewModel> for TasksListViewWidgets {
+    view!{
+        root = gtk::Box {
+            set_margin_all: 12,
+            set_orientation: gtk::Orientation::Vertical,
+            append = &gtk::Entry::with_buffer(&model.new_task_description) {
+                connect_activate(sender) => move |_| { 
+                    send!(sender, TaskMsg::New); 
+                } 
+            },
+            append = &gtk::ScrolledWindow {
+                set_hexpand: true,
+                set_vexpand: true,
+                set_child: container = Some(&gtk::Box) {
+                    set_orientation: gtk::Orientation::Vertical,
+                    factory!(model.store_view.borrow())
+                }
+            },
+            append: component!(pagination)
+        }
+    }
 }
 
-impl<Config> FactoryContainerWidgets<TasksListViewModel<Config>, TasksListComponents<Config>> for TasksListViewWidgets<Config> 
-where Config: TasksListConfiguration + 'static,
-{
-    type Root = gtk::Box;
-
-    fn init_view(
-        view_model: &TasksListViewModel<Config>, 
-        sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>
-    ) -> Self {
-        let root = gtk::Box::default();
-        root.set_margin_all(12);
-        root.set_orientation(gtk::Orientation::Vertical);
-
-        let input = gtk::Entry::with_buffer(&view_model.new_task_description);
-        {
-            let sender = sender.clone();
-            input.connect_activate(move |_| send!(sender, TaskMsg::New));
-        }
-
-        let scrolled_box = gtk::Box::default();
-        scrolled_box.set_orientation(gtk::Orientation::Vertical);
-        view_model.store_view.borrow().generate(&scrolled_box, sender.clone());
-
-
-        let scrolled_window = gtk::ScrolledWindow::default();
-        scrolled_window.set_hexpand(true);
-        scrolled_window.set_vexpand(true);
-        
-        
-        TasksListViewWidgets {
-            root,
-            input,
-            scrolled_box,
-            scrolled_window,
-            config: PhantomData,
-        }
-    }
-    
-    fn connect_components(
-        &self, 
-        _model: &TasksListViewModel<Config>, 
-        components: &<TasksListViewModel<Config> as ViewModel>::Components
-    ) {
-        
-        self.root.append(&self.input);
-        self.root.append(&self.scrolled_window);
-        self.root.append(components.pagination.root_widget());
-        self.scrolled_window.set_child(Some(&self.scrolled_box));
-
-    }
-
-    fn view(
-        &mut self, 
-        _view_model: &TasksListViewModel<Config>, 
-        _sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>
-    ) {
-        println!("Updating the view");
-    }
-
-    fn root_widget(&self) -> Self::Root {
-        self.root.clone()
-    }
-
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<Self, TasksListComponents<Config>>>::View {
-        &self.scrolled_box
+impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration>::View {
+        &self.container
     }
 }

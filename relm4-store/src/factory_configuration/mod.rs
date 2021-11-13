@@ -16,7 +16,6 @@ use relm4::Model as ViewModel;
 use relm4::factory::FactoryListView;
 use relm4::factory::FactoryView;
 
-use crate::StoreViewModel;
 use crate::store_view_implementation::StoreViewImplementation;
 use crate::window::WindowBehavior;
 
@@ -45,17 +44,17 @@ where
     type Window: WindowBehavior;
 
     /// ViewModel of the component which will be handling store view
-    type ViewModel: StoreViewModel<Allocator=Allocator>;
+    type ViewModel: ViewModel;
     
     /// ViewModel of the parent component
-    type ParentViewModel: StoreViewModel<Allocator=Allocator>;
+    type ParentViewModel: ViewModel;
 
     /// Creates instance of the [Self::RecordWidgets] responsible for displaying `record`
     /// at the `position`
     fn generate(
         record: &<Self::Store as DataStore<Allocator>>::Record,
         position: Position,
-        sender: Sender<<Self::ViewModel as StoreViewModel>::Msg>,
+        sender: Sender<<Self::ViewModel as ViewModel>::Msg>,
     ) -> Self::RecordWidgets;
 
     /// Function called when record in store view is modified and you need to 
@@ -69,8 +68,8 @@ where
     /// Function called when component received a message
     fn update(
         view_model: &mut Self::ViewModel,
-        msg: <Self::ViewModel as StoreViewModel>::Msg,
-        sender: Sender<<Self::ViewModel as StoreViewModel>::Msg>,
+        msg: <Self::ViewModel as ViewModel>::Msg,
+        sender: Sender<<Self::ViewModel as ViewModel>::Msg>,
     );
 
     /// Creates new instance of [FactoryConfiguration]
