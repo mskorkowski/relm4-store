@@ -170,7 +170,7 @@ where
         let components = <<Configuration::ViewModel as ViewModel>::Components as relm4::Components<Configuration::ViewModel>>::init_components(&view_model, &container, sender.clone());
         container.connect_components(&view_model, &components);
         let shared_components = Rc::new(RefCell::new(components));
-        let handler_components = shared_components.clone();
+        let redraw_handler_components = shared_components.clone();
 
         let shared_view_model = Rc::new(RefCell::new(view_model));
         let handler_view_model = shared_view_model.clone();
@@ -187,22 +187,8 @@ where
             receiver.attach(Some(&context), move |msg| {
                 if let Ok(mut view_model) = handler_view_model.try_borrow_mut() {
                     if let Ok(mut container) = handler_container.try_borrow_mut() {
-                        // update store view if there are any unhandled messages in the inbox of the store-view
-                        container.view(&view_model, handler_sender.clone());
-                        // update the view using fully resolved store-view
                         Configuration::update(&mut view_model, msg, handler_sender.clone());
-                        // in case some messages were added to the store view re run the update for the new messages
-                        // this way `update` has seen fully resolved store-view and in case some messages were sent
-                        // they are resolved also
                         container.view(&view_model, handler_sender.clone());
-
-                        if let Ok(mut handler_components) = handler_components.try_borrow_mut() {
-                            handler_components.on_store_update();
-                        }
-                        else {
-                            log::warn!(target: "relm4-store", "Could not borrow the components. Make sure you dropped all references to components after user");    
-                        }
-
                         send!(handler_redraw_sender, RedrawMessages::Redraw);
                     }
                     else {
@@ -223,9 +209,15 @@ where
                 if let Ok(store_view) = redraw_handler_view.try_borrow() {
                     if let Ok(view_model) = redraw_handler_view_model.try_borrow() {
                         if let Ok(mut container) = redraw_handler_container.try_borrow_mut() {
-                            container.view(&view_model, redraw_handler_sender.clone());
                             if store_view.inbox_queue_size() > 0 { //only redraw if there is an update awaiting
                                 store_view.generate(container.container_widget(), redraw_handler_sender.clone());
+                            }
+                            container.view(&view_model, redraw_handler_sender.clone());
+                            if let Ok(mut handler_components) = redraw_handler_components.try_borrow_mut() {
+                                handler_components.on_store_update();
+                            }
+                            else {
+                                log::warn!(target: "relm4-store", "Could not borrow the components. Make sure you dropped all references to components after user");    
                             }
                         }
                         else {
