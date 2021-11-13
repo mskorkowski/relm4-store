@@ -10,13 +10,8 @@ use std::cell::RefCell;
 
 use relm4::RelmApp;
 
-use backend_inmemory::InMemoryBackendBuilder;
-
 use crate::store::Tasks;
-use crate::store::TasksBuilder;
 use crate::view::MainWindowViewModel;
-
-
 
 fn main() {
     println!();
@@ -34,9 +29,7 @@ fn main() {
     let model = MainWindowViewModel{
         tasks: Rc::new(
             RefCell::new(
-                Tasks::new(
-                    TasksBuilder::initial_data()
-                )
+                Tasks::new()
             )
         )
     };

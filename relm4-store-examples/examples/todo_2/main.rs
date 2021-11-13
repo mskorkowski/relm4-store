@@ -10,10 +10,7 @@ use std::cell::RefCell;
 
 use relm4::RelmApp;
 
-use backend_inmemory::InMemoryBackendBuilder;
-
 use crate::store::Tasks;
-use crate::store::TasksBuilder;
 use crate::view::MainWindowViewModel;
 
 
@@ -23,7 +20,7 @@ fn main() {
     println!();
 
     
-    let app_id = "store.reml4.example.todo-2";
+    let app_id = "store.relm4.example.todo-2";
     
     gtk::init().expect("Couldn't initialize gtk");
     let application = gtk::Application::builder()
@@ -34,9 +31,7 @@ fn main() {
     let model = MainWindowViewModel{
         tasks: Rc::new(
             RefCell::new(
-                Tasks::new(
-                    TasksBuilder::initial_data()
-                )
+                Tasks::new()
             )
         )
     };

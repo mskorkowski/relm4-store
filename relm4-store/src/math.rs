@@ -3,13 +3,13 @@
 //! This module contains structures and traits which allow to compute which part of store view
 //! should be modified so the amount of changes is minimal. 
 
-use std::cmp::Ordering;
-use std::cmp::min;
 use std::cmp::max;
-use std::fmt::Display;
+use std::cmp::min;
+use std::cmp::Ordering;
 use std::fmt::Debug;
-use std::fmt::Result;
+use std::fmt::Display;
 use std::fmt::Formatter;
+use std::fmt::Result;
 use std::ops::Deref;
 
 /// One dimensional range [start, end)
@@ -37,6 +37,9 @@ impl Range {
         self.end - self.start
     }
 
+    /// Checks if range contain any values
+    /// 
+    /// Range is considered empty if distance between start and end is equal to 0
     pub fn is_empty(&self) -> bool {
         self.start == self.end
     }
@@ -65,12 +68,12 @@ impl Range {
     ///
     /// If move to right would cause the range to move towards negative values, 
     /// returned range will start at 0
-    ///
     pub fn to_left(&self, l: usize) -> Range {
         let to_left = min(self.start, l);
         self.slide(self.start() - to_left)
     }
 
+    /// Returns new range with starts at `start + r`
     pub fn to_right(&self, r: usize) -> Range {
         self.slide(self.start() + r)
     }
@@ -92,10 +95,12 @@ impl Debug for Range {
 pub struct Point(usize);
 
 impl Point {
+    /// returns new instance of the point
     pub fn new(p: usize) -> Self {
         Self(p)
     }
 
+    /// returns value of the point
     pub fn value(&self) -> usize {
         self.0
     }

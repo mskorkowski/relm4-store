@@ -1,6 +1,6 @@
 use std::ops::Add;
-use std::ops::Sub;
 use std::ops::Deref;
+use std::ops::Sub;
 
 use super::math::Point;
 
@@ -14,6 +14,7 @@ impl Position {
         Point::new(self.0)
     }
 
+    /// Index in the data store
     pub fn get(&self) -> usize {
         self.0
     }

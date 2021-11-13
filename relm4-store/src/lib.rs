@@ -13,8 +13,14 @@
 //! 
 //! As side effect it simplifies relm4 factories usage.
 
-mod factory_builder;
-mod handler_wrapper;
+#![warn(
+    missing_debug_implementations,
+    missing_docs,
+    rust_2018_idioms,
+    unreachable_pub
+)]
+
+mod factory_configuration;
 pub mod math;
 mod pagination;
 mod position;
@@ -23,66 +29,44 @@ mod redraw_messages;
 mod store_id;
 mod store_msg;
 mod store_size;
+mod store_view_component;
 mod store_view_implementation;
-mod store_view_interface;
-pub mod widgets;
 pub mod window;
-mod window_changeset;
-
-use reexport::relm4;
 
 use std::fmt::Debug;
 use std::marker::Sized;
-use relm4::Model as ViewModel;
 
-use model::Identifiable;
-use model::Model;
+use record::Id;
+use record::Identifiable;
+use record::Record;
+use record::TemporaryIdAllocator;
 
 use crate::math::Range;
 
-pub use factory_builder::FactoryBuilder;
-pub use factory_builder::FactoryContainerWidgets;
-use handler_wrapper::HandlerWrapper;
+pub use factory_configuration::FactoryConfiguration;
+pub use factory_configuration::FactoryContainerWidgets;
+pub use factory_configuration::StoreViewInnerComponent;
 pub use pagination::Pagination;
 pub use position::Position;
 pub use record_with_location::RecordWithLocation;
 pub use store_id::StoreId;
 pub use store_msg::StoreMsg;
 pub use store_size::StoreSize;
+pub use store_view_component::StoreViewComponent;
+pub use store_view_component::StoreViewInterfaceError;
 pub use store_view_implementation::StoreViewImplementation;
-use store_view_implementation::StoreViewImplHandler;
-use window_changeset::WindowChangeset;
-pub use store_view_interface::StoreViewInterface;
+pub use store_view_implementation::StoreViewImplHandler;
+pub use store_view_implementation::WindowChangeset;
 
 /// Implementations of this trait are used to send messages between the store and it's views
-pub trait Handler<Store: DataStore + ?Sized> {
+pub trait Handler<Store: DataStore<Allocator> + ?Sized, Allocator: TemporaryIdAllocator>: std::fmt::Debug {
     /// Method called when parent store needs to pass a message to the view
-    fn handle(&self, message: StoreMsg<<Store as DataStoreBase>::Model>) -> bool;
-}
-
-pub trait IdentifiableStore: Identifiable<Id=StoreId<Self>> {}
-
-pub trait DataStoreBase: IdentifiableStore {
-    type Model: Model + Debug + Clone;
-
-    fn inbox(&self, m: StoreMsg<Self::Model>);
-    fn len(&self) -> usize;
-    fn is_empty(&self) -> bool;
-    fn get(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Self::Model>;
-
-    /// Returns records which are in the store at the given range
-    ///
-    /// Returned vector doesn't need to be ordered by position.
-    /// If range is out of bounds returned vector will be empty.
-    fn get_range(&self, range: &Range) -> Vec<Self::Model>;
-}
-
-pub trait DataStoreListenable: IdentifiableStore + DataStoreBase {
-    fn listen(&self, id: StoreId<Self>, h: Box<dyn Handler<Self>>);
-    fn unlisten(&self, handler_ref: StoreId<Self>);
+    fn handle(&self, message: StoreMsg<<Store as DataStore<Allocator>>::Record>) -> bool;
 }
 
 /// DataStore is a trait describing collections specialized in housekeeping business model data
+/// 
+/// DataStore is designed with upsert in mind.
 /// 
 /// ## DataStore implementations are collections
 /// 
@@ -133,7 +117,58 @@ pub trait DataStoreListenable: IdentifiableStore + DataStoreBase {
 /// in the store. But which data you are talking about? Equality operation is not going to work since
 /// you just mutated them. That's way your model needs to provide an identifier which is good enough
 /// so the data store can depend on it to identify the instances of the data.
-pub trait DataStore: IdentifiableStore + DataStoreBase + DataStoreListenable{}
+/// 
+/// ## To the writers of the store
+/// 
+/// If you implement a store to be used by the external applications do yourself and users a favor and 
+/// please
+/// 
+/// 1. Expose StoreId allocator
+/// 2. Make sure your store will work with any sufficiently good enough `Id<Record>` without depending
+/// on the exact underlying id type. If you require any property to be present for an `Id` just add it
+/// to the list of requirements of your store and ask user to give you that.
+/// 
+/// If there are limitation on that please somewhere at the beginning of the docs note what limitations
+/// are around this values. It can easily become a deal breaker for users of your library.
+pub trait DataStore<Allocator>: Identifiable<Self, Allocator::Type, Id=StoreId<Self, Allocator>> 
+where Allocator: TemporaryIdAllocator
+{
+    /// Type of records kept in the data store
+    type Record: Record + Debug + Clone;
+
+    /// Registers message in the data store
+    /// 
+    /// Data store might handle it immediately or might do queue it for later. It's up to the store
+    /// implementation what to do with a message
+    fn inbox(&self, m: StoreMsg<Self::Record>);
+
+    /// Total amount of available records in the store
+    fn len(&self) -> usize;
+
+    /// Returns true if store doesn't contain any records yet
+    fn is_empty(&self) -> bool;
+
+    /// Returns the record from the store
+    /// 
+    /// If returns [None] then it means there is no such record in the store
+    fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record>;
+
+    /// Returns records which are in the store at the given range
+    ///
+    /// Returned vector doesn't need to be ordered by position.
+    /// If range is out of bounds returned vector will be empty.
+    fn get_range(&self, range: &Range) -> Vec<Self::Record>;
+
+    /// Attaches handler to the store
+    /// 
+    /// Handler is fired whenever there is a change in the store
+    fn listen(&self, id: StoreId<Self, Allocator>, h: Box<dyn Handler<Self, Allocator>>);
+
+    /// Removes handler from the store
+    /// 
+    /// Changes to the store will not be delivered after this handler is removed
+    fn unlisten(&self, handler_ref: StoreId<Self, Allocator>);
+}
 
 /// StoreView allows you to access part of the data in the data store
 /// 
@@ -146,32 +181,47 @@ pub trait DataStore: IdentifiableStore + DataStoreBase + DataStoreListenable{}
 ///   Your business model has two data sets `A` and `B` and there is `1-*` relationship between the data.
 ///   There are valid scenarios when you would like to edit item in `A` and give the ability to modify
 ///   related items in `B` at the same time. 
-pub trait StoreView: DataStore
+pub trait StoreView<Allocator>: DataStore<Allocator>
+where
+    Allocator: TemporaryIdAllocator,
 {
-    type Builder: FactoryBuilder;
+    /// Type describing configuration parts of the store view behavior
+    type Configuration: ?Sized + FactoryConfiguration<Allocator>;
+
+    /// How many records should be visible at any point of time
+    /// 
+    /// If there is less elements in the store/page it's possible that less records will be shown.
+    /// StoreView should never show more records then this value
     fn window_size(&self) -> usize;
+
+    /// Returns range in the parent store for data in the current window
     fn get_window(&self) -> Range;
+
+    /// Moves the window to the new range
     fn set_window(&self, range: Range);
-    fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Model>>;
+
+    /// Returns vector with list of records in the current view
+    /// 
+    /// Returned records are **clones** of the actual records
+    fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record>>;
 
     /// Returns the position of the record in the view
     /// 
     /// If returns `None` that means record is not in the view
-    fn get_position(&self, id: &<Self::Model as Identifiable>::Id) -> Option<Position>;
+    fn get_position(&self, id: &Id<Self::Record>) -> Option<Position>;
 
+    /// Advance the store view to the next page (if it exists) of underlying store
     fn next_page(&self);
+
+    /// Goes back the the previous page (if it exists) of underlying store
     fn prev_page(&self);
+
+    /// Goes to the first page of data in the underlying store
     fn first_page(&self);
+
+    /// Goes to the last page of the data in the underlying store
     fn last_page(&self);
 
+    /// Returns current size of unhandled messages in the view
     fn inbox_queue_size(&self) -> usize;
-}
-
-
-
-pub trait Source {
-    type ParentViewModel : ViewModel;
-    type SV: StoreView;
-
-    fn store(parent_model: &Self::ParentViewModel) -> Self::SV;
 }

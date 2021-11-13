@@ -11,6 +11,7 @@ use super::WindowTransition;
 ///
 /// This window will be stable in terms of pagination. If your store
 /// is at third page of data it will stay there as much as possible
+#[derive(Debug)]
 pub struct PositionTrackingWindow{}
 
 impl WindowBehavior for PositionTrackingWindow  {

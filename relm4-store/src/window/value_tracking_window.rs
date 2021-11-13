@@ -12,6 +12,7 @@ use super::WindowTransition;
 /// This window tries to keep given set of data in view. So if
 /// you add 100 of elements before the view range it will keep
 /// current dataset in view
+#[derive(Debug)]
 pub struct ValueTrackingWindow{}
 
 impl WindowBehavior for ValueTrackingWindow {

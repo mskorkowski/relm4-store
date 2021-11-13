@@ -9,7 +9,7 @@ description = "Data store for relm4"
 [workspace]
 members = [
     "relm4-store-reexport",
-    "relm4-store-model",
+    "relm4-store-record",
     "relm4-store",
     "relm4-store-backend-inmemory",
     "relm4-store-examples",

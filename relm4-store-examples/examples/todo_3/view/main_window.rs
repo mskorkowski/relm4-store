@@ -3,7 +3,7 @@ use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::{BoxExt, OrientableExt, GtkWindowExt};
 use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets};
 use relm4_macros::widget;
-use store::{Source, StoreSize, StoreViewInterface, window::{PositionTrackingWindow, ValueTrackingWindow}};
+use store::{StoreSize, StoreViewComponent, window::{PositionTrackingWindow, ValueTrackingWindow}};
 
 use crate::{
     store::Tasks,
@@ -35,38 +35,30 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list_1: StoreViewInterface<TasksListViewModel<TaskList1Configuration>>,
-    tasks_list_2: StoreViewInterface<TasksListViewModel<TaskList2Configuration>>,
-    tasks_list_3: StoreViewInterface<TasksListViewModel<TaskList3Configuration>>,
-    tasks_list_4: StoreViewInterface<TasksListViewModel<TaskList4Configuration>>,
+    tasks_list_1: StoreViewComponent<TasksListViewModel<TaskList1Configuration>>,
+    tasks_list_2: StoreViewComponent<TasksListViewModel<TaskList2Configuration>>,
+    tasks_list_3: StoreViewComponent<TasksListViewModel<TaskList3Configuration>>,
+    tasks_list_4: StoreViewComponent<TasksListViewModel<TaskList4Configuration>>,
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
     fn init_components(
-        parent_model: &MainWindowViewModel,
-        _parent_widgets: &MainWindowWidgets,
+        parent_view_model: &MainWindowViewModel,
+        parent_widgets: &MainWindowWidgets,
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            tasks_list_1: TaskList1Configuration::store(parent_model),
-            tasks_list_2: TaskList2Configuration::store(parent_model),
-            tasks_list_3: TaskList3Configuration::store(parent_model),
-            tasks_list_4: TaskList4Configuration::store(parent_model),
+            tasks_list_1: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            tasks_list_2: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            tasks_list_3: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            tasks_list_4: StoreViewComponent::new(parent_view_model, parent_widgets,parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
         }
     }
 }
 
 struct TaskList1Configuration {}
-impl Source for TaskList1Configuration {
-    type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TasksListViewModel<Self>>;
-
-    fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewInterface::new(parent_model, parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
-    }
-}
-
 impl TasksListConfiguration for TaskList1Configuration {
+    type ParentViewModel = MainWindowViewModel;
     type Window = ValueTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
@@ -74,16 +66,8 @@ impl TasksListConfiguration for TaskList1Configuration {
 }
 
 struct TaskList2Configuration {}
-impl Source for TaskList2Configuration {
-    type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TasksListViewModel<Self>>;
-
-    fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewInterface::new(parent_model, parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
-    }
-}
-
 impl TasksListConfiguration for TaskList2Configuration {
+    type ParentViewModel = MainWindowViewModel;
     type Window = PositionTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
@@ -91,16 +75,8 @@ impl TasksListConfiguration for TaskList2Configuration {
 }
 
 struct TaskList3Configuration {}
-impl Source for TaskList3Configuration {
-    type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TasksListViewModel<Self>>;
-
-    fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewInterface::new(parent_model, parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
-    }
-}
-
 impl TasksListConfiguration for TaskList3Configuration {
+    type ParentViewModel = MainWindowViewModel;
     type Window = PositionTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
@@ -108,16 +84,8 @@ impl TasksListConfiguration for TaskList3Configuration {
 }
 
 struct TaskList4Configuration {}
-impl Source for TaskList4Configuration {
-    type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TasksListViewModel<Self>>;
-
-    fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewInterface::new(parent_model, parent_model.tasks.clone(), StoreSize::Items(parent_model.page_size))
-    }
-}
-
 impl TasksListConfiguration for TaskList4Configuration {
+    type ParentViewModel = MainWindowViewModel;
     type Window = PositionTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()

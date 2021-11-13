@@ -3,7 +3,7 @@ use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::GtkWindowExt;
 use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets};
 use relm4_macros::widget;
-use store::{Source, StoreSize, StoreViewInterface};
+use store::{StoreSize, StoreViewComponent};
 
 use crate::{
     store::Tasks,
@@ -34,31 +34,24 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list: StoreViewInterface<TasksListViewModel<Self>>,
+    tasks_list: StoreViewComponent<TasksListViewModel<Self>>,
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
     fn init_components(
         parent_model: &MainWindowViewModel,
-        _parent_widgets: &MainWindowWidgets,
+        parent_widgets: &MainWindowWidgets,
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            tasks_list: Self::store(parent_model),
+            tasks_list: StoreViewComponent::new(parent_model, parent_widgets, parent_model.tasks.clone(), StoreSize::Items(50)),
         }
     }
 }
 
-impl Source for MainWindowComponents {
-    type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TasksListViewModel<Self>>;
-
-    fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewInterface::new(parent_model, parent_model.tasks.clone(), StoreSize::Items(50))
-    }
-}
-
 impl TasksListConfiguration for MainWindowComponents {
+    type ParentViewModel = MainWindowViewModel;
+    
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
     }

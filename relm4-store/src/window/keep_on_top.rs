@@ -8,6 +8,7 @@ use super::WindowTransition;
 /// 
 /// If you implement reporting tool and would like to show
 /// top 10 records in the store and nothing else.
+#[derive(Debug)]
 pub struct KeepOnTop {}
 
 impl WindowBehavior for KeepOnTop {
