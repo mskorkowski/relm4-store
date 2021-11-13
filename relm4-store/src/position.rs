@@ -1,6 +1,6 @@
 use std::ops::Add;
-use std::ops::Sub;
 use std::ops::Deref;
+use std::ops::Sub;
 
 use super::math::Point;
 

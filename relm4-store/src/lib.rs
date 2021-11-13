@@ -29,8 +29,8 @@ mod redraw_messages;
 mod store_id;
 mod store_msg;
 mod store_size;
-mod store_view_implementation;
 mod store_view_component;
+mod store_view_implementation;
 pub mod window;
 
 use std::fmt::Debug;
@@ -52,11 +52,11 @@ pub use record_with_location::RecordWithLocation;
 pub use store_id::StoreId;
 pub use store_msg::StoreMsg;
 pub use store_size::StoreSize;
+pub use store_view_component::StoreViewComponent;
+pub use store_view_component::StoreViewInterfaceError;
 pub use store_view_implementation::StoreViewImplementation;
 pub use store_view_implementation::StoreViewImplHandler;
 pub use store_view_implementation::WindowChangeset;
-pub use store_view_component::StoreViewComponent;
-pub use store_view_component::StoreViewInterfaceError;
 
 /// Implementations of this trait are used to send messages between the store and it's views
 pub trait Handler<Store: DataStore<Allocator> + ?Sized, Allocator: TemporaryIdAllocator>: std::fmt::Debug {

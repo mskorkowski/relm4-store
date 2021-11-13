@@ -3,13 +3,13 @@
 //! This module contains structures and traits which allow to compute which part of store view
 //! should be modified so the amount of changes is minimal. 
 
-use std::cmp::Ordering;
-use std::cmp::min;
 use std::cmp::max;
-use std::fmt::Display;
+use std::cmp::min;
+use std::cmp::Ordering;
 use std::fmt::Debug;
-use std::fmt::Result;
+use std::fmt::Display;
 use std::fmt::Formatter;
+use std::fmt::Result;
 use std::ops::Deref;
 
 /// One dimensional range [start, end)

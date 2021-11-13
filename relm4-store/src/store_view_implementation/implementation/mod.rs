@@ -1,9 +1,8 @@
 mod data_store;
 mod factory;
 
-use record::DefaultIdAllocator;
-use record::TemporaryIdAllocator;
 use reexport::relm4;
+
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -18,8 +17,10 @@ use relm4::Sender;
 use relm4::factory::FactoryListView;
 use relm4::factory::FactoryView;
 
-use record::Record;
+use record::DefaultIdAllocator;
 use record::Id;
+use record::Record;
+use record::TemporaryIdAllocator;
 
 use crate::DataStore;
 use crate::FactoryConfiguration;
@@ -27,7 +28,6 @@ use crate::Handler;
 use crate::Position;
 use crate::StoreId;
 use crate::StoreMsg;
-
 use crate::math::Range;
 use crate::redraw_messages::RedrawMessages;
 use crate::window::WindowBehavior;

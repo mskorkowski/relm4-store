@@ -1,6 +1,6 @@
 use reexport::gtk;
-use reexport::relm4;
 use reexport::log;
+use reexport::relm4;
 
 use std::cell::BorrowError;
 use std::cell::BorrowMutError;
@@ -22,17 +22,16 @@ use record::DefaultIdAllocator;
 use record::Identifiable;
 use record::TemporaryIdAllocator;
 
+use crate::DataStore;
+use crate::FactoryConfiguration;
 use crate::FactoryContainerWidgets;
+use crate::StoreSize;
+use crate::StoreView;
+use crate::StoreViewImplementation;
 use crate::StoreViewInnerComponent;
+use crate::redraw_messages::RedrawMessages;
 use crate::store_view_implementation::StoreViewImplHandler;
 
-use super::DataStore;
-use super::FactoryConfiguration;
-use super::StoreSize;
-use super::StoreView;
-use super::StoreViewImplementation;
-
-use crate::redraw_messages::RedrawMessages;
 
 /// Enum with possible errors returned by the [StoreViewInterface]
 pub enum StoreViewInterfaceError {

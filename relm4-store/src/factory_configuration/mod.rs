@@ -1,7 +1,5 @@
 mod impls;
 
-use record::DefaultIdAllocator;
-use record::TemporaryIdAllocator;
 use reexport::gtk;
 use reexport::relm4;
 
@@ -16,11 +14,14 @@ use relm4::Model as ViewModel;
 use relm4::factory::FactoryListView;
 use relm4::factory::FactoryView;
 
+use record::DefaultIdAllocator;
+use record::TemporaryIdAllocator;
+
+use crate::DataStore;
+use crate::position::Position;
 use crate::store_view_implementation::StoreViewImplementation;
 use crate::window::WindowBehavior;
 
-use super::DataStore;
-use super::position::Position;
 
 /// Configuration of the [StoreViewComponent]
 pub trait FactoryConfiguration<Allocator=DefaultIdAllocator>

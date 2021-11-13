@@ -1,4 +1,3 @@
-use record::TemporaryIdAllocator;
 use reexport::relm4;
 
 use std::cell::Ref;
@@ -11,6 +10,7 @@ use relm4::factory::FactoryPrototype;
 
 use record::Id;
 use record::Record;
+use record::TemporaryIdAllocator;
 
 use crate::DataStore;
 use crate::StoreView;
