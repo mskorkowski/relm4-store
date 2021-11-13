@@ -33,6 +33,8 @@ mod store_view_implementation;
 mod store_view_component;
 pub mod window;
 
+use reexport::relm4;
+
 use std::fmt::Debug;
 use std::marker::Sized;
 
@@ -181,14 +183,12 @@ where Allocator: TemporaryIdAllocator
 ///   Your business model has two data sets `A` and `B` and there is `1-*` relationship between the data.
 ///   There are valid scenarios when you would like to edit item in `A` and give the ability to modify
 ///   related items in `B` at the same time. 
-pub trait StoreView<Widgets, Components, Allocator>: DataStore<Allocator>
+pub trait StoreView<Allocator>: DataStore<Allocator>
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Self::Configuration, Components, Allocator>,
     Allocator: TemporaryIdAllocator,
-    Components: StoreViewInnerComponent<Self::Configuration>,
 {
     /// Type describing configuration parts of the store view behavior
-    type Configuration: FactoryConfiguration<Widgets, Components, Allocator>;
+    type Configuration: ?Sized + FactoryConfiguration<Allocator>;
 
     /// How many records should be visible at any point of time
     /// 
@@ -228,3 +228,29 @@ where
     fn inbox_queue_size(&self) -> usize;
 }
 
+/// Almost drop in replacement for [relm4::Model] which works with the data stores
+/// 
+/// It adds additional constraints over [relm4::Model::Widgets] and [relm4::Model::Components]
+pub trait StoreViewModel 
+{
+    type Allocator: TemporaryIdAllocator;
+
+    type Configuration: ?Sized + FactoryConfiguration<Self::Allocator>;
+
+    /// The message type that defines the messages that can be sent to modify the model.
+    type Msg: 'static;
+
+    /// The widgets type that can initialize and update the GUI with the data the model provides.
+    type Widgets: relm4::Widgets<<Self::Configuration as FactoryConfiguration<Self::Allocator>>::ViewModel, <Self::Configuration as FactoryConfiguration<Self::Allocator>>::ParentViewModel> + FactoryContainerWidgets<Self::Configuration, Self::Allocator>;
+
+    /// The components type that initializes the child components of this model.
+    ///
+    /// If you don't want any component associated with this model just use `()`.
+    type Components: relm4::Components<Self> + StoreViewInnerComponent<<Self::Configuration as FactoryConfiguration<Self::Allocator>>::ViewModel>;
+}
+
+impl<T: StoreViewModel> relm4::Model for T {
+    type Msg = <T as StoreViewModel>::Msg;
+    type Widgets = <T as StoreViewModel>::Widgets;
+    type Components = <T as StoreViewModel>::Components;
+}

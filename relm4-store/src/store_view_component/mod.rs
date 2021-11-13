@@ -14,8 +14,10 @@ use std::rc::Rc;
 
 use gtk::glib;
 
+use relm4::Model as ViewModel;
 use relm4::send;
 use relm4::Sender;
+use relm4::Widgets;
 use relm4::factory::Factory;
 use relm4::factory::FactoryPrototype;
 use relm4::factory::FactoryView;
@@ -24,12 +26,13 @@ use record::Id;
 use record::Identifiable;
 use record::Record;
 
-use crate::factory_configuration::StoreViewInnerComponent;
+use crate::FactoryContainerWidgets;
+use crate::StoreViewInnerComponent;
+use crate::StoreViewModel;
 use crate::store_view_implementation::StoreViewImplHandler;
 
 use super::DataStore;
 use super::FactoryConfiguration;
-use super::FactoryContainerWidgets;
 use super::StoreSize;
 use super::StoreView;
 use super::StoreViewImplementation;
@@ -95,35 +98,42 @@ impl Debug for StoreViewInterfaceError {
 }
 
 /// Specialized kind of component to handle store view 
-/// 
-/// 
-#[derive(Debug)]
-pub struct StoreViewComponent<Widgets, Configuration, Components, Allocator= DefaultIdAllocator> 
+pub struct StoreViewComponent<Configuration, Allocator= DefaultIdAllocator> 
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Components, Allocator>,
-    Configuration: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
-    Components: StoreViewInnerComponent<Configuration>,
 {
-    view: Rc<RefCell<StoreViewImplementation<Widgets, Configuration, Components, Allocator>>>,
-    components: Rc<RefCell<Configuration::Components>>,
-    _container: Rc<RefCell<Widgets>>,
-    _view_model: Rc<RefCell<Configuration>>,
-    root_widget: <Widgets as FactoryContainerWidgets<Configuration, Components, Allocator>>::Root,
-    sender: Sender<Configuration::Msg>,
-    redraw_sender: Sender<RedrawMessages>,
+    view: Rc<RefCell<StoreViewImplementation<Configuration, Allocator>>>,
+    _components: Rc<RefCell<<Configuration::ViewModel as StoreViewModel>::Components>>,
+    _container: Rc<RefCell<<Configuration::ViewModel as StoreViewModel>::Widgets>>,
+    _view_model: Rc<RefCell<Configuration::ViewModel>>,
+    root_widget: <<Configuration::ViewModel as StoreViewModel>::Widgets as relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>>::Root,
+    sender: Sender<<Configuration::ViewModel as StoreViewModel>::Msg>,
+    _redraw_sender: Sender<RedrawMessages>,
 }
 
-impl<Widgets, Configuration, Components, Allocator> StoreViewComponent<Widgets, Configuration, Components, Allocator> 
+impl<Configuration, Allocator> std::fmt::Debug for StoreViewComponent<Configuration, Allocator> 
 where 
-    Widgets: FactoryContainerWidgets<Configuration, Components, Allocator> + 'static,
-    Configuration: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
-    Components: StoreViewInnerComponent<Configuration> + 'static,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StoreViewComponent")
+            .field("view", &self.view)
+            .finish_non_exhaustive()
+    }
+}
+
+
+impl<Configuration, Allocator> StoreViewComponent<Configuration, Allocator> 
+where 
+    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator + 'static,
 {
     /// Creates new instance of the [StoreViewInterface]
     pub fn new(
-        parent_view_model: &Configuration::ParentViewModel, 
+        parent_view_model: &Configuration::ParentViewModel,
+        parent_widgets: &<Configuration::ParentViewModel as StoreViewModel>::Widgets,
         store: Rc<RefCell<Configuration::Store>>, 
         size: StoreSize
     ) -> Self {
@@ -154,13 +164,14 @@ where
 
         let view_model = Configuration::init_view_model(parent_view_model, view.clone());
         let container = {
-            Widgets::init_view(
+            <Configuration::ViewModel as ViewModel>::Widgets::init_view(
                 &view_model,
+                &parent_widgets,
                 sender.clone(),
             )
         };
 
-        let components = <Configuration::Components as relm4::Components<Configuration>>::init_components(&view_model, &container, sender.clone());
+        let components = <<Configuration::ViewModel as ViewModel>::Components as relm4::Components<Configuration::ViewModel>>::init_components(&view_model, &container, sender.clone());
         container.connect_components(&view_model, &components);
         let shared_components = Rc::new(RefCell::new(components));
         let handler_components = shared_components.clone();
@@ -239,40 +250,38 @@ where
 
         Self {
             view,
-            components: shared_components,
+            _components: shared_components,
             _container: shared_container,
             _view_model: shared_view_model,
             root_widget,
             sender,
-            redraw_sender,
+            _redraw_sender: redraw_sender,
         }
     }
 
     /// Returns a sender for this component
-    pub fn sender(&self) -> Sender<Configuration::Msg> {
+    pub fn sender(&self) -> Sender<<Configuration::ViewModel as StoreViewModel>::Msg> {
         self.sender.clone()
     }
 
     /// Sends a message to this component
-    pub fn send(&self, msg: Configuration::Msg) -> Result<(), std::sync::mpsc::SendError<Configuration::Msg>> {
+    pub fn send(&self, msg: <Configuration::ViewModel as StoreViewModel>::Msg) -> Result<(), std::sync::mpsc::SendError<<Configuration::ViewModel as StoreViewModel>::Msg>> {
         self.sender.send(msg)
     }
 
     /// Returns root widget for this component, in most cases gtk widget
-    pub fn root_widget(&self) -> &<Widgets as FactoryContainerWidgets<Configuration, Components, Allocator>>::Root {
+    pub fn root_widget(&self) -> &<<Configuration::ViewModel as StoreViewModel>::Widgets as relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>>::Root {
         &self.root_widget
     }
 }
 
-impl<Widgets, Configuration, Components, Allocator> FactoryPrototype for StoreViewComponent<Widgets, Configuration, Components, Allocator>
+impl<Configuration, Allocator> FactoryPrototype for StoreViewComponent<Configuration, Allocator>
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Configuration, Components, Allocator>,
-    Configuration: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
-    Components: StoreViewInnerComponent<Configuration>,
 {
     type Factory = Self;
-    type Msg = Configuration::Msg;
+    type Msg = <Configuration::ViewModel as StoreViewModel>::Msg;
     type Widgets = Configuration::RecordWidgets;
     type Root = Configuration::Root;
     type View = Configuration::View;
@@ -280,7 +289,7 @@ where
     fn generate(
         &self,
         key: &<Self::Factory as Factory<Self, Self::View>>::Key,
-        sender: Sender<Configuration::Msg>,
+        sender: Sender<<Configuration::ViewModel as StoreViewModel>::Msg>,
     ) -> Self::Widgets {
         let view = self.view.borrow();
         let model = view.get(key).expect("Key doesn't point to the model in the store while generating! WTF?");
@@ -308,7 +317,7 @@ where
         let view = self.view.borrow();
         let model = view.get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
         let position = view.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
-        <Configuration as FactoryConfiguration<Widgets, Components, Allocator>>::update_record(model, position, widgets)
+        <Configuration as FactoryConfiguration<Allocator>>::update_record(model, position, widgets)
     }
 
     /// Get the outermost widget from the widgets.
@@ -317,16 +326,14 @@ where
     }
 }
 
-impl<Widgets, Builder, Components, Allocator> Factory<StoreViewComponent<Widgets, Builder, Components, Allocator>, Builder::View> for StoreViewComponent<Widgets, Builder, Components, Allocator>
+impl<Configuration, Allocator> Factory<StoreViewComponent<Configuration, Allocator>, Configuration::View> for StoreViewComponent<Configuration, Allocator>
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Builder, Components, Allocator>,
-    Builder: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator + 'static,
-    Components: StoreViewInnerComponent<Builder>,
 {
-    type Key = Id<<Builder::Store as DataStore<Allocator>>::Record>;
+    type Key = Id<<Configuration::Store as DataStore<Allocator>>::Record>;
 
-    fn generate(&self, view: &Builder::View, sender: Sender<Builder::Msg>) {
+    fn generate(&self, view: &Configuration::View, sender: Sender<<Configuration::ViewModel as StoreViewModel>::Msg>) {
         let view_impl = self.view.borrow();
         view_impl.generate(view, sender);
     }

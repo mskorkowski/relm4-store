@@ -55,31 +55,31 @@ pub enum PaginationMsg {
 
 /// Configuration of the pagination component
 pub trait PaginationConfiguration<Allocator=DefaultIdAllocator> 
-where Allocator: TemporaryIdAllocator,
+where 
+    Allocator: TemporaryIdAllocator,
+    <<Self::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel as ViewModel>::Widgets: 
+        relm4::Widgets<<Self::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel, <Self::FactoryConfiguration as FactoryConfiguration<Allocator>>::ParentViewModel> +
+        FactoryContainerWidgets<Self::FactoryConfiguration, Allocator>,
+    <<Self::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel as ViewModel>::Components: 
+        StoreViewInnerComponent<<Self::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel>,
 {
-    /// Type of structure holding this component
-    type ParentComponents: StoreViewInnerComponent<Self::ParentViewModel>;
-
-    /// Type of parent view widgets
-    /// 
-    /// Type of ViewWidgets used by component which holds pagination component
-    type ParentWidgets: FactoryContainerWidgets<Self::ParentViewModel, Self::ParentComponents, Allocator>;
     /// Type of parent view model
     /// 
     /// Type of model used by component which holds pagination component
-    type ParentViewModel: ViewModel + FactoryConfiguration<Self::ParentWidgets, Self::ParentComponents, Allocator>;
+    type FactoryConfiguration: FactoryConfiguration<Allocator>;
 
     /// Returns a view which will be used by the pagination component
-    fn get_view(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<StoreViewImplementation<Self::ParentWidgets, Self::ParentViewModel, Self::ParentComponents, Allocator>>>;
+    fn get_view(parent_view_model: &<Self::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel) 
+        -> Rc<RefCell<StoreViewImplementation<Self::FactoryConfiguration, Allocator>>>;
 }
 
 /// View model of the pagination component
 #[tracker::track]
 #[derive(Debug)]
-pub struct PaginationViewModel<Config: PaginationConfiguration<Allocator> + 'static, Allocator: TemporaryIdAllocator + 'static =DefaultIdAllocator> 
+pub struct PaginationViewModel<Config: PaginationConfiguration<Allocator> + 'static, Allocator: TemporaryIdAllocator + 'static =DefaultIdAllocator>
 {
     #[do_not_track]
-    view: Rc<RefCell<StoreViewImplementation<Config::ParentWidgets, Config::ParentViewModel, Config::ParentComponents, Allocator>>>,
+    view: Rc<RefCell<StoreViewImplementation<Config::FactoryConfiguration, Allocator>>>,
     #[do_not_track]
     page: gtk::EntryBuffer,
     total_pages: String,
@@ -95,12 +95,17 @@ where
     type Components = ();
 }
 
-impl<Config, Allocator> ComponentUpdate<Config::ParentViewModel> for PaginationViewModel<Config, Allocator>
+impl<Config, Allocator> ComponentUpdate<<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel> for PaginationViewModel<Config, Allocator>
 where 
     Config: PaginationConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator,
+    <<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel as ViewModel>::Widgets: 
+        relm4::Widgets<<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel, <Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ParentViewModel> +
+        FactoryContainerWidgets<Config::FactoryConfiguration, Allocator>,
+    <<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel as ViewModel>::Components: 
+        StoreViewInnerComponent<<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel>,
 {
-    fn init_model(parent_model: &Config::ParentViewModel) -> Self {
+    fn init_model(parent_model: &<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel) -> Self {
         let view = Config::get_view(parent_model); 
 
         let total_pages = format!("{}", view.borrow().total_pages());
@@ -119,7 +124,7 @@ where
         msg: Self::Msg, 
         _components: &Self::Components, 
         _sender: relm4::Sender<Self::Msg>, 
-        _parent_sender: relm4::Sender<<Config::ParentViewModel as ViewModel>::Msg>
+        _parent_sender: relm4::Sender<<<Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel as ViewModel>::Msg>
     ) {
         match msg {
             PaginationMsg::First => 
@@ -144,7 +149,7 @@ where
 
 /// Widgets for pagination component
 #[widget(visibility=pub, relm4=relm4)]
-impl<Config, Allocator> Widgets<PaginationViewModel<Config, Allocator>, Config::ParentViewModel> for PaginationWidgets 
+impl<Config, Allocator> Widgets<PaginationViewModel<Config, Allocator>, <Config::FactoryConfiguration as FactoryConfiguration<Allocator>>::ViewModel> for PaginationWidgets 
 where 
     Config: PaginationConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator,

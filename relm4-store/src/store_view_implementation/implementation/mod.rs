@@ -21,13 +21,12 @@ use record::Id;
 
 use crate::DataStore;
 use crate::FactoryConfiguration;
-use crate::FactoryContainerWidgets;
 use crate::Handler;
 use crate::Position;
 use crate::StoreId;
 use crate::StoreMsg;
 
-use crate::factory_configuration::StoreViewInnerComponent;
+use crate::StoreViewModel;
 use crate::math::Range;
 use crate::redraw_messages::RedrawMessages;
 use crate::window::WindowBehavior;
@@ -46,33 +45,29 @@ pub use data_store::StoreViewImplHandler;
 /// 
 /// To interact with content you should use Store. Store will handle all the
 /// make sure all the updates are propagated to the view.
-pub struct StoreViewImplementation<Widgets, Builder, Components, Allocator=DefaultIdAllocator>
+pub struct StoreViewImplementation<Configuration, Allocator=DefaultIdAllocator>
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Builder, Components, Allocator>,
-    Builder: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
-    Components: StoreViewInnerComponent<Builder>,
 {
     id: StoreId<Self, Allocator>,
-    store: Rc<RefCell<Builder::Store>>,
+    store: Rc<RefCell<Configuration::Store>>,
     handlers: RefCell<HashMap<StoreId<Self, Allocator>, Box<dyn Handler<Self, Allocator>>>>,
     #[allow(clippy::type_complexity)]
-    view_data: RefCell<HashMap<Id<<Builder::Store as DataStore<Allocator>>::Record>, <Builder::Store as DataStore<Allocator>>::Record>>,
-    view: RefCell<VecDeque<Id<<Builder::Store as DataStore<Allocator>>::Record>>>,
+    view_data: RefCell<HashMap<Id<<Configuration::Store as DataStore<Allocator>>::Record>, <Configuration::Store as DataStore<Allocator>>::Record>>,
+    view: RefCell<VecDeque<Id<<Configuration::Store as DataStore<Allocator>>::Record>>>,
     #[allow(clippy::type_complexity)]
-    widgets: RefCell<HashMap<Id<<Builder::Store as DataStore<Allocator>>::Record>, widgets::Widgets<Builder::RecordWidgets, <Builder::View as FactoryView<Builder::Root>>::Root>>>,
-    changes: RefCell<Vec<StoreMsg<<Builder::Store as DataStore<Allocator>>::Record>>>,
+    widgets: RefCell<HashMap<Id<<Configuration::Store as DataStore<Allocator>>::Record>, widgets::Widgets<Configuration::RecordWidgets, <Configuration::View as FactoryView<Configuration::Root>>::Root>>>,
+    changes: RefCell<Vec<StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>>>,
     range: RefCell<Range>,
     size: usize,
     redraw_sender: Sender<RedrawMessages>,
 }
 
-impl<Widgets, Builder, Components, Allocator> Debug for StoreViewImplementation<Widgets, Builder, Components, Allocator>
+impl<Configuration, Allocator> Debug for StoreViewImplementation<Configuration, Allocator>
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Builder, Components, Allocator>,
-    Builder: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
-    Components: StoreViewInnerComponent<Builder>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("StoreViewImplementation")
@@ -82,18 +77,16 @@ where
     }
 }
 
-impl<Widgets, Builder, Components, Allocator> StoreViewImplementation<Widgets, Builder, Components, Allocator> 
+impl<Configuration, Allocator> StoreViewImplementation<Configuration, Allocator> 
 where
-    Widgets: ?Sized + FactoryContainerWidgets<Builder, Components, Allocator>,
-    Builder: FactoryConfiguration<Widgets, Components, Allocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
     Allocator: TemporaryIdAllocator,
-    Components: StoreViewInnerComponent<Builder>,
 {
     ///Creates  new instance of this struct
     /// 
     /// - **store** store which will provide a source data
     /// - **size** size of the page
-    pub fn new(store: Rc<RefCell<Builder::Store>>, size: usize, redraw_sender: Sender<RedrawMessages>) -> Self {
+    pub fn new(store: Rc<RefCell<Configuration::Store>>, size: usize, redraw_sender: Sender<RedrawMessages>) -> Self {
         let range = RefCell::new(Range::new(0, size));
 
         let view_data = RefCell::new(HashMap::new());
@@ -115,19 +108,19 @@ where
         }
     }
 
-    fn convert_to_transition(&self, range: &Range, message: &StoreMsg<<Builder::Store as DataStore<Allocator>>::Record>) -> WindowTransition {
+    fn convert_to_transition(&self, range: &Range, message: &StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>) -> WindowTransition {
         match message {
             StoreMsg::NewAt(p) => {
-                Builder::Window::insert(range, &p.to_point())
+                Configuration::Window::insert(range, &p.to_point())
             },
             StoreMsg::Move{from, to} => {
-                Builder::Window::slide(range, &Range::new(from.0, to.0))
+                Configuration::Window::slide(range, &Range::new(from.0, to.0))
             },
             StoreMsg::Reorder{from, to} => {
-                Builder::Window::slide(range, &Range::new(from.0, to.0))
+                Configuration::Window::slide(range, &Range::new(from.0, to.0))
             },
             StoreMsg::Remove(at) => {
-                Builder::Window::remove(range, &at.to_point())
+                Configuration::Window::remove(range, &at.to_point())
             },
             StoreMsg::Commit(_) => {
                 WindowTransition::Identity
@@ -141,7 +134,7 @@ where
         }
     }
 
-    fn reload(&self, changeset: &mut WindowChangeset<Widgets, Builder, Components, Allocator>) {
+    fn reload(&self, changeset: &mut WindowChangeset<Configuration, Allocator>) {
 
         //TODO: Optimise it... it has loads of unnecessary updates
         let store = self.store.borrow();
@@ -174,7 +167,7 @@ where
         }
     }
 
-    fn insert_right(&self, changeset: &mut WindowChangeset<Widgets, Builder, Components, Allocator>, pos: usize, by: usize) {
+    fn insert_right(&self, changeset: &mut WindowChangeset<Configuration, Allocator>, pos: usize, by: usize) {
         let store = self.store.borrow();
         // let end = *self.range.borrow().end();
         let start = *self.range.borrow().start();
@@ -225,7 +218,7 @@ where
     ///
     /// Third case:
     /// 
-    fn insert_left(&self, changeset: &mut WindowChangeset<Widgets, Builder, Components, Allocator>, pos: usize, by: usize) {
+    fn insert_left(&self, changeset: &mut WindowChangeset<Configuration, Allocator>, pos: usize, by: usize) {
 
         println!("Insert left");
         let store = self.store.borrow();
@@ -293,7 +286,7 @@ where
         }                    
     }
 
-    fn compile_changes(&self) -> WindowChangeset<Widgets, Builder, Components, Allocator> {
+    fn compile_changes(&self) -> WindowChangeset<Configuration, Allocator> {
         let mut changeset = WindowChangeset {
             widgets_to_remove: HashSet::new(),
             ids_to_add: HashSet::new(),
@@ -398,7 +391,7 @@ where
     }
 
     /// Implementation of the [relm4::factory::FactoryPrototype::generate]
-    pub fn generate(&self, view: &Builder::View, sender: Sender<Builder::Msg>) {
+    pub fn generate(&self, view: &Configuration::View, sender: Sender<<Configuration::ViewModel as StoreViewModel>::Msg>) {
         println!("[StoreViewImplementation::generate]");
 
         let empty = {
@@ -435,8 +428,8 @@ where
         for id in view_order.iter() {
             if ids_to_add.contains(id) {
                 if let Some(record) = self.get(id) {
-                    let new_widgets = Builder::generate(&record, position, sender.clone());
-                    let root = Builder::get_root(&new_widgets);
+                    let new_widgets = Configuration::generate(&record, position, sender.clone());
+                    let root = Configuration::get_root(&new_widgets);
                     let range = self.range.borrow();
                     let root = if widgets.is_empty() || position.get() == *range.start() {
                         view.push_front(root)
@@ -460,7 +453,7 @@ where
             if ids_to_update.contains(id) {
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
-                        <Builder as FactoryConfiguration<Widgets, Components, Allocator>>::update_record(record, position, &widget.widgets);
+                        <Configuration as FactoryConfiguration<Allocator>>::update_record(record, position, &widget.widgets);
                     }
                 }
             }
