@@ -1,9 +1,9 @@
 use reexport::{gtk, relm4, relm4_macros};
 use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::{BoxExt, OrientableExt, GtkWindowExt};
-use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets};
+use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets, WidgetPlus};
 use relm4_macros::widget;
-use store::{StoreSize, StoreViewComponent, window::{PositionTrackingWindow, ValueTrackingWindow}};
+use store::{StoreSize, StoreViewComponent, window::{KeepOnBottom, KeepOnTop, PositionTrackingWindow, ValueTrackingWindow}};
 
 use crate::{
     store::Tasks,
@@ -77,7 +77,7 @@ impl TasksListConfiguration for TaskList2Configuration {
 struct TaskList3Configuration {}
 impl TasksListConfiguration for TaskList3Configuration {
     type ParentViewModel = MainWindowViewModel;
-    type Window = PositionTrackingWindow;
+    type Window = KeepOnTop;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
     }
@@ -86,7 +86,7 @@ impl TasksListConfiguration for TaskList3Configuration {
 struct TaskList4Configuration {}
 impl TasksListConfiguration for TaskList4Configuration {
     type ParentViewModel = MainWindowViewModel;
-    type Window = PositionTrackingWindow;
+    type Window = KeepOnBottom;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
     }
@@ -100,6 +100,7 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
                 set_orientation: gtk::Orientation::Horizontal,
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
+                    set_margin_all: 12,
                     append = &gtk::Label {
                         set_label: "PositionTrackingWindow",
                     },
@@ -107,6 +108,7 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
                 },
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
+                    set_margin_all: 12,
                     append = &gtk::Label {
                         set_label: "ValueTrackingWindow",
                     },
@@ -114,6 +116,7 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
                 },
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
+                    set_margin_all: 12,
                     append = &gtk::Label {
                         set_label: "KeepOnTop",
                     },
@@ -121,6 +124,7 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
                 },
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
+                    set_margin_all: 12,
                     append = &gtk::Label {
                         set_label: "KeepOnBottom",
                     },
