@@ -1,12 +1,14 @@
-use backend_inmemory::InMemoryBackend;
-use backend_inmemory::InMemoryBackendConfiguration;
+use backend_inmemory::SortedInMemoryBackend;
+use backend_inmemory::SortedInMemoryBackendConfiguration;
 use crate::model::Task;
 
-pub type Tasks = InMemoryBackend<TasksBuilder>;
+pub type Tasks = SortedInMemoryBackend<TasksBuilder>;
 
 pub struct TasksBuilder {}
 
-impl InMemoryBackendConfiguration for TasksBuilder
+
+
+impl SortedInMemoryBackendConfiguration for TasksBuilder
 {
     type Record = Task;
 
@@ -14,3 +16,5 @@ impl InMemoryBackendConfiguration for TasksBuilder
         Vec::new()
     }
 }
+
+

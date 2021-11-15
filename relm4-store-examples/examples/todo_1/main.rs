@@ -2,21 +2,23 @@ mod model;
 mod store;
 mod view;
 
+use reexport::log;
 use reexport::gtk;
 use reexport::relm4;
 
-use std::rc::Rc;
-use std::cell::RefCell;
+use std::io::Result;
 
 use relm4::RelmApp;
 
 use crate::store::Tasks;
 use crate::view::MainWindowViewModel;
 
-fn main() {
-    println!();
-    println!("Todo 1 example!");
-    println!();
+fn main() -> Result<()> {
+    log4rs::init_file("relm4-store-examples/examples/todo_1/etc/log4rs.yaml", Default::default()).unwrap();
+
+    log::info!("");
+    log::info!("Todo 1 example!");
+    log::info!("");
 
     
     let app_id = "store.relm4.example.todo-1";
@@ -27,16 +29,14 @@ fn main() {
         .build();
 
     let model = MainWindowViewModel{
-        tasks: Rc::new(
-            RefCell::new(
-                Tasks::new()
-            )
-        )
+        tasks: Tasks::new()
     };
 
-    println!("\tCreating relm4 app");
+    log::info!("\tCreating relm4 app");
     let app = RelmApp::with_app(model, application);
 
-    println!("\tStarting app");
+    log::info!("\tStarting app");
     app.run();
+
+    Ok(())
 }

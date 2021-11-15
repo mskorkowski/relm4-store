@@ -9,3 +9,4 @@ record = { path = "../relm4-store-record", package = "relm4-store-record" }
 store = { path = "../relm4-store", package = "relm4-store" }
 backend_inmemory = { path = "../relm4-store-backend-inmemory", package = "relm4-store-backend-inmemory" }
 components = { path = "../relm4-store-components", package = "relm4-store-components" }
+log4rs = "1.0.0"

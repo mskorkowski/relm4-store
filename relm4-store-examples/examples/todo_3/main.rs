@@ -5,9 +5,6 @@ mod view;
 use reexport::gtk;
 use reexport::relm4;
 
-use std::rc::Rc;
-use std::cell::RefCell;
-
 use relm4::RelmApp;
 
 use crate::store::Tasks;
@@ -29,11 +26,7 @@ fn main() {
 
     println!("Seeding store");
     let model = MainWindowViewModel{
-        tasks: Rc::new(
-            RefCell::new(
-                Tasks::new()
-            )
-        ),
+        tasks: Tasks::new(),
         page_size: 10,
     };
 

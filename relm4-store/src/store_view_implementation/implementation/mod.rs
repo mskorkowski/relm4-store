@@ -1,6 +1,8 @@
 mod data_store;
 mod factory;
 
+use reexport::gtk;
+use reexport::log;
 use reexport::relm4;
 
 
@@ -11,6 +13,8 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::fmt::Debug;
 use std::rc::Rc;
+
+use gtk::glib;
 
 use relm4::Model as ViewModel;
 use relm4::Sender;
@@ -24,7 +28,6 @@ use record::TemporaryIdAllocator;
 
 use crate::DataStore;
 use crate::FactoryConfiguration;
-use crate::Handler;
 use crate::Position;
 use crate::StoreId;
 use crate::StoreMsg;
@@ -35,8 +38,6 @@ use crate::window::WindowTransition;
 
 use super::window_changeset::WindowChangeset;
 use super::widgets;
-
-pub use data_store::StoreViewImplHandler;
 
 /// View of the store
 /// 
@@ -53,16 +54,17 @@ where
 {
     id: StoreId<Self, Allocator>,
     store: Rc<RefCell<Configuration::Store>>,
-    handlers: RefCell<HashMap<StoreId<Self, Allocator>, Box<dyn Handler<Self, Allocator>>>>,
+    handlers: Rc<RefCell<HashMap<StoreId<Self, Allocator>, Sender<StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>>>>>,
     #[allow(clippy::type_complexity)]
-    view_data: RefCell<HashMap<Id<<Configuration::Store as DataStore<Allocator>>::Record>, <Configuration::Store as DataStore<Allocator>>::Record>>,
-    view: RefCell<VecDeque<Id<<Configuration::Store as DataStore<Allocator>>::Record>>>,
+    view_data: Rc<RefCell<HashMap<Id<<Configuration::Store as DataStore<Allocator>>::Record>, <Configuration::Store as DataStore<Allocator>>::Record>>>,
+    view: Rc<RefCell<VecDeque<Id<<Configuration::Store as DataStore<Allocator>>::Record>>>>,
     #[allow(clippy::type_complexity)]
-    widgets: RefCell<HashMap<Id<<Configuration::Store as DataStore<Allocator>>::Record>, widgets::Widgets<Configuration::RecordWidgets, <Configuration::View as FactoryView<Configuration::Root>>::Root>>>,
-    changes: RefCell<Vec<StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>>>,
-    range: RefCell<Range>,
+    widgets: Rc<RefCell<HashMap<Id<<Configuration::Store as DataStore<Allocator>>::Record>, widgets::Widgets<Configuration::RecordWidgets, <Configuration::View as FactoryView<Configuration::Root>>::Root>>>>,
+    changes: Rc<RefCell<Vec<StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>>>>,
+    range: Rc<RefCell<Range>>,
     size: usize,
     redraw_sender: Sender<RedrawMessages>,
+    sender: Sender<StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>>,
 }
 
 impl<Configuration, Allocator> Debug for StoreViewImplementation<Configuration, Allocator>
@@ -88,25 +90,52 @@ where
     /// - **store** store which will provide a source data
     /// - **size** size of the page
     pub fn new(store: Rc<RefCell<Configuration::Store>>, size: usize, redraw_sender: Sender<RedrawMessages>) -> Self {
-        let range = RefCell::new(Range::new(0, size));
+        let range = Rc::new(RefCell::new(Range::new(0, size)));
+        let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+    
+        let view_data = Rc::new(RefCell::new(HashMap::new()));
+        let view = Rc::new(RefCell::new(VecDeque::new()));
+        let changes = Rc::new(RefCell::new(Vec::new()));
+        let handler_changes = changes.clone();
+        let handler_redraw_sender = redraw_sender.clone();
+        {
+            let context = glib::MainContext::default();
+            receiver.attach(Some(&context), move |msg| {
+                log::info!("Received message in store view: {:?}", &msg);
+                if let Ok(mut changes) = handler_changes.try_borrow_mut() {
+                    changes.push(msg);
+                    log::info!("Now changes has {} messages", changes.len());
+                    handler_redraw_sender.send(RedrawMessages::Redraw).expect("Unexpected failure while sending message via redraw_sender");
+                }
+                else {
+                    log::warn!("Unable to borrow mutably the changes. Please drop all the references to changes!");
+                }
 
-        let view_data = RefCell::new(HashMap::new());
-        let view = RefCell::new(VecDeque::new());
-        let changes = RefCell::new(Vec::new());
+                glib::Continue(true)
+            });
+        }
+
+
         changes.borrow_mut().push(StoreMsg::Reload);
 
         Self{
             id: StoreId::new(),
             store,
-            handlers: RefCell::new(HashMap::new()),
+            handlers: Rc::new(RefCell::new(HashMap::new())),
             view_data,
             view,    
-            widgets: RefCell::new(HashMap::new()),
+            widgets: Rc::new(RefCell::new(HashMap::new())),
             changes,
             range,
             size,
             redraw_sender,
+            sender,
         }
+    }
+
+    fn inbox(&self, message: StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>) {
+        self.changes.borrow_mut().push(message);
+        self.redraw_sender.send(RedrawMessages::Redraw).expect("Unexpected failure while sending message via redraw_sender");
     }
 
     fn convert_to_transition(&self, range: &Range, message: &StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>) -> WindowTransition {
@@ -221,7 +250,7 @@ where
     /// 
     fn insert_left(&self, changeset: &mut WindowChangeset<Configuration, Allocator>, pos: usize, by: usize) {
 
-        println!("Insert left");
+        log::trace!("Insert left");
         let store = self.store.borrow();
         let start = *self.range.borrow().start();
 
@@ -230,27 +259,27 @@ where
         }
         else {
             let start_pos = if pos-start < by { 
-                println!("\t\tstart_pos = start");
+                log::trace!("\t\tstart_pos = start");
                 start 
             } else {
-                println!("\t\tstart_pos = pos - by");
+                log::trace!("\t\tstart_pos = pos - by");
                 pos-by
             };
             let end_pos = if start_pos == pos { 
-                println!("\t\tend_pos = pos + by");
+                log::trace!("\t\tend_pos = pos + by");
                 pos + by 
             } else { 
-                println!("\t\tend_pos = pos");
+                log::trace!("\t\tend_pos = pos");
                 pos 
             };
             let range_of_changes = Range::new(start_pos, end_pos);
 
-            println!("\tpos: {}", pos);
-            println!("\tby: {}", by);
-            println!("\tstart: {}", start);
-            println!("\tstart_pos: {}", start_pos);
-            println!("\tend_pos: {}", end_pos);
-            println!("\trange_of_changes: {}", range_of_changes);
+            log::trace!("\tpos: {}", pos);
+            log::trace!("\tby: {}", by);
+            log::trace!("\tstart: {}", start);
+            log::trace!("\tstart_pos: {}", start_pos);
+            log::trace!("\tend_pos: {}", end_pos);
+            log::trace!("\trange_of_changes: {}", range_of_changes);
 
             let new_items: Vec<<Self as DataStore<Allocator>>::Record> = store.get_range(&range_of_changes);
 
@@ -393,7 +422,7 @@ where
 
     /// Implementation of the [relm4::factory::FactoryPrototype::generate]
     pub fn view(&self, view: &Configuration::View, sender: Sender<<Configuration::ViewModel as ViewModel>::Msg>) {
-        println!("[StoreViewImplementation::generate]");
+        log::trace!("[StoreViewImplementation::generate]");
 
         let empty = {
             let changes = self.changes.borrow();
