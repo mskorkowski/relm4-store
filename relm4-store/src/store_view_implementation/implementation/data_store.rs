@@ -8,7 +8,6 @@ use record::TemporaryIdAllocator;
 
 use crate::DataStore;
 use crate::FactoryConfiguration;
-// use crate::Handler;
 use crate::Pagination;
 use crate::Position;
 use crate::RecordWithLocation;
