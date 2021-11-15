@@ -30,7 +30,6 @@ use crate::StoreView;
 use crate::StoreViewImplementation;
 use crate::StoreViewInnerComponent;
 use crate::redraw_messages::RedrawMessages;
-use crate::store_view_implementation::StoreViewImplHandler;
 
 
 /// Enum with possible errors returned by the [StoreViewInterface]
@@ -144,19 +143,16 @@ where
         let view = StoreViewImplementation::new(store.clone(), size.items(), redraw_sender.clone());
         let view_id = view.get_id();
 
-        let shared_view = Rc::new(RefCell::new(view));
-        let weak_view = Rc::downgrade(&shared_view);
-        let redraw_handler_view = shared_view.clone();
-
         {
             let s: RefMut<'_, Configuration::Store> = store.borrow_mut();
             s.listen(
                 view_id.transfer(),
-                Box::new(
-                    StoreViewImplHandler::new(weak_view, redraw_sender.clone()),
-                )
+                view.sender(),       
             );
         }
+        let shared_view = Rc::new(RefCell::new(view));
+        let redraw_handler_view = shared_view.clone();
+
 
         let view_model = Configuration::init_view_model(parent_view_model, shared_view.clone());
         let container = {
@@ -206,9 +202,11 @@ where
         {
             let context = glib::MainContext::default();
             redraw_receiver.attach(Some(&context), move |_| {
+                log::info!("Received redraw message!");
                 if let Ok(store_view) = redraw_handler_view.try_borrow() {
                     if let Ok(view_model) = redraw_handler_view_model.try_borrow() {
                         if let Ok(mut container) = redraw_handler_container.try_borrow_mut() {
+                            log::info!("Store view queue size: {}", store_view.inbox_queue_size());
                             if store_view.inbox_queue_size() > 0 { //only redraw if there is an update awaiting
                                 store_view.generate(container.container_widget(), redraw_handler_sender.clone());
                             }

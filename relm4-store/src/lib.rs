@@ -33,8 +33,12 @@ mod store_view_component;
 mod store_view_implementation;
 pub mod window;
 
+use reexport::relm4;
+
 use std::fmt::Debug;
 use std::marker::Sized;
+
+use relm4::Sender;
 
 use record::Id;
 use record::Identifiable;
@@ -55,14 +59,7 @@ pub use store_size::StoreSize;
 pub use store_view_component::StoreViewComponent;
 pub use store_view_component::StoreViewInterfaceError;
 pub use store_view_implementation::StoreViewImplementation;
-pub use store_view_implementation::StoreViewImplHandler;
 pub use store_view_implementation::WindowChangeset;
-
-/// Implementations of this trait are used to send messages between the store and it's views
-pub trait Handler<Store: DataStore<Allocator> + ?Sized, Allocator: TemporaryIdAllocator>: std::fmt::Debug {
-    /// Method called when parent store needs to pass a message to the view
-    fn handle(&self, message: StoreMsg<<Store as DataStore<Allocator>>::Record>) -> bool;
-}
 
 /// DataStore is a trait describing collections specialized in housekeeping business model data
 /// 
@@ -134,13 +131,13 @@ pub trait DataStore<Allocator>: Identifiable<Self, Allocator::Type, Id=StoreId<S
 where Allocator: TemporaryIdAllocator
 {
     /// Type of records kept in the data store
-    type Record: Record + Debug + Clone;
+    type Record: Record + Debug + Clone + 'static;
 
     /// Registers message in the data store
     /// 
     /// Data store might handle it immediately or might do queue it for later. It's up to the store
     /// implementation what to do with a message
-    fn inbox(&self, m: StoreMsg<Self::Record>);
+    // fn inbox(&self, m: StoreMsg<Self::Record>);
 
     /// Total amount of available records in the store
     fn len(&self) -> usize;
@@ -159,15 +156,21 @@ where Allocator: TemporaryIdAllocator
     /// If range is out of bounds returned vector will be empty.
     fn get_range(&self, range: &Range) -> Vec<Self::Record>;
 
-    /// Attaches handler to the store
+    /// Attaches sender to the store
     /// 
-    /// Handler is fired whenever there is a change in the store
-    fn listen(&self, id: StoreId<Self, Allocator>, h: Box<dyn Handler<Self, Allocator>>);
+    /// Sender is used to send a message whenever there are changes in the store
+    fn listen(&self, id: StoreId<Self, Allocator>, sender: Sender<StoreMsg<Self::Record>>);
 
     /// Removes handler from the store
     /// 
     /// Changes to the store will not be delivered after this handler is removed
     fn unlisten(&self, handler_ref: StoreId<Self, Allocator>);
+
+    /// Returns sender for this store
+    fn sender(&self) -> Sender<StoreMsg<Self::Record>>;
+
+    /// Sends a message to this store
+    fn send(&self, msg: StoreMsg<Self::Record>);
 }
 
 /// StoreView allows you to access part of the data in the data store

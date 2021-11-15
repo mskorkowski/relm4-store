@@ -178,14 +178,14 @@ where
                 let description = view_model.new_task_description.text();
                 let task = Task::new(description, false);
                 view_model.new_task_description.set_text("");
-                view_model.tasks.borrow().inbox(StoreMsg::Commit(task));
+                view_model.tasks.borrow().send(StoreMsg::Commit(task));
             },
             TaskMsg::Toggle{ complete, id } => {
                 let tasks = view_model.tasks.borrow();
                 if let Some(record) = tasks.get(&id) {
                     let mut updated = record.clone();
                     updated.completed = complete;
-                    tasks.inbox(StoreMsg::Commit(updated));
+                    tasks.send(StoreMsg::Commit(updated));
                 }
             },
         }

@@ -1,4 +1,5 @@
 use reexport::gtk;
+use reexport::log;
 use reexport::relm4;
 use reexport::relm4_macros;
 
@@ -165,21 +166,21 @@ where Config: TasksListConfiguration + 'static,
     }
 
     fn update(view_model: &mut Self, msg: <Self as ViewModel>::Msg, _sender: Sender<<Self as ViewModel>::Msg>) {
-        println!("[TasksListViewModel::update] message received, updating data");
+        log::info!("[TasksListViewModel::update] message received, updating data");
 
         match msg {
             TaskMsg::New => {
                 let description = view_model.new_task_description.text();
                 let task = Task::new(description, false);
                 view_model.new_task_description.set_text("");
-                view_model.tasks.borrow().inbox(StoreMsg::Commit(task));
+                view_model.tasks.borrow().send(StoreMsg::Commit(task));
             },
             TaskMsg::Toggle{ complete, id } => {
                 let tasks = view_model.tasks.borrow();
                 if let Some(record) = tasks.get(&id) {
                     let mut updated = record.clone();
                     updated.completed = complete;
-                    tasks.inbox(StoreMsg::Commit(updated));
+                    tasks.send(StoreMsg::Commit(updated));
                 }
             },
         }

@@ -6,8 +6,6 @@ use reexport::gtk;
 use reexport::relm4;
 
 use std::io::Write;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 use relm4::RelmApp;
 
@@ -31,11 +29,7 @@ fn main() {
     println!("Building model");
     std::io::stdout().flush().unwrap();
     let model = MainWindowViewModel{
-        tasks: Rc::new(
-            RefCell::new(
-                Tasks::new()
-            )
-        )
+        tasks: Tasks::new()
     };
     println!("\tDone");
     std::io::stdout().flush().unwrap();

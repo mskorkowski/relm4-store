@@ -1,9 +1,5 @@
 use reexport::relm4;
 
-use std::cell::RefCell;
-use std::rc::Weak;
-
-use relm4::send;
 use relm4::Sender;
 
 use record::Id;
@@ -12,7 +8,6 @@ use record::TemporaryIdAllocator;
 
 use crate::DataStore;
 use crate::FactoryConfiguration;
-use crate::Handler;
 use crate::Pagination;
 use crate::Position;
 use crate::RecordWithLocation;
@@ -21,7 +16,6 @@ use crate::StoreMsg;
 use crate::StoreView;
 
 use crate::math::Range;
-use crate::redraw_messages::RedrawMessages;
 
 use super::StoreViewImplementation;
 impl<Configuration, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Configuration, Allocator>
@@ -51,11 +45,6 @@ where
         self.store.borrow().is_empty()
     }
 
-    fn inbox(&self, message: StoreMsg<Self::Record>) {
-        self.changes.borrow_mut().push(message);
-        self.redraw_sender.send(RedrawMessages::Redraw).expect("Unexpected failure while sending message via redraw_sender");
-    }
-
     fn get_range(&self, range: &Range) -> Vec<<Configuration::Store as DataStore<Allocator>>::Record> {
         self.store.borrow().get_range(range)
     }
@@ -64,12 +53,20 @@ where
         self.store.borrow().get(id)
     }
 
-    fn listen(&self, handler_ref: StoreId<Self, Allocator>, handler: Box<dyn Handler<Self, Allocator>>) {
-        self.handlers.borrow_mut().insert(handler_ref, handler);         
+    fn listen(&self, id: StoreId<Self, Allocator>, sender: Sender<StoreMsg<Self::Record>>) {
+        self.handlers.borrow_mut().insert(id, sender);
     }
 
     fn unlisten(&self, handler_ref: StoreId<Self, Allocator>) {
         self.handlers.borrow_mut().remove(&handler_ref);
+    }
+
+    fn sender(&self) -> Sender<StoreMsg<Self::Record>> {
+        self.sender.clone()
+    }
+
+    fn send(&self, msg: StoreMsg<Self::Record>) {
+        self.sender.send(msg).expect("WTF? Since store view is here why it failed?");
     }
 }
 
@@ -160,58 +157,5 @@ where
 
     fn inbox_queue_size(&self) -> usize {
         self.changes.borrow().len()
-    }
-}
-
-/// Handler which is used by the [StoreViewImplementation] to bind to the underlying data stores
-pub struct StoreViewImplHandler<Configuration, Allocator>
-where
-    Configuration: 'static + ?Sized + FactoryConfiguration<Allocator>,
-    Allocator: TemporaryIdAllocator,
-{
-    view: Weak<RefCell<StoreViewImplementation<Configuration, Allocator>>>,
-    sender: Sender<RedrawMessages>,
-}
-
-impl<Configuration, Allocator> StoreViewImplHandler<Configuration, Allocator>
-where
-    Configuration: 'static + ?Sized + FactoryConfiguration<Allocator>,
-    Allocator: TemporaryIdAllocator,
-{
-
-    /// Creates new instance of this handler
-    pub fn new(view: Weak<RefCell<StoreViewImplementation<Configuration,Allocator>>>, sender: Sender<RedrawMessages>) -> Self {
-        Self {
-            view,
-            sender,
-        }
-    }
-}
-
-impl<Configuration, Allocator> Handler<Configuration::Store, Allocator> for StoreViewImplHandler<Configuration, Allocator> 
-where
-    Configuration: 'static + ?Sized + FactoryConfiguration<Allocator>,
-    Allocator: TemporaryIdAllocator,
-{
-    fn handle(&self, message: StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>) -> bool {
-        if let Some(view) = self.view.upgrade() {
-            view.borrow().inbox(message);
-            let sender = &self.sender;
-            send!(sender, RedrawMessages::Redraw);
-            false
-        }
-        else {
-            true
-        }
-    }
-}
-
-impl<Configuration, Allocator> std::fmt::Debug for StoreViewImplHandler<Configuration, Allocator> 
-where
-    Configuration: 'static + ?Sized +  FactoryConfiguration<Allocator>,
-    Allocator: TemporaryIdAllocator,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StoreViewImplHandler").finish_non_exhaustive()
     }
 }

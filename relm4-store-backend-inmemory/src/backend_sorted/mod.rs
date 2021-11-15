@@ -1,3 +1,5 @@
+mod indexing;
+
 use reexport::gtk;
 use reexport::relm4;
 use reexport::log;
@@ -9,6 +11,8 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::rc::Rc;
+
+use log::warn;
 
 use gtk::glib;
 
@@ -29,7 +33,7 @@ use store::math::Range;
 pub trait Ordering<Record: record::Record>: PartialOrd<Record> {}
 
 /// Configuration trait for the InMemoryBackend
-pub trait InMemoryBackendConfiguration {
+pub trait SortedInMemoryBackendConfiguration {
     /// Type of data in the in memory store
     type Record: 'static + Record + Debug + Clone;
 
@@ -41,9 +45,9 @@ pub trait InMemoryBackendConfiguration {
 
 /// In memory implementation of the data store
 #[derive(Debug)]
-pub struct InMemoryBackend<Builder, Allocator = DefaultIdAllocator> 
+pub struct SortedInMemoryBackend<Builder, Allocator = DefaultIdAllocator> 
 where 
-    Builder: InMemoryBackendConfiguration,
+    Builder: SortedInMemoryBackendConfiguration,
     Allocator: TemporaryIdAllocator,
 {
     id: StoreId<Self, Allocator>,
@@ -54,25 +58,25 @@ where
     /// profile storage
     data: RefCell<HashMap<Id<Builder::Record>, Builder::Record>>,
 
-    senders: RefCell<HashMap<StoreId<Self, Allocator>, Sender<StoreMsg<Builder::Record>>>>,
+    handlers: RefCell<HashMap<StoreId<Self, Allocator>, Sender<StoreMsg<Builder::Record>>>>,
 
     sender: Sender<StoreMsg<Builder::Record>>
 }
 
-impl<Builder, Allocator> InMemoryBackend<Builder, Allocator> 
+impl<Builder, Allocator> SortedInMemoryBackend<Builder, Allocator> 
 where 
-    Builder: InMemoryBackendConfiguration + 'static,
+    Builder: SortedInMemoryBackendConfiguration + 'static,
     Allocator: TemporaryIdAllocator + 'static
 {
     /// Creates new instance of the InMemoryBackend
     pub fn new() -> Rc<RefCell<Self>> {
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
-        let backend = InMemoryBackend{
+        let backend = SortedInMemoryBackend{
             id: StoreId::new(),
             order: RefCell::new(VecDeque::new()),
             data: RefCell::new(HashMap::new()),
-            senders: RefCell::new(HashMap::new()),
+            handlers: RefCell::new(HashMap::new()),
             sender,
         };
 
@@ -82,22 +86,40 @@ where
         {
             let context = glib::MainContext::default();
             receiver.attach(Some(&context), move |msg:StoreMsg<Builder::Record>| {
-                log::info!("Message received in receiver: {:?}", &msg);
                 if let Ok(backend) = handler_backend.try_borrow() {
-                    log::info!("Pushing message via inbox!");
-                    backend.inbox(msg);
+                    match msg {
+                        StoreMsg::Commit(record) => {
+                            let id = record.get_id();
+                            {
+                                if id.is_new() {
+                                    let position = backend.add(record);
+                                    backend.fire_handlers(StoreMsg::NewAt(position));
+                                }
+                                else {
+                                    let mut data = backend.data.borrow_mut();
+                                    data.insert(id, record);
+                                    backend.fire_handlers(StoreMsg::Update(id))
+                                }
+                                // let old_record = data.get(&id);
+                            }
+            
+                        },
+                        StoreMsg::Reload => {
+                            //it's in memory store so nothing to do...
+                        }, 
+                        _ => {
+                        }
+                    }
                 }
                 else {
-                    log::warn!("Can't borrow backend. Remember to release the leases");
+                    warn!("Can't borrow backend. Remember to release the leases");
                 }
                 glib::Continue(true)
             });
         }
 
-        
-
         for record in Builder::initial_data() {
-            shared_backed.borrow().inbox(StoreMsg::Commit(record));
+            shared_backed.borrow().send(StoreMsg::Commit(record));
         }
 
         //we don't have any views so we don't need to notify anybody yet
@@ -105,41 +127,12 @@ where
         shared_backed
     }
 
-    fn inbox(&self, msg: StoreMsg<Builder::Record>) {
-        log::info!("Received message: {:?}", &msg);
-        match msg {
-            StoreMsg::Commit(record) => {
-                let id = record.get_id();
-                {
-                    if id.is_new() {
-                        let position = self.add(record);
-                        self.fire_handlers(StoreMsg::NewAt(position));
-                    }
-                    else {
-                        let mut data = self.data.borrow_mut();
-                        data.insert(id, record);
-                        self.fire_handlers(StoreMsg::Update(id))
-                    }
-                }
-
-            },
-            StoreMsg::Reload => {
-                //it's in memory store so nothing to do...
-            }, 
-            _ => {
-            }
-        }
-    }
-
     fn fire_handlers(&self, message: StoreMsg<Builder::Record>) {
-        let senders = self.senders.borrow();
+        let handlers = self.handlers.borrow();
 
-        if senders.is_empty() {
-            log::info!("Senders are empty. Exiting");
+        if handlers.is_empty() {
             return;
         }
-
-        log::info!("Senders contain {} items", senders.len());
 
         // tracks store view id's for removal
         //
@@ -151,13 +144,9 @@ where
         // iterate over collection which changes itself
         let mut ids_for_remove: Vec<StoreId<Self, Allocator>> = Vec::new();
 
-        for (key, sender) in senders.iter() {
+        for (key, sender) in handlers.iter() {
             if let Err( _ ) =sender.send(message.clone()) {
-                log::warn!("Receiver was cleaned up before dropping sender instance. Dropping sender for {:?}", &key);
                 ids_for_remove.push(*key);
-            }
-            else {
-                log::info!("Sent message to {:?}", &key);
             }
         }
 
@@ -179,9 +168,9 @@ where
     }
 }
 
-impl<Builder, Allocator> Identifiable<InMemoryBackend<Builder, Allocator>, Allocator::Type> for InMemoryBackend<Builder, Allocator>
+impl<Builder, Allocator> Identifiable<SortedInMemoryBackend<Builder, Allocator>, Allocator::Type> for SortedInMemoryBackend<Builder, Allocator>
 where 
-    Builder: InMemoryBackendConfiguration,
+    Builder: SortedInMemoryBackendConfiguration,
     Allocator: TemporaryIdAllocator,
 {
     type Id=StoreId<Self, Allocator>;
@@ -191,9 +180,9 @@ where
     }
 }
 
-impl<Builder, Allocator> DataStore<Allocator> for InMemoryBackend<Builder, Allocator>
+impl<Builder, Allocator> DataStore<Allocator> for SortedInMemoryBackend<Builder, Allocator>
 where 
-    Builder: InMemoryBackendConfiguration,
+    Builder: SortedInMemoryBackendConfiguration,
     Allocator: TemporaryIdAllocator,
 {
     type Record = Builder::Record;
@@ -237,15 +226,14 @@ where
     }
 
     fn listen<'b>(&self, handler_ref: StoreId<Self, Allocator>, sender: Sender<StoreMsg<Self::Record>>) {
-        self.senders.borrow_mut().insert(handler_ref, sender);
+        self.handlers.borrow_mut().insert(handler_ref, sender);
     }
 
     fn unlisten(&self, handler_ref: StoreId<Self, Allocator>) {
-        self.senders.borrow_mut().remove(&handler_ref);
+        self.handlers.borrow_mut().remove(&handler_ref);
     }
 
     fn send(&self, msg: StoreMsg<Self::Record>) {
-        log::info!("Sending message via sender: {:?}", msg);
         self.sender.send(msg).expect("Message should be sent, since store exists");
     }
 

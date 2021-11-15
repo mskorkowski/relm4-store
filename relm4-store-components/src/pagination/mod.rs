@@ -69,7 +69,10 @@ where
 /// View model of the pagination component
 #[tracker::track]
 #[derive(Debug)]
-pub struct PaginationViewModel<Config: PaginationConfiguration<Allocator> + 'static, Allocator: TemporaryIdAllocator + 'static =DefaultIdAllocator>
+pub struct PaginationViewModel<Config, Allocator=DefaultIdAllocator>
+where
+    Config: PaginationConfiguration<Allocator> + 'static, 
+    Allocator: TemporaryIdAllocator + 'static
 {
     #[do_not_track]
     view: Rc<RefCell<StoreViewImplementation<Config::FactoryConfiguration, Allocator>>>,
@@ -125,7 +128,7 @@ where
                 self.view.borrow().last_page(),
             PaginationMsg::ToPage => (),
             PaginationMsg::Reload =>
-                self.view.borrow().inbox(StoreMsg::Reload),
+                self.view.borrow().send(StoreMsg::Reload),
             PaginationMsg::StoreUpdated => (),
         }
 
