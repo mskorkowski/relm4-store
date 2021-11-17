@@ -1,4 +1,4 @@
-mod indexing;
+mod key;
 
 use reexport::gtk;
 use reexport::relm4;
@@ -6,9 +6,8 @@ use reexport::log;
 
 use std::cmp::min;
 use std::cell::RefCell;
-use std::cmp::PartialOrd;
 use std::collections::HashMap;
-use std::collections::VecDeque;
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::rc::Rc;
 
@@ -29,55 +28,63 @@ use store::StoreId;
 use store::StoreMsg;
 use store::math::Range;
 
+use key::Key;
 
-pub trait Ordering<Record: record::Record>: PartialOrd<Record> {}
+pub trait Sorter<Record: record::Record> {
+    fn eq(lhs: &Record, rhs: &Record) -> bool;
+    fn cmp(lhs: &Record, rhs: &Record) -> std::cmp::Ordering;
+    fn new(record: &Record) -> Self;
+}
+
+pub trait OrderedStore<OrderBy> {
+    fn set_order(&mut self, order: OrderBy);
+}
 
 /// Configuration trait for the InMemoryBackend
 pub trait SortedInMemoryBackendConfiguration {
     /// Type of data in the in memory store
     type Record: 'static + Record + Debug + Clone;
+    type OrderBy: 'static + Sorter<Self::Record> + Ord + Clone;
 
     /// Returns initial dataset for the store
     fn initial_data() -> Vec<Self::Record>;
 
-    // fn ordering() -> HashMap<Self::OrderBy, >;
+    fn initial_order() -> Self::OrderBy;
 }
 
 /// In memory implementation of the data store
 #[derive(Debug)]
-pub struct SortedInMemoryBackend<Builder, Allocator = DefaultIdAllocator> 
+pub struct SortedInMemoryBackend<'me, Config, Allocator = DefaultIdAllocator> 
 where 
-    Builder: SortedInMemoryBackendConfiguration,
+    Config: SortedInMemoryBackendConfiguration,
     Allocator: TemporaryIdAllocator,
 {
     id: StoreId<Self, Allocator>,
 
-    /// Order of profiles
-    order: RefCell<VecDeque<Id<Builder::Record>>>,
+    data: BTreeMap<Config::OrderBy, Config::Record>,
 
-    /// profile storage
-    data: RefCell<HashMap<Id<Builder::Record>, Builder::Record>>,
+    handlers: RefCell<HashMap<StoreId<Self, Allocator>, Sender<StoreMsg<Config::Record>>>>,
 
-    handlers: RefCell<HashMap<StoreId<Self, Allocator>, Sender<StoreMsg<Builder::Record>>>>,
+    sender: Sender<StoreMsg<Config::Record>>,
 
-    sender: Sender<StoreMsg<Builder::Record>>
+    order_by: Config::OrderBy,
 }
 
-impl<Builder, Allocator> SortedInMemoryBackend<Builder, Allocator> 
+impl<'me, Config, Allocator> SortedInMemoryBackend<'me, Config, Allocator> 
 where 
-    Builder: SortedInMemoryBackendConfiguration + 'static,
+    Config: SortedInMemoryBackendConfiguration + 'static,
     Allocator: TemporaryIdAllocator + 'static
 {
     /// Creates new instance of the InMemoryBackend
-    pub fn new() -> Rc<RefCell<Self>> {
+    pub fn new() -> Rc<RefCell<SortedInMemoryBackend<'static, Config, Allocator>>> {
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
         let backend = SortedInMemoryBackend{
             id: StoreId::new(),
-            order: RefCell::new(VecDeque::new()),
-            data: RefCell::new(HashMap::new()),
+            data: BTreeMap::new(),
             handlers: RefCell::new(HashMap::new()),
             sender,
+            order_by: Config::initial_order(),
         };
 
         let shared_backed = Rc::new(RefCell::new(backend));
@@ -85,19 +92,19 @@ where
 
         {
             let context = glib::MainContext::default();
-            receiver.attach(Some(&context), move |msg:StoreMsg<Builder::Record>| {
-                if let Ok(backend) = handler_backend.try_borrow() {
+            receiver.attach(Some(&context), move |msg:StoreMsg<Config::Record>| {
+                if let Ok(mut backend) = handler_backend.try_borrow_mut() {
                     match msg {
                         StoreMsg::Commit(record) => {
                             let id = record.get_id();
+                            let key = Config::OrderBy::new(&record);
                             {
-                                if id.is_new() {
+                                if id.is_new() || !backend.data.contains_key(&key){
                                     let position = backend.add(record);
                                     backend.fire_handlers(StoreMsg::NewAt(position));
                                 }
                                 else {
-                                    let mut data = backend.data.borrow_mut();
-                                    data.insert(id, record);
+                                    backend.data.insert(key, record);
                                     backend.fire_handlers(StoreMsg::Update(id))
                                 }
                                 // let old_record = data.get(&id);
@@ -118,7 +125,7 @@ where
             });
         }
 
-        for record in Builder::initial_data() {
+        for record in Config::initial_data() {
             shared_backed.borrow().send(StoreMsg::Commit(record));
         }
 
@@ -127,7 +134,7 @@ where
         shared_backed
     }
 
-    fn fire_handlers(&self, message: StoreMsg<Builder::Record>) {
+    fn fire_handlers(&self, message: StoreMsg<Config::Record>) {
         let handlers = self.handlers.borrow();
 
         if handlers.is_empty() {
@@ -156,21 +163,20 @@ where
         }
     }
 
-    fn add(&self, record: Builder::Record) -> Position {
+    fn add(&mut self, record: Config::Record) -> Position {
+        let key = Config::OrderBy::new(&record);
         let id = record.get_id();
         {
-            self.data.borrow_mut().insert(id, record.clone());
-            let mut order = self.order.borrow_mut();
-            order.push_back(id);
+            self.data.insert(key.clone(), record.clone());
 
-            Position(order.len() -1)
+            Position(key)
         }
     }
 }
 
-impl<Builder, Allocator> Identifiable<SortedInMemoryBackend<Builder, Allocator>, Allocator::Type> for SortedInMemoryBackend<Builder, Allocator>
+impl<'me, Config, Allocator> Identifiable<SortedInMemoryBackend<'me, Config, Allocator>, Allocator::Type> for SortedInMemoryBackend<'me, Config, Allocator>
 where 
-    Builder: SortedInMemoryBackendConfiguration,
+    Config: SortedInMemoryBackendConfiguration,
     Allocator: TemporaryIdAllocator,
 {
     type Id=StoreId<Self, Allocator>;
@@ -180,17 +186,17 @@ where
     }
 }
 
-impl<Builder, Allocator> DataStore<Allocator> for SortedInMemoryBackend<Builder, Allocator>
+impl<'me, Config, Allocator> DataStore<Allocator> for SortedInMemoryBackend<'me, Config, Allocator>
 where 
-    Builder: SortedInMemoryBackendConfiguration,
+    Config: SortedInMemoryBackendConfiguration,
     Allocator: TemporaryIdAllocator,
 {
-    type Record = Builder::Record;
+    type Record = Config::Record;
 
     
 
     fn len(&self) -> usize {
-        self.data.borrow().len()
+        self.data.len()
     }
 
     fn is_empty(&self) -> bool {
@@ -203,14 +209,13 @@ where
         let start = min(*range.start(), count);
         let length = min(*range.end(), count) - start;
 
-        let order = self.order.borrow();
-        let iter = order.range(start..(start+length));
+        let iter = self.data.range(start..(start+length));
 
         let mut result: Vec<Self::Record> = Vec::new();
 
         for id in iter {
             let record = {
-                self.data.borrow().get(id).unwrap().clone()
+                self.data.get(id).unwrap().clone()
             };
 
             result.push(record);
@@ -219,9 +224,8 @@ where
         result
     }
 
-    fn get(&self, id: &Id<Builder::Record>) -> Option<Builder::Record> {
-        let data = self.data.borrow();
-        data.get(id)
+    fn get(&self, id: &Id<Config::Record>) -> Option<Config::Record> {
+        self.data.get(id)
             .map(|r| r.clone())
     }
 
@@ -239,5 +243,17 @@ where
 
     fn sender(&self) -> Sender<StoreMsg<Self::Record>> {
         self.sender.clone()
+    }
+}
+
+impl<'me, Config, Allocator> OrderedStore<Config::OrderBy> for SortedInMemoryBackend<'me, Config, Allocator> 
+where
+    Config: SortedInMemoryBackendConfiguration,
+    Allocator: TemporaryIdAllocator,
+{
+    fn set_order(&mut self, order: Config::OrderBy) {
+        self.order_by = order;
+
+
     }
 }
