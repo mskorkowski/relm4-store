@@ -4,7 +4,6 @@ use reexport::log;
 
 use std::cmp::min;
 use std::cell::RefCell;
-use std::cmp::PartialOrd;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fmt::Debug;
@@ -24,9 +23,6 @@ use store::Position;
 use store::StoreId;
 use store::StoreMsg;
 use store::math::Range;
-
-
-pub trait Ordering<Record: record::Record>: PartialOrd<Record> {}
 
 /// Configuration trait for the InMemoryBackend
 pub trait InMemoryBackendConfiguration {
