@@ -1,8 +1,11 @@
+use reexport::log;
+
 use std::cmp::min;
 
 use crate::Range;
 use crate::math::Point;
 
+use super::StoreState;
 use super::WindowBehavior;
 use super::WindowTransition;
 
@@ -37,24 +40,36 @@ impl WindowBehavior for ValueTrackingWindow {
     /// Else
     ///   Increase index of elements from `p` by 1. Insert p at `p.pos`
     /// ```
-    fn insert(r: &Range, p: &Point) -> WindowTransition {
-        if p >= r.end() {
+    fn insert(state: &StoreState<'_>, p: &Point) -> WindowTransition {
+
+        log::error!("ValueTrackingWindow::insert");
+        log::error!("\tstate.page.start: {}", state.page.start());
+        log::error!("\tstate.page.end:   {}", state.page.end());
+        log::error!("\tstate.page.len:   {}", state.page.len());
+        log::error!("\tstate.view:       {}", state.view);
+        log::error!("\tpoint:            {}", p);
+
+        if p >= state.page.end() {
+            log::error!("Insert after");
             WindowTransition::Identity
         }
-        else if p < r.start() {
+        else if p <= state.page.start() && state.page.len() == state.view {
+            log::error!("Insert before");
             WindowTransition::SlideRight(1)
         }
         else {
-            let half: usize = (r.start() + r.end())/2;
+            let half: usize = (state.page.start() + state.page.end())/2;
             if p < &half {
+                log::error!("Insert first half");
                 WindowTransition::InsertLeft{
-                    pos: p.value() - *r.start(),
+                    pos: p.value() - *state.page.start(),
                     by: 1,
                 }
             }
             else {
+                log::error!("Insert second half");
                 WindowTransition::InsertRight{
-                    pos: p.value() - r.start(),
+                    pos: p.value() - state.page.start(),
                     by: 1,
                 }
             }
@@ -83,21 +98,21 @@ impl WindowBehavior for ValueTrackingWindow {
     /// Else
     ///   Increase index of elements from `p` by 1. Insert p at `p`
     /// ```
-    fn remove(r: &Range, p: &Point) -> WindowTransition {
-        if p < r.start() || p >= r.end() {
+    fn remove(state: &StoreState<'_>, p: &Point) -> WindowTransition {
+        if p < state.page.start() || p >= state.page.end() {
             WindowTransition::Identity
         }
         else {
-            let half: usize = (r.start() + r.end())/2;
+            let half: usize = (state.page.start() + state.page.end())/2;
             if p < &half {
                 WindowTransition::RemoveLeft{
-                    pos: p.value() - r.start(),
+                    pos: p.value() - state.page.start(),
                     by: 1,
                 }
             }
             else {
                 WindowTransition::RemoveRight{
-                    pos: p.value() - r.start(),
+                    pos: p.value() - state.page.start(),
                     by: 1,
                 }
             }
@@ -121,11 +136,11 @@ impl WindowBehavior for ValueTrackingWindow {
     /// Insert at moved range start, at most current range end - moved range start items
     ///
     /// Nothing to do, cos we can move the window around and keep the data visible
-    fn slide(r: &Range, moved: &Range) -> WindowTransition {
-        if r.end() <= moved.start() {
+    fn slide(state: &StoreState<'_>, moved: &Range) -> WindowTransition {
+        if state.page.end() <= moved.start() {
             WindowTransition::Identity
         }
-        else if moved.start() < r.start() {
+        else if moved.start() < state.page.start() {
             WindowTransition::SlideRight(moved.len())
         }
         else {
@@ -133,7 +148,7 @@ impl WindowBehavior for ValueTrackingWindow {
                 pos: *moved.start(),
                 by: min(
                     moved.len(),
-                    r.end() - moved.start()
+                    state.page.end() - moved.start()
                 )
             }
         }

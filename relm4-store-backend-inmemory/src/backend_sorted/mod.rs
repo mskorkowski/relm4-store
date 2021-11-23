@@ -83,9 +83,10 @@ where
             ordering: Config::initial_order(),
         };
 
+        
         let shared_backed = Rc::new(RefCell::new(backend));
         let handler_backend = shared_backed.clone();
-
+        
         {
             let context = glib::MainContext::default();
             receiver.attach(Some(&context), move |msg:StoreMsg<Config::Record>| {
@@ -100,10 +101,15 @@ where
                 glib::Continue(true)
             });
         }
-
         
+        
+        let order = Config::initial_order();
+        let mut initial_data = Config::initial_data();
+        initial_data.sort_by(|lhs, rhs| {
+            order.cmp(lhs, rhs)
+        });
 
-        for record in Config::initial_data() {
+        for record in initial_data {
             shared_backed.borrow().inbox(StoreMsg::Commit(record));
         }
 
@@ -118,7 +124,7 @@ where
             StoreMsg::Commit(record) => {
                 let id = record.get_id();
                 {
-                    if id.is_new() || self.data.borrow().contains_key(&id) {
+                    if id.is_new() || !self.data.borrow().contains_key(&id) {
                         let position = self.insert(record);
                         self.fire_handlers(StoreMsg::NewAt(position));
                     }
@@ -178,11 +184,17 @@ where
     /// Running it for existing record is undefined and might happily destroy your data. 
     fn insert(&self, record: Config::Record) -> Position {
         let id = record.get_id();
-        self.data.borrow_mut().insert(id, record.clone());
+        let mut data = self.data.borrow_mut();
         let mut order = self.order.borrow_mut();
+        data.insert(id, record.clone());
+
+        log::info!("Order collection before insert has length: {}", order.len());
+        log::info!("Order collection before insert");
+        for i in order.iter() {
+            log::info!("\t {:?}", data.get(i).unwrap());
+        }
 
         let position = {
-            let data = self.data.borrow();
             let ordering = self.ordering;
             let r = record.clone();
             order.binary_search_by(|other_id| {
@@ -191,7 +203,7 @@ where
             })
         };
 
-        match position {
+        let pos = match position {
             // if two elements are equal it doesn't matter which one is first
             Ok(p) => {
                 order.insert(p, id);
@@ -201,7 +213,15 @@ where
                 order.insert(p, id);
                 Position(p)
             }
+        };
+
+        log::info!("Order collection after insert has length: {}", order.len());
+        log::info!("Order collection after insert");
+        for i in order.iter() {
+            log::info!("\t {:?}", data.get(i).unwrap());
         }
+
+        pos
     }
 
     /// Calls to this method are allowed only if record is already in the store

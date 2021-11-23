@@ -19,4 +19,6 @@ where
     pub ids_to_add: HashSet<Id<<Configuration::Store as DataStore<Allocator>>::Record>>,
     /// Set of record id's of widgets which needs to be updated
     pub ids_to_update: HashSet<Id<<Configuration::Store as DataStore<Allocator>>::Record>>,
+    /// Marks changeset as reload
+    pub reload: bool,
 }

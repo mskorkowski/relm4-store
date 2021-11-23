@@ -1,6 +1,7 @@
 use crate::Range;
 use crate::math::Point;
 
+use super::StoreState;
 use super::WindowBehavior;
 use super::WindowTransition;
 
@@ -12,13 +13,13 @@ use super::WindowTransition;
 pub struct KeepOnTop {}
 
 impl WindowBehavior for KeepOnTop {
-    fn insert(r: &Range, p: &Point) -> WindowTransition {
-        if p >= r.end() {
+    fn insert(state: &StoreState<'_>, p: &Point) -> WindowTransition {
+        if p >= state.page.end() {
             WindowTransition::Identity
         } 
-        else if p < r.start() {
+        else if p < state.page.start() {
             WindowTransition::InsertRight {
-                pos: *r.start(),
+                pos: *state.page.start(),
                 by: 1,
             }
         } 
@@ -33,8 +34,8 @@ impl WindowBehavior for KeepOnTop {
     /// If removal is out of range, it's ignored. Otherwise
     /// remove right is returned since all possible data can
     /// only come from right side
-    fn remove(r: &Range, p: &Point) -> WindowTransition {
-        if p >= r.end() {
+    fn remove(state: &StoreState<'_>, p: &Point) -> WindowTransition {
+        if p >= state.page.end() {
             WindowTransition::Identity
         }
         else {
@@ -47,7 +48,7 @@ impl WindowBehavior for KeepOnTop {
 
     /// Does nothing. You can't slide away from the top of the window while
     /// use this view
-    fn slide(_r: &Range, _moved: &Range) -> WindowTransition {
+    fn slide(_state: &StoreState<'_>, _moved: &Range) -> WindowTransition {
         WindowTransition::Identity
     }
 }

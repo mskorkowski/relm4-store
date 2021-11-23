@@ -35,10 +35,10 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list_1: StoreViewComponent<TasksListViewModel<TaskList1Configuration>>,
+    // tasks_list_1: StoreViewComponent<TasksListViewModel<TaskList1Configuration>>,
     tasks_list_2: StoreViewComponent<TasksListViewModel<TaskList2Configuration>>,
-    tasks_list_3: StoreViewComponent<TasksListViewModel<TaskList3Configuration>>,
-    tasks_list_4: StoreViewComponent<TasksListViewModel<TaskList4Configuration>>,
+    // tasks_list_3: StoreViewComponent<TasksListViewModel<TaskList3Configuration>>,
+    // tasks_list_4: StoreViewComponent<TasksListViewModel<TaskList4Configuration>>,
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
@@ -48,10 +48,10 @@ impl Components<MainWindowViewModel> for MainWindowComponents {
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            tasks_list_1: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            // tasks_list_1: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
             tasks_list_2: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
-            tasks_list_3: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
-            tasks_list_4: StoreViewComponent::new(parent_view_model, parent_widgets,parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            // tasks_list_3: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            // tasks_list_4: StoreViewComponent::new(parent_view_model, parent_widgets,parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
         }
     }
 }
@@ -59,7 +59,7 @@ impl Components<MainWindowViewModel> for MainWindowComponents {
 struct TaskList1Configuration {}
 impl TasksListConfiguration for TaskList1Configuration {
     type ParentViewModel = MainWindowViewModel;
-    type Window = ValueTrackingWindow;
+    type Window = PositionTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
     }
@@ -68,7 +68,7 @@ impl TasksListConfiguration for TaskList1Configuration {
 struct TaskList2Configuration {}
 impl TasksListConfiguration for TaskList2Configuration {
     type ParentViewModel = MainWindowViewModel;
-    type Window = PositionTrackingWindow;
+    type Window = ValueTrackingWindow;
     fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
         parent_model.tasks.clone()
     }
@@ -98,13 +98,13 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
         root = gtk::ApplicationWindow {
             set_child= Some(&gtk::Box) {
                 set_orientation: gtk::Orientation::Horizontal,
-                append = &gtk::Box {
-                    set_orientation: gtk::Orientation::Vertical,
-                    append = &gtk::Label {
-                        set_label: "PositionTrackingWindow",
-                    },
-                    append: component!(components.tasks_list_1.root_widget()),
-                },
+                // append = &gtk::Box {
+                //     set_orientation: gtk::Orientation::Vertical,
+                //     append = &gtk::Label {
+                //         set_label: "PositionTrackingWindow",
+                //     },
+                //     append: component!(components.tasks_list_1.root_widget()),
+                // },
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
                     append = &gtk::Label {
@@ -112,22 +112,22 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
                     },
                     append: component!(components.tasks_list_2.root_widget()),
                 },
-                append = &gtk::Box {
-                    set_orientation: gtk::Orientation::Vertical,
-                    append = &gtk::Label {
-                        set_label: "KeepOnTop",
-                    },
-                    append: component!(components.tasks_list_3.root_widget()),
-                },
-                append = &gtk::Box {
-                    set_orientation: gtk::Orientation::Vertical,
-                    append = &gtk::Label {
-                        set_label: "KeepOnBottom",
-                    },
-                    append: component!(components.tasks_list_4.root_widget()),
-                }
+                // append = &gtk::Box {
+                //     set_orientation: gtk::Orientation::Vertical,
+                //     append = &gtk::Label {
+                //         set_label: "KeepOnTop",
+                //     },
+                //     append: component!(components.tasks_list_3.root_widget()),
+                // },
+                // append = &gtk::Box {
+                //     set_orientation: gtk::Orientation::Vertical,
+                //     append = &gtk::Label {
+                //         set_label: "KeepOnBottom",
+                //     },
+                //     append: component!(components.tasks_list_4.root_widget()),
+                // }
             },
-            set_default_size: args!(350, 800),
+            set_default_size: args!(1100, 600),
         }
     }
 }

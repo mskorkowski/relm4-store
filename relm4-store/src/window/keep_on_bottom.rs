@@ -1,6 +1,7 @@
 use crate::Range;
 use crate::math::Point;
 
+use super::StoreState;
 use super::WindowBehavior;
 use super::WindowTransition;
 
@@ -13,11 +14,11 @@ use super::WindowTransition;
 pub struct KeepOnBottom {}
 
 impl WindowBehavior for KeepOnBottom {
-    fn insert(r: &Range, p: &Point) -> WindowTransition {
-        if p < r.start() {
+    fn insert(state: &StoreState<'_>, p: &Point) -> WindowTransition {
+        if p < state.page.start() {
             WindowTransition::Identity
         }
-        else if p >= r.end() {
+        else if p >= state.page.end() {
             //p is not visible already, then slide by 1 to the right
             WindowTransition::SlideRight(1)
         }
@@ -29,8 +30,8 @@ impl WindowBehavior for KeepOnBottom {
         }
     }
 
-    fn remove(r: &Range, p: &Point) -> WindowTransition {
-        if p < r.start() {
+    fn remove(state: &StoreState<'_>, p: &Point) -> WindowTransition {
+        if p < state.page.start() {
             WindowTransition::Identity
         }
         else {
@@ -43,7 +44,7 @@ impl WindowBehavior for KeepOnBottom {
 
     /// Does nothing. You can't slide away from the top of the window while
     /// use this view
-    fn slide(_r: &Range, _moved: &Range) -> WindowTransition {
+    fn slide(_state: &StoreState<'_>, _moved: &Range) -> WindowTransition {
         WindowTransition::Identity
     }
 }

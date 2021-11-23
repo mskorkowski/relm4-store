@@ -3,6 +3,7 @@ mod store;
 mod view;
 
 use reexport::gtk;
+use reexport::log;
 use reexport::relm4;
 
 use relm4::RelmApp;
@@ -12,6 +13,12 @@ use crate::view::MainWindowViewModel;
 
 
 fn main() {
+    log4rs::init_file("relm4-store-examples/examples/todo_3/etc/log4rs.yaml", Default::default()).unwrap();
+
+    log::info!("");
+    log::info!("Todo 1 example!");
+    log::info!("");
+
     println!();
     println!("Todo 3 example!");
     println!();
