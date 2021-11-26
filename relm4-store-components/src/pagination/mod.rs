@@ -22,7 +22,8 @@ use store::FactoryConfiguration;
 use store::Pagination;
 use store::StoreMsg;
 use store::StoreView;
-use store::StoreViewImplementation;
+use store_view::StoreViewImplementation;
+
 
 use relm4::ComponentUpdate;
 use relm4::Model as ViewModel;

@@ -44,16 +44,17 @@ pub struct MainWindowComponents {
 impl Components<MainWindowViewModel> for MainWindowComponents {
     fn init_components(
         parent_view_model: &MainWindowViewModel,
-        parent_widgets: &MainWindowWidgets,
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            // tasks_list_1: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
-            tasks_list_2: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
-            // tasks_list_3: StoreViewComponent::new(parent_view_model, parent_widgets, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
-            // tasks_list_4: StoreViewComponent::new(parent_view_model, parent_widgets,parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            // tasks_list_1: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            tasks_list_2: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            // tasks_list_3: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            // tasks_list_4: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
         }
     }
+
+    fn connect_parent(&mut self, _parent_widgets: &MainWindowWidgets) {}
 }
 
 struct TaskList1Configuration {}
@@ -103,28 +104,28 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
                 //     append = &gtk::Label {
                 //         set_label: "PositionTrackingWindow",
                 //     },
-                //     append: component!(components.tasks_list_1.root_widget()),
+                //     append: components.tasks_list_1.root_widget(),
                 // },
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
                     append = &gtk::Label {
                         set_label: "ValueTrackingWindow",
                     },
-                    append: component!(components.tasks_list_2.root_widget()),
+                    append: components.tasks_list_2.root_widget(),
                 },
                 // append = &gtk::Box {
                 //     set_orientation: gtk::Orientation::Vertical,
                 //     append = &gtk::Label {
                 //         set_label: "KeepOnTop",
                 //     },
-                //     append: component!(components.tasks_list_3.root_widget()),
+                //     append: components.tasks_list_3.root_widget(),
                 // },
                 // append = &gtk::Box {
                 //     set_orientation: gtk::Orientation::Vertical,
                 //     append = &gtk::Label {
                 //         set_label: "KeepOnBottom",
                 //     },
-                //     append: component!(components.tasks_list_4.root_widget()),
+                //     append: components.tasks_list_4.root_widget(),
                 // }
             },
             set_default_size: args!(1100, 600),

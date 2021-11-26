@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use record::Id;
 use record::TemporaryIdAllocator;
 
-use crate::DataStore;
-use crate::FactoryConfiguration;
+use store::DataStore;
+use store::FactoryConfiguration;
 
 /// WindowChangeset describes how the store view window has changed in response to the changes in the store
 #[derive(Debug)]

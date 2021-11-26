@@ -52,7 +52,7 @@ where
 
     senders: RefCell<HashMap<StoreId<Self, Allocator>, Sender<StoreMsg<Builder::Record>>>>,
 
-    sender: Sender<StoreMsg<Builder::Record>>
+    sender: Sender<StoreMsg<Builder::Record>>,
 }
 
 impl<Builder, Allocator> InMemoryBackend<Builder, Allocator> 
@@ -128,34 +128,37 @@ where
     }
 
     fn fire_handlers(&self, message: StoreMsg<Builder::Record>) {
-        let senders = self.senders.borrow();
-
-        if senders.is_empty() {
-            log::info!("Senders are empty. Exiting");
-            return;
-        }
-
-        log::info!("Senders contain {} items", senders.len());
-
-        // tracks store view id's for removal
-        //
-        // If handler return `true` from `handle` method it should be removed
-        //
-        // we borrow the self.handlers in the for loop and to do
-        // removal we need to borrow again since, unlisten is
-        // internally mutable which would cause UB, since we would 
-        // iterate over collection which changes itself
         let mut ids_for_remove: Vec<StoreId<Self, Allocator>> = Vec::new();
 
-        for (key, sender) in senders.iter() {
-            if let Err( _ ) =sender.send(message.clone()) {
-                log::warn!("Receiver was cleaned up before dropping sender instance. Dropping sender for {:?}", &key);
-                ids_for_remove.push(*key);
+        {
+            let senders = self.senders.borrow();
+
+            if senders.is_empty() {
+                log::info!("Senders are empty. Exiting");
+                return;
             }
-            else {
-                log::info!("Sent message to {:?}", &key);
+
+            log::info!("Senders contain {} items", senders.len());
+
+            // tracks store view id's for removal
+            //
+            // If handler return `true` from `handle` method it should be removed
+            //
+            // we borrow the self.handlers in the for loop and to do
+            // removal we need to borrow again since, unlisten is
+            // internally mutable which would cause UB, since we would 
+            // iterate over collection which changes itself
+
+            for (key, sender) in senders.iter() {
+                if let Err( _ ) =sender.send(message.clone()) {
+                    log::warn!("Receiver was cleaned up before dropping sender instance. Dropping sender for {:?}", &key);
+                    ids_for_remove.push(*key);
+                }
+                else {
+                    log::info!("Sent message to {:?}", &key);
+                }
             }
-        }
+        } // end of self.senders.borrow(). This way self.unlisten can borrow mutably senders
 
         // cleanup all handler which decided to remove itself
         for id in ids_for_remove {

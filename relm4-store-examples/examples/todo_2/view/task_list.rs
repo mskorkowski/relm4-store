@@ -36,9 +36,9 @@ use store::DataStore;
 use store::FactoryConfiguration;
 use store::FactoryContainerWidgets;
 use store::Position;
-use store::StoreViewImplementation;
 use store::StoreViewInnerComponent;
 use store::window::PositionTrackingWindow;
+use store_view::StoreViewImplementation;
 
 use crate::model::Task;
 use crate::store::Tasks;
@@ -87,6 +87,7 @@ impl<Config> FactoryConfiguration for TasksListViewModel<Config>
 where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
+    type StoreView = StoreViewImplementation<Self>;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
@@ -94,6 +95,9 @@ where Config: TasksListConfiguration + 'static,
     type ViewModel = Self;
     type ParentViewModel = Config::ParentViewModel;
 
+    fn init_store_view(store: Rc<RefCell<Self::Store>>, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
+        StoreViewImplementation::new(store, size.items(), redraw_sender)
+    }
 
     fn generate(
         record: &Task,
@@ -205,13 +209,14 @@ where Config: TasksListConfiguration,
 {
     fn init_components(
         parent_model: &TasksListViewModel<Config>, 
-        parent_widget: &TasksListViewWidgets, 
         parent_sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>
     ) -> Self {
         Self {
-            pagination: RelmComponent::new(parent_model, parent_widget, parent_sender.clone()),
+            pagination: RelmComponent::new(parent_model, parent_sender.clone()),
         }
     }
+
+    fn connect_parent(&mut self, _parent_widgets: &TasksListViewWidgets) {}
 }
 
 impl<Config> PaginationConfiguration for TasksListComponents<Config>
@@ -249,7 +254,7 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
                     factory!(model.store_view.borrow())
                 }
             },
-            append: component!(pagination)
+            append: components.pagination.root_widget()
         }
     }
 }

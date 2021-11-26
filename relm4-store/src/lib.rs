@@ -25,12 +25,11 @@ pub mod math;
 mod pagination;
 mod position;
 mod record_with_location;
-mod redraw_messages;
+pub mod redraw_messages;
 mod store_id;
 mod store_msg;
 mod store_size;
 mod store_view_component;
-mod store_view_implementation;
 pub mod window;
 
 use reexport::relm4;
@@ -58,8 +57,6 @@ pub use store_msg::StoreMsg;
 pub use store_size::StoreSize;
 pub use store_view_component::StoreViewComponent;
 pub use store_view_component::StoreViewInterfaceError;
-pub use store_view_implementation::StoreViewImplementation;
-pub use store_view_implementation::WindowChangeset;
 
 /// DataStore is a trait describing collections specialized in housekeeping business model data
 /// 

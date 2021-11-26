@@ -25,16 +25,16 @@ use record::Id;
 use record::Record;
 use record::TemporaryIdAllocator;
 
-use crate::DataStore;
-use crate::FactoryConfiguration;
-use crate::Position;
-use crate::StoreId;
-use crate::StoreMsg;
-use crate::math::Range;
-use crate::redraw_messages::RedrawMessages;
-use crate::window::StoreState;
-use crate::window::WindowBehavior;
-use crate::window::WindowTransition;
+use store::DataStore;
+use store::FactoryConfiguration;
+use store::Position;
+use store::StoreId;
+use store::StoreMsg;
+use store::math::Range;
+use store::redraw_messages::RedrawMessages;
+use store::window::StoreState;
+use store::window::WindowBehavior;
+use store::window::WindowTransition;
 
 use super::window_changeset::WindowChangeset;
 use super::widgets;

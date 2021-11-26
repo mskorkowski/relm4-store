@@ -30,8 +30,8 @@ use store::DataStore;
 use store::FactoryConfiguration;
 use store::FactoryContainerWidgets;
 use store::Position;
-use store::StoreViewImplementation;
 use store::window::PositionTrackingWindow;
+use store_view::StoreViewImplementation;
 
 use crate::model::Task;
 use crate::store::Tasks;
@@ -73,12 +73,17 @@ impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
 
 impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel<Config> {
     type Store = Tasks;
+    type StoreView = StoreViewImplementation<Self>;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
     type Window = PositionTrackingWindow;
     type ViewModel = Self;
     type ParentViewModel = Config::ParentViewModel;
+
+    fn init_store_view(store: Rc<RefCell<Self::Store>>, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
+        StoreViewImplementation::new(store, size.items(), redraw_sender)
+    }
 
     fn generate(
         record: &Task,

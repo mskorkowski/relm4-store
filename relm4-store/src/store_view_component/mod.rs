@@ -27,7 +27,6 @@ use crate::FactoryConfiguration;
 use crate::FactoryContainerWidgets;
 use crate::StoreSize;
 use crate::StoreView;
-use crate::StoreViewImplementation;
 use crate::StoreViewInnerComponent;
 use crate::redraw_messages::RedrawMessages;
 
@@ -97,7 +96,7 @@ where
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
     Allocator: TemporaryIdAllocator,
 {
-    view: Rc<RefCell<StoreViewImplementation<Configuration, Allocator>>>,
+    view: Rc<RefCell<Configuration::StoreView>>,
     _components: Rc<RefCell<<Configuration::ViewModel as ViewModel>::Components>>,
     _container: Rc<RefCell<<Configuration::ViewModel as ViewModel>::Widgets>>,
     _view_model: Rc<RefCell<Configuration::ViewModel>>,
@@ -130,7 +129,7 @@ where
     /// Creates new instance of the [StoreViewInterface]
     pub fn new(
         parent_view_model: &Configuration::ParentViewModel,
-        parent_widgets: &<Configuration::ParentViewModel as ViewModel>::Widgets,
+        // parent_widgets: &<Configuration::ParentViewModel as ViewModel>::Widgets,
         store: Rc<RefCell<Configuration::Store>>, 
         size: StoreSize
     ) -> Self {
@@ -140,7 +139,7 @@ where
         let (redraw_sender, redraw_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let handler_redraw_sender = redraw_sender.clone();
 
-        let view = StoreViewImplementation::new(store.clone(), size.items(), redraw_sender.clone());
+        let view = Configuration::init_store_view(store.clone(), size, redraw_sender.clone());
         let view_id = view.get_id();
 
         {
@@ -155,16 +154,16 @@ where
 
 
         let view_model = Configuration::init_view_model(parent_view_model, shared_view.clone());
+        let components = <<Configuration::ViewModel as ViewModel>::Components as relm4::Components<Configuration::ViewModel>>::init_components(&view_model, sender.clone());
         let container = {
             <Configuration::ViewModel as ViewModel>::Widgets::init_view(
                 &view_model,
-                &parent_widgets,
+                &components,
                 sender.clone(),
             )
         };
 
-        let components = <<Configuration::ViewModel as ViewModel>::Components as relm4::Components<Configuration::ViewModel>>::init_components(&view_model, &container, sender.clone());
-        container.connect_components(&view_model, &components);
+        // container.connect_components(&view_model, &components);
         let shared_components = Rc::new(RefCell::new(components));
         let redraw_handler_components = shared_components.clone();
 

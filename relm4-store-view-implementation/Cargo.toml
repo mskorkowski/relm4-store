@@ -1,5 +1,5 @@
 [package]
-name = "relm4-store-components"
+name = "relm4-store-view-implementation"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,4 +7,6 @@ edition = "2021"
 reexport = { path = "../relm4-store-reexport", package = "relm4-store-reexport" }
 record = { path = "../relm4-store-record", package = "relm4-store-record" }
 store = { path = "../relm4-store", package = "relm4-store" }
-store-view = { path = "../relm4-store-view-implementation", package = "relm4-store-view-implementation" }
+
+[dev-dependencies]
+backend_dummy = { path = "../relm4-store-backend-dummy", package = "relm4-store-backend-dummy" }

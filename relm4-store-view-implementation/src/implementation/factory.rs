@@ -12,10 +12,11 @@ use record::Id;
 use record::Record;
 use record::TemporaryIdAllocator;
 
-use crate::DataStore;
-use crate::StoreView;
-use crate::FactoryConfiguration;
-use crate::StoreViewImplementation;
+use store::DataStore;
+use store::StoreView;
+use store::FactoryConfiguration;
+
+use super::StoreViewImplementation;
 
 
 impl<Configuration, Allocator> FactoryPrototype for StoreViewImplementation<Configuration, Allocator>
@@ -80,6 +81,7 @@ where
     }
 }
 
+/// Required for `relm4::widget` factory macro to work
 impl<Configuration, Allocator> Factory<StoreViewImplementation<Configuration, Allocator>, Configuration::View> for Ref<'_, StoreViewImplementation<Configuration, Allocator>>
 where
     Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,

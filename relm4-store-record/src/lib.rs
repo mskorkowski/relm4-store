@@ -19,7 +19,7 @@ pub type DefaultIdAllocator = UuidAllocator;
 
 /// Error returned when there is an issue with an identifier
 #[derive(Debug)]
-pub struct IdentityError(&'static str);
+pub struct IdentityError(pub &'static str);
 
 /// Trait which describes identifier
 /// 

@@ -40,12 +40,15 @@ pub struct MainWindowComponents {
 impl Components<MainWindowViewModel> for MainWindowComponents {
     fn init_components(
         parent_model: &MainWindowViewModel,
-        parent_widgets: &MainWindowWidgets,
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            tasks_list: StoreViewComponent::new(parent_model, parent_widgets, parent_model.tasks.clone(), StoreSize::Items(50)),
+            tasks_list: StoreViewComponent::new(parent_model, parent_model.tasks.clone(), StoreSize::Items(50)),
         }
+    }
+
+    fn connect_parent(&mut self, _parent_widgets: &MainWindowWidgets) {
+        
     }
 }
 
@@ -63,7 +66,7 @@ impl TasksListConfiguration for MainWindowComponents {
 impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
     view!{
         root = gtk::ApplicationWindow {
-            set_child: component!(Some(components.tasks_list.root_widget())),
+            set_child: Some(components.tasks_list.root_widget()),
             set_default_size: args!(350, 800),
         }
     }

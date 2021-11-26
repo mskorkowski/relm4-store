@@ -6,18 +6,19 @@ use record::Id;
 use record::Identifiable;
 use record::TemporaryIdAllocator;
 
-use crate::DataStore;
-use crate::FactoryConfiguration;
-use crate::Pagination;
-use crate::Position;
-use crate::RecordWithLocation;
-use crate::StoreId;
-use crate::StoreMsg;
-use crate::StoreView;
+use store::DataStore;
+use store::FactoryConfiguration;
+use store::Pagination;
+use store::Position;
+use store::RecordWithLocation;
+use store::StoreId;
+use store::StoreMsg;
+use store::StoreView;
 
-use crate::math::Range;
+use store::math::Range;
 
 use super::StoreViewImplementation;
+
 impl<Configuration, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Configuration, Allocator>
 where
     Configuration: 'static + ?Sized + FactoryConfiguration<Allocator>,
