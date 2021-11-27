@@ -5,7 +5,7 @@ use std::ops::Sub;
 use super::math::Point;
 
 /// Position in the store
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy,Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Position(pub usize);
 
 impl Position {

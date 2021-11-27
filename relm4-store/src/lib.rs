@@ -205,6 +205,11 @@ where
     /// Returned records are **clones** of the actual records
     fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record>>;
 
+    /// Returns current number of elements visible via the store view
+    /// 
+    /// Always a number between `[0, [StoreView::window_size])`
+    fn current_len(&self) -> usize;
+
     /// Returns the position of the record in the view
     /// 
     /// If returns `None` that means record is not in the view

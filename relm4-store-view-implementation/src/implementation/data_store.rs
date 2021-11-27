@@ -83,19 +83,23 @@ where
     }
 
     fn get_view_data(&self) -> Vec<RecordWithLocation<<Configuration::Store as DataStore<Allocator>>::Record>> {
-        let mut result = Vec::new();
+        let order = self.view.borrow();
+        let mut result = Vec::with_capacity(order.len());
 
-        let data = self.get_range(&self.range.borrow());
+        let data = self.view_data.borrow();
+        let start = *self.range.borrow().start();
 
-        let mut i = *self.range.borrow().start();
-        for record in data {
-            //TODO: unsafe in case when view is out of sync with store
-            let pos = Position(i);
+        for (idx, id) in order.iter().enumerate() {
+            let pos = Position(idx+start);
+            let record = data[id].clone();
             result.push(RecordWithLocation::new(pos, record));
-            i += 1;
         }
 
         result
+    }
+
+    fn current_len(&self) -> usize {
+        self.view.borrow().len()
     }
 
     fn first_page(&self) {

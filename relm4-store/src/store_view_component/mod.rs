@@ -140,15 +140,7 @@ where
         let handler_redraw_sender = redraw_sender.clone();
 
         let view = Configuration::init_store_view(store.clone(), size, redraw_sender.clone());
-        let view_id = view.get_id();
 
-        {
-            let s: RefMut<'_, Configuration::Store> = store.borrow_mut();
-            s.listen(
-                view_id.transfer(),
-                view.sender(),       
-            );
-        }
         let shared_view = Rc::new(RefCell::new(view));
         let redraw_handler_view = shared_view.clone();
 

@@ -115,11 +115,13 @@ where
             });
         }
 
-
+        let id: StoreId<Self, Allocator> = StoreId::new();
+        
+        store.borrow().listen(id.transfer(), sender.clone());
         changes.borrow_mut().push(StoreMsg::Reload);
 
         Self{
-            id: StoreId::new(),
+            id,
             store,
             handlers: Rc::new(RefCell::new(HashMap::new())),
             view_data,

@@ -20,7 +20,7 @@ fn test_sender() {
                                                  // normally gtk::init() is doing it for you
 
         receiver.attach(Some(&context), move |_msg| {
-            glib::Continue(true)
+            glib::Continue(false) // false prevents awaiting for the events if there is no events present
         });
     }
 
@@ -30,10 +30,38 @@ fn test_sender() {
 
     {
         let context = glib::MainContext::default();
-        context.iteration(true); // this will move glib main loop forward
+        context.iteration(false); // this will move glib main loop forward
     }
 }
 
+```
+
+If the test depends on the code which invokes `receiver.attach` then you must invoke `let _guard = context.acquire().unwrap();` at the beginning of the test and keep it alive until the end of it. Otherwise you will be hit by the `assertion failed: context.is_owner()`.
+
+```rust
+
+#[test]
+fn test_sender() {
+    let context = glib::MainContext::default();
+    let _guard = context.acquire().unwrap();
+
+    let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+
+    {
+        receiver.attach(Some(&context), move |_msg| {
+            glib::Continue(false) // false prevents awaiting for the events if there is no events present
+        });
+    }
+
+    ...
+    sender.send(message).unwrap();
+    ...
+
+    {
+        let context = glib::MainContext::default();
+        context.iteration(false); // this will move glib main loop forward
+    }
+}
 
 ```
 
