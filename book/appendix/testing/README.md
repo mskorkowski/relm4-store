@@ -49,7 +49,7 @@ fn test_sender() {
 
     {
         receiver.attach(Some(&context), move |_msg| {
-            glib::Continue(false) // false prevents awaiting for the events if there is no events present
+            glib::Continue(false)
         });
     }
 
@@ -59,7 +59,7 @@ fn test_sender() {
 
     {
         let context = glib::MainContext::default();
-        context.iteration(false); // this will move glib main loop forward
+        context.iteration(true); // this will move glib main loop forward
     }
 }
 
@@ -74,6 +74,12 @@ RUST_BACKTRACE=1 cargo tarpaulin --packages relm4-store-backend-dummy --exclude-
 ```
 
 Otherwise you are going to hit an error `Value accessed from different thread than where it was created`
+
+## `context.iteration(true)` vs `context.iteration(false)`
+
+`context.iteration(true)` will force the main loop to await for at least one event. So use it if you are certain you sent something via sender.
+
+`context.iteration(false)` will exit if it will not find anything to do. If you don't know if there are any events sent and you would like to get to the state where you know that there is no event present in the main loop is a way to go.
 
 ## Where to place tests
 
