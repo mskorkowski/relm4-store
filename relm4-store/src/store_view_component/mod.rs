@@ -5,7 +5,6 @@ use reexport::relm4;
 use std::cell::BorrowError;
 use std::cell::BorrowMutError;
 use std::cell::RefCell;
-use std::cell::RefMut;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::rc::Rc;
@@ -19,10 +18,8 @@ use relm4::Widgets;
 use relm4::factory::Factory;
 
 use record::DefaultIdAllocator;
-use record::Identifiable;
 use record::TemporaryIdAllocator;
 
-use crate::DataStore;
 use crate::FactoryConfiguration;
 use crate::FactoryContainerWidgets;
 use crate::StoreSize;

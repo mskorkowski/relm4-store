@@ -16,6 +16,7 @@ mod test_cases {
     use crate::DummyBackendConfiguration;
     use crate::DummyStoreStep;
     use crate::configuration::Step;
+    use crate::test_cases::TestCase;
     use crate::test_cases::TestCases;
     use crate::test_cases::TestRecord;
 
@@ -73,7 +74,7 @@ mod test_cases {
 
     #[test]
     fn get_first_record_by_id_from_initial_state() {
-        let record = TestRecord::new("Sample record");
+        let record = TestRecord::constant("Sample record");
         let id = record.get_id();
 
         let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration { 
@@ -91,8 +92,8 @@ mod test_cases {
 
     #[test]
     fn get_nonfirst_record_by_id_from_initial_state() {
-        let first_record = TestRecord::new("Record to be skipped while searching");
-        let record = TestRecord::new("Sample record");
+        let first_record = TestRecord::constant("Record to be skipped while searching");
+        let record = TestRecord::constant("Sample record");
         let id = record.get_id();
 
         let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration { 
@@ -131,7 +132,7 @@ mod test_cases {
 
     #[test]
     fn get_first_record_by_id_from_a_nonempty_step() {
-        let record = TestRecord::new("record to be found");
+        let record = TestRecord::constant("record to be found");
         let id = record.get_id();
 
         let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration { 
@@ -153,8 +154,8 @@ mod test_cases {
 
     #[test]
     fn get_nonfirst_record_by_id_from_a_nonempty_step() {
-        let first_record = TestRecord::new("record to be skipped");
-        let record = TestRecord::new("record to be found");
+        let first_record = TestRecord::constant("record to be skipped");
+        let record = TestRecord::constant("record to be found");
         let id = record.get_id();
 
         let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration { 
@@ -176,8 +177,8 @@ mod test_cases {
 
     #[test]
     fn get_range_from_empty_data_store_in_an_initial_state() {
-        let c = TestCases::empty(0);
-        let be = DummyBackend::<TestRecord>::new(c);
+        let TestCase{configuration, data: _} = TestCases::empty(0);
+        let be = DummyBackend::<TestRecord>::new(configuration);
 
         let result = be.get_range(&Range::new(10, 20));
 
@@ -186,8 +187,8 @@ mod test_cases {
 
     #[test]
     fn get_range_in_the_content_range_of_an_initial_state() {
-        let c= TestCases::with_initial_size(15);
-        let be = DummyBackend::<TestRecord>::new(c);
+        let TestCase{configuration, data:_} = TestCases::with_initial_size(15);
+        let be = DummyBackend::<TestRecord>::new(configuration);
 
         let range = Range::new(5, 10);
         let result = be.get_range(&range);
@@ -197,8 +198,8 @@ mod test_cases {
     #[test]
     fn get_range_partially_in_the_content_range_of_an_initial_state() {
         let size = 15;
-        let c= TestCases::with_initial_size(size);
-        let be = DummyBackend::<TestRecord>::new(c);
+        let TestCase{configuration, data:_} = TestCases::with_initial_size(size);
+        let be = DummyBackend::<TestRecord>::new(configuration);
 
         let range = Range::new(10, 22);
         let result = be.get_range(&range);
@@ -207,8 +208,8 @@ mod test_cases {
 
     #[test]
     fn get_range_from_empty_data_store_in_not_an_initial_state() {
-        let c = TestCases::empty(1);
-        let mut be = DummyBackend::<TestRecord>::new(c);
+        let TestCase{configuration, data:_} = TestCases::empty(1);
+        let mut be = DummyBackend::<TestRecord>::new(configuration);
         be.advance();
         let result = be.get_range(&Range::new(10, 20));
 
@@ -238,9 +239,9 @@ mod test_cases {
         }
     
         let view_id =  StoreId::new();
-        let c = TestCases::add_first_record();
+        let TestCase{configuration, data:_} = TestCases::add_first_record();
     
-        let mut be = DummyBackend::<TestRecord>::new(c);
+        let mut be = DummyBackend::<TestRecord>::new(configuration);
         assert!(be.listeners_len() == 0);
         be.listen(view_id, sender);
         assert!(be.listeners_len() == 1);
@@ -275,9 +276,9 @@ mod test_cases {
         }    
 
         let view_id =  StoreId::new();
-        let c = TestCases::add_first_record();
+        let TestCase{configuration, data:_} = TestCases::add_first_record();
     
-        let mut be = DummyBackend::<TestRecord>::new(c);
+        let mut be = DummyBackend::<TestRecord>::new(configuration);
         be.listen(view_id, sender);
         assert!(be.listeners_len() == 1);
         be.advance();

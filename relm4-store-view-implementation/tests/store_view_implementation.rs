@@ -67,6 +67,7 @@ mod store_view {
         use std::cell::RefCell;
         use std::rc::Rc;
 
+        use backend_dummy::test_cases::TestCase;
         use reexport::glib;
         use reexport::gtk;
        
@@ -96,8 +97,8 @@ mod store_view {
             let container = gtk::Box::default();
 
             
-            let store_config = TestCases::add_first_record();
-            let data_store: DummyBackend<TestRecord> = DummyBackend::new(store_config);
+            let TestCase{configuration, data:_} = TestCases::add_first_record();
+            let data_store: DummyBackend<TestRecord> = DummyBackend::new(configuration);
             let shared_store = Rc::new(RefCell::new(data_store));
 
             let store_view: StoreViewImplementation<SC> = StoreViewImplementation::new(shared_store.clone(), 10, sender);
