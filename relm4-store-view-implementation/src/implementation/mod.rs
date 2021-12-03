@@ -235,40 +235,56 @@ where
         let size = range.len();
 
         let start_idx = pos - start; // index of first element in the view which is changed
-        let end_idx = start_idx + by;
 
-        let range_of_changes = Range::new(pos, end_idx+start);
+        let range_of_changes = Range::new(pos, pos+by);
         let data = store.get_range(&range_of_changes);
 
         let view_len = view.len();
 
+        let view_data_len = view_data.len();
+
         // how many elements I need to remove?
         let for_removal: usize = if view_len + by <= size { 0 } else { view_len + by - size };
         if for_removal > 0 {
+            // Mark data for removal by adding them to changeset and remove them from view_data
             for idx in view_len-for_removal..view_len {
                 let id_to_remove = view[idx].clone();
-                view_data.remove(&id_to_remove);
+                if view_data.contains_key(&id_to_remove) {
+                    view_data.remove(&id_to_remove);
+                }
+                else {
+                    panic!("view_data doesn't contain id which is expected to be there");
+                }
                 changeset.widgets_to_remove.insert(id_to_remove);
             }
-
+            
             // move all preserved id's to the right
+            // insert_right(_, 3, 3)
+            // |1, 2, 3, 4, 5, 6 , 7, 8, 9, 10| --> |1, 2, 3, [4], [5], [6], 4, 5, 6, 7|
+            //
+            // [x] - element to override in next step
             for idx in (start_idx..view_len-for_removal).rev() {
                 view[idx+by] = view[idx];
                 changeset.ids_to_update.insert(view[idx].clone());
             }
+
         }
 
-        for idx in start_idx..end_idx {
+        assert_eq!(view_data.len()+for_removal, view_data_len, "We've just removed `{}` elements from the view_data", for_removal);
+        assert_eq!(view_data.len()+for_removal, view.len(), "View data length must be in sync with view");
+
+        // fill up 
+        for (idx, record) in data.iter().enumerate() {
             // add new data so we can later generate widgets for them
-            let record = &data[idx - start_idx];
+            let view_insertion_point = idx+start_idx;
             changeset.ids_to_add.insert(record.get_id());
             view_data.insert(record.get_id(), record.clone());
 
-            if view.len() < size {
-                view.insert(idx, record.get_id());
+            if view.len() <= view_insertion_point {
+                view.push(record.get_id());
             }
             else {
-                view[idx] = record.get_id();
+                view[view_insertion_point] = record.get_id();
             }
         }
     }
@@ -475,8 +491,8 @@ where
                 (range.len(), view_data.len(), view.len())
             };
 
-            assert!(data_len == view_len, "Length of the view and length of the data must be equal");
-            assert!(page_len >= data_len, "We can't have more data then page size");
+            // assert_eq!(data_len, view_len, "Length of the view and length of the data must be equal");
+            // assert!(page_len >= data_len, "We can't have more data then page size");
         }
 
         changes.clear();

@@ -10,3 +10,4 @@ store = { path = "../relm4-store", package = "relm4-store" }
 
 [dev-dependencies]
 backend_dummy = { path = "../relm4-store-backend-dummy", package = "relm4-store-backend-dummy" }
+log4rs = "1.0.0"

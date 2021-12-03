@@ -191,14 +191,21 @@ where
     }
 
     fn get_range(&self, range: &store::math::Range) -> Vec<Self::Record> {
-        let mut result = Vec::with_capacity(range.len());
-
         let v = if !self.initiated {
             &self.configuration.initial_data
         }
         else {
             &self.configuration[self.index].data
         };
+
+        let mut result = if range.len() >= v.len() {
+            //This protects against unlimited store view size
+            Vec::with_capacity(v.len())
+        }
+        else {
+            Vec::with_capacity(range.len())
+        };
+
         
         if *range.start() >= v.len() {
             return vec![]

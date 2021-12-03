@@ -3,13 +3,14 @@ use std::ops::Index;
 
 use store::StoreMsg;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Step<Record: record::Record + Debug + Clone> {
     pub data: Vec<Record>,
     pub events: Vec<StoreMsg<Record>>,
 }
 
 /// Configuration of the dummy data store
+#[derive(Clone)]
 pub struct DummyBackendConfiguration<Record: record::Record + Debug + Clone> {
     /// List of states for dummy backend configuration
     pub steps: Vec<Step<Record>>,
