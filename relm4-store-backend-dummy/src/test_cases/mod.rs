@@ -4,6 +4,8 @@ mod add_multistep;
 
 #[cfg(test)]
 mod tests;
+use record::DefaultIdAllocator;
+use record::UuidAllocator;
 use reexport::uuid;
 
 
@@ -19,7 +21,7 @@ use super::DummyBackendConfiguration;
 /// Sample record for test cases
 #[derive(Debug, Clone)]
 pub struct TestRecord {
-    id: Id<Self>,
+    id: Id<Self, DefaultIdAllocator>,
     label: String,
     added: Option<usize>,
     removed: Option<usize>,
@@ -71,8 +73,8 @@ impl TestRecord {
     }
 }
 
-impl Record for TestRecord {
-    fn get_id(&self) -> record::Id<Self> {
+impl Record<DefaultIdAllocator> for TestRecord {
+    fn get_id(&self) -> record::Id<Self, DefaultIdAllocator> {
         self.id.clone()
     }
 
@@ -98,7 +100,7 @@ impl PartialEq for TestRecord {
 
 impl Eq for TestRecord {}
 
-type C = DummyBackendConfiguration<TestRecord>;
+type C = DummyBackendConfiguration<TestRecord, UuidAllocator>;
 
 /// Describes test case
 #[derive(Debug)]

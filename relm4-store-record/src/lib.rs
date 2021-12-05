@@ -9,6 +9,7 @@
 mod id;
 mod uuid_allocator;
 
+use std::fmt::Debug;
 use std::hash::Hash;
 
 pub use id::Id;
@@ -41,7 +42,7 @@ pub trait Identifiable<T: ?Sized, Type> {
 /// Definition of the record in the data store
 /// 
 /// By default it's using uuid as identifiers so it's almost impossible to generate the collision for two records
-pub trait Record<Allocator: TemporaryIdAllocator=DefaultIdAllocator> {
+pub trait Record<Allocator: TemporaryIdAllocator>: Clone {
     /// Returns the id of this object
     fn get_id(&self) -> Id<Self, Allocator>;
 
@@ -50,7 +51,7 @@ pub trait Record<Allocator: TemporaryIdAllocator=DefaultIdAllocator> {
 }
 
 /// Provides a way to create temporary id's
-pub trait TemporaryIdAllocator {
+pub trait TemporaryIdAllocator: Clone + Debug {
     /// Type of values on which `Id` is based of
     type Type: Copy + PartialEq + Hash + Eq + std::fmt::Debug;
     /// Returns value of new **temporary** id

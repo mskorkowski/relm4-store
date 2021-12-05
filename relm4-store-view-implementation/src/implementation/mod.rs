@@ -1,3 +1,4 @@
+mod data_container;
 mod data_store;
 mod factory;
 
@@ -36,6 +37,8 @@ use store::window::StoreState;
 use store::window::WindowBehavior;
 use store::window::WindowTransition;
 
+use self::data_container::DataContainer;
+
 use super::window_changeset::WindowChangeset;
 use super::widgets;
 
@@ -47,30 +50,31 @@ use super::widgets;
 /// 
 /// To interact with content you should use Store. Store will handle all the
 /// make sure all the updates are propagated to the view.
-pub struct StoreViewImplementation<Configuration, Allocator=DefaultIdAllocator>
+pub struct StoreViewImplementation<Configuration, Allocator, StoreIdAllocator>
 where
-    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator> + 'static,
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
-    id: StoreId<Self, Allocator>,
+    id: StoreId<Self, Allocator, StoreIdAllocator>,
     store: Rc<RefCell<Configuration::Store>>,
-    handlers: Rc<RefCell<HashMap<StoreId<Self, Allocator>, Sender<StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>>>>>,
+    handlers: Rc<RefCell<HashMap<StoreId<Self, Allocator, StoreIdAllocator>, Sender<StoreMsg<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>>>>>,
     #[allow(clippy::type_complexity)]
-    view_data: Rc<RefCell<HashMap<Id<<Configuration::Store as DataStore<Allocator>>::Record>, <Configuration::Store as DataStore<Allocator>>::Record>>>,
-    view: Rc<RefCell<Vec<Id<<Configuration::Store as DataStore<Allocator>>::Record>>>>,
+    view: Rc<RefCell<DataContainer<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>>>,
     #[allow(clippy::type_complexity)]
-    widgets: Rc<RefCell<HashMap<Id<<Configuration::Store as DataStore<Allocator>>::Record>, widgets::Widgets<Configuration::RecordWidgets, <Configuration::View as FactoryView<Configuration::Root>>::Root>>>>,
-    changes: Rc<RefCell<Vec<StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>>>>,
+    widgets: Rc<RefCell<HashMap<Id<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>, widgets::Widgets<Configuration::RecordWidgets, <Configuration::View as FactoryView<Configuration::Root>>::Root>>>>,
+    changes: Rc<RefCell<Vec<StoreMsg<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>>>>,
     range: Rc<RefCell<Range>>,
     size: usize,
     redraw_sender: Sender<RedrawMessages>,
-    sender: Sender<StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>>,
+    sender: Sender<StoreMsg<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>>,
 }
 
-impl<Configuration, Allocator> Debug for StoreViewImplementation<Configuration, Allocator>
+impl<Configuration, Allocator, StoreIdAllocator> Debug for StoreViewImplementation<Configuration, Allocator, StoreIdAllocator>
 where
-    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator> + 'static,
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("StoreViewImplementation")
@@ -80,10 +84,11 @@ where
     }
 }
 
-impl<Configuration, Allocator> StoreViewImplementation<Configuration, Allocator> 
+impl<Configuration, Allocator, StoreIdAllocator> StoreViewImplementation<Configuration, Allocator, StoreIdAllocator> 
 where
-    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
-    Allocator: TemporaryIdAllocator,
+    Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator> + 'static,
+    Allocator: TemporaryIdAllocator + 'static,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
     ///Creates  new instance of this struct
     /// 
@@ -93,8 +98,6 @@ where
         let range = Rc::new(RefCell::new(Range::new(0, size)));
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
     
-        let view_data = Rc::new(RefCell::new(HashMap::new()));
-        let view = Rc::new(RefCell::new(Vec::new()));
         let changes = Rc::new(RefCell::new(Vec::new()));
         let handler_changes = changes.clone();
         let handler_redraw_sender = redraw_sender.clone();
@@ -115,7 +118,7 @@ where
             });
         }
 
-        let id: StoreId<Self, Allocator> = StoreId::new();
+        let id: StoreId<Self, Allocator, StoreIdAllocator> = StoreId::new();
         
         store.borrow().listen(id.transfer(), sender.clone());
         changes.borrow_mut().push(StoreMsg::Reload);
@@ -124,8 +127,7 @@ where
             id,
             store,
             handlers: Rc::new(RefCell::new(HashMap::new())),
-            view_data,
-            view,    
+            view: Rc::new(RefCell::new(DataContainer::new(size))),
             widgets: Rc::new(RefCell::new(HashMap::new())),
             changes,
             range,
@@ -135,12 +137,12 @@ where
         }
     }
 
-    fn inbox(&self, message: StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>) {
+    fn inbox(&self, message: StoreMsg<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>) {
         self.changes.borrow_mut().push(message);
         self.redraw_sender.send(RedrawMessages::Redraw).expect("Unexpected failure while sending message via redraw_sender");
     }
 
-    fn convert_to_transition(&self, state: &StoreState<'_>, message: &StoreMsg<<Configuration::Store as DataStore<Allocator>>::Record>) -> WindowTransition {
+    fn convert_to_transition(&self, state: &StoreState<'_>, message: &StoreMsg<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>) -> WindowTransition {
         match message {
             StoreMsg::NewAt(p) => {
                 Configuration::Window::insert(state, &p.to_point())
@@ -166,69 +168,25 @@ where
         }
     }
 
-    fn reload(&self, changeset: &mut WindowChangeset<Configuration, Allocator>) {
+    fn reload(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>) {
         let store = self.store.borrow();
         let range_of_changes = self.range.borrow().clone();
-        let new_record: Vec<<Self as DataStore<Allocator>>::Record> = store.get_range(&range_of_changes);
+        let new_records: Vec<<Self as DataStore<Allocator, StoreIdAllocator>>::Record> = store.get_range(&range_of_changes);
         let mut view = self.view.borrow_mut();
-        let mut view_data = self.view_data.borrow_mut();
         
-        // borrowing widgets so this method can implement the total cleanup. If for whatever reason other methods are broken reload will bring
-        // view into sane state
-        let widgets = self.widgets.borrow();
-
-        // old_data, old_widget_ids, old_view are used to 
-        let mut old_data: HashSet<Id<<Configuration::Store as DataStore<Allocator>>::Record>> = HashSet::new();
-        old_data.extend(view_data.keys());
-
-        let mut old_widget_ids: HashSet<Id<<Configuration::Store as DataStore<Allocator>>::Record>> = HashSet::new();
-        old_widget_ids.extend(widgets.keys());
-
-        let mut old_view = HashSet::new(); 
-        old_view.extend(view.clone());
-
-        view.clear();
-        for record in new_record {
-            let id = record.get_id();
-
-            view.push(id);
-            old_widget_ids.remove(&id);
-            old_data.remove(&id);
-            if old_view.contains(&id) {
-                //old view had this record
-                old_view.remove(&id); //removes id's from old view. It will allow us to remove unneeded data from the view
-                changeset.ids_to_update.insert(id);
-            }
-            else {
-                view_data.insert(id, record);
-                changeset.ids_to_add.insert(id);
-            }
-        }
-
-        for id in old_view {           
-            changeset.widgets_to_remove.insert(id);
-        }
-
-        for id in old_widget_ids {
-            changeset.widgets_to_remove.insert(id);
-        }
-
-        for id in old_data {
-            view_data.remove(&id);
-        }
+        view.reload(changeset, new_records);
     }
 
     /// Inserts `by` elements at the position `pos`
     /// 
     /// Insert is limited by the page size. For example if the window starts at `10` and ends at `20`, and you insert
     /// `5` records at position `18` you will basically insert two elements 18 and 19.
-    fn insert_right(&self, changeset: &mut WindowChangeset<Configuration, Allocator>, pos: usize, by: usize) {
+    fn insert_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>, pos: usize, by: usize) {
         // it's responsibility of the WindowBehavior to make this math valid and truncate `pos` and `by` to the acceptable range
         // and WindowBehavior logic was called before we reached here so we can assume we are safe here
 
         let range = self.range.borrow();
         let mut view = self.view.borrow_mut();
-        let mut view_data = self.view_data.borrow_mut();
         let store = self.store.borrow();
 
         let start = *range.start();
@@ -239,54 +197,8 @@ where
         let range_of_changes = Range::new(pos, pos+by);
         let data = store.get_range(&range_of_changes);
 
-        let view_len = view.len();
-
-        let view_data_len = view_data.len();
-
-        // how many elements I need to remove?
-        let for_removal: usize = if view_len + by <= size { 0 } else { view_len + by - size };
-        if for_removal > 0 {
-            // Mark data for removal by adding them to changeset and remove them from view_data
-            for idx in view_len-for_removal..view_len {
-                let id_to_remove = view[idx].clone();
-                if view_data.contains_key(&id_to_remove) {
-                    view_data.remove(&id_to_remove);
-                }
-                else {
-                    panic!("view_data doesn't contain id which is expected to be there");
-                }
-                changeset.widgets_to_remove.insert(id_to_remove);
-            }
-            
-            // move all preserved id's to the right
-            // insert_right(_, 3, 3)
-            // |1, 2, 3, 4, 5, 6 , 7, 8, 9, 10| --> |1, 2, 3, [4], [5], [6], 4, 5, 6, 7|
-            //
-            // [x] - element to override in next step
-            for idx in (start_idx..view_len-for_removal).rev() {
-                view[idx+by] = view[idx];
-                changeset.ids_to_update.insert(view[idx].clone());
-            }
-
-        }
-
-        assert_eq!(view_data.len()+for_removal, view_data_len, "We've just removed `{}` elements from the view_data", for_removal);
-        assert_eq!(view_data.len()+for_removal, view.len(), "View data length must be in sync with view");
-
-        // fill up 
-        for (idx, record) in data.iter().enumerate() {
-            // add new data so we can later generate widgets for them
-            let view_insertion_point = idx+start_idx;
-            changeset.ids_to_add.insert(record.get_id());
-            view_data.insert(record.get_id(), record.clone());
-
-            if view.len() <= view_insertion_point {
-                view.push(record.get_id());
-            }
-            else {
-                view[view_insertion_point] = record.get_id();
-            }
-        }
+        view.insert_right(changeset, pos, data);
+        
     }
 
     /// InsertRight is always the same, since you can always remove elements from model being on the
@@ -305,78 +217,13 @@ where
     ///
     /// Third case:
     /// 
-    fn insert_left(&self, changeset: &mut WindowChangeset<Configuration, Allocator>, pos: usize, by: usize) {
+    fn insert_left(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>, pos: usize, by: usize) {
 
-        log::trace!("Insert left");
-        let (start, size) = {
-            let range = self.range.borrow();
-            (*range.start(), range.len())
-        };
-        let view_len = self.view.borrow().len();
-        
-        if start == 0 && view_len < size {
-            log::trace!("\t\t Doing insert right");
-            self.insert_right(changeset, pos, by)                        
-        }
-        else {
-            // it's responsibility of the WindowBehavior to make this math valid and truncate `pos` and `by` to the acceptable range
-            // and WindowBehavior logic was called before we reached here so we can assume we are safe here
-
-            let mut view = self.view.borrow_mut();
-            let mut view_data = self.view_data.borrow_mut();
-            let store = self.store.borrow();
-
-            let start_idx = pos - start; // index of first element in the view which is changed
-            let end_idx = start_idx + by;
-
-            let range_of_changes = Range::new(pos, end_idx+start);
-            let data = store.get_range(&range_of_changes);
-
-            // how many elements I need to remove?
-            let for_removal: usize = if view_len + by <= size { 0 } else { view_len + by - size };
-            if for_removal > 0 {
-                for idx in 0..for_removal {
-                    let id_to_remove = view[idx].clone();
-                    view_data.remove(&id_to_remove);
-                    changeset.widgets_to_remove.insert(id_to_remove);
-                }
-
-                // move all preserved id's to the left
-                for idx in (for_removal..start_idx).rev() {
-                    view[idx-by] = view[idx];
-                    changeset.ids_to_update.insert(view[idx].clone());
-                }
-            }
-
-            for idx in start_idx..end_idx {
-                // add new data so we can later generate widgets for them
-                let record = &data[idx - start_idx];
-                changeset.ids_to_add.insert(record.get_id());
-                view_data.insert(record.get_id(), record.clone());
-
-                if view.len() < size {
-                    view.insert(idx, record.get_id());
-                }
-                else {
-                    view[idx] = record.get_id();
-                }
-            }
-
-            let new_range = {
-                let range = self.range.borrow();
-                range.to_left(by)
-            };
-            self.range.replace(new_range);
-        }                    
+           
     }
 
-    fn compile_changes(&self) -> WindowChangeset<Configuration, Allocator> {
-        let mut changeset = WindowChangeset {
-            widgets_to_remove: HashSet::new(),
-            ids_to_add: HashSet::new(),
-            ids_to_update: HashSet::new(),
-            reload: false,
-        };
+    fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator> {
+        let mut changeset = WindowChangeset::default();
 
         let mut changes = self.changes.borrow_mut();
 
@@ -399,13 +246,10 @@ where
                     match change {
                         StoreMsg::Update(id) => {
                             let store = self.store.borrow();
-                            let mut view_data = self.view_data.borrow_mut();
-                            
-                            if view_data.get(id).is_some() {
-                                if let Some(record) = store.get(id) {
-                                    changeset.ids_to_update.insert(*id);
-                                    view_data.insert(*id, record.clone());
-                                }
+                            let mut view = self.view.borrow_mut();
+                            if let Some(record) = store.get(id) {
+                                changeset.ids_to_update.insert(*id);
+                                view.update(record);
                             }
                         },
                         StoreMsg::Reload => {
@@ -482,17 +326,6 @@ where
                     }
                 }
             }
-
-            let (page_len, data_len, view_len) = {
-                let view = self.view.borrow();
-                let view_data = self.view_data.borrow();
-                let range = self.range.borrow();
-
-                (range.len(), view_data.len(), view.len())
-            };
-
-            // assert_eq!(data_len, view_len, "Length of the view and length of the data must be equal");
-            // assert!(page_len >= data_len, "We can't have more data then page size");
         }
 
         changes.clear();
@@ -534,14 +367,13 @@ where
         let view_order = self.view.borrow();
 
         log::warn!("before");
-        log::info!("[StoreViewImplementation::generate] data in the store view \t\t\tdata.len(): {}", self.view_data.borrow().len());
         log::info!("[StoreViewImplementation::generate] view should have same length as data.\t\tview.len(): {}", view_order.len());
         log::info!("[StoreViewImplementation::generate] widgets should have same length as view.\twidgets.len(): {}", widgets.len());
         log::info!("[StoreViewImplementation::generate] Should be empty. Is it? {}", self.changes.borrow().is_empty());
 
         let mut position: Position = Position(*self.range.borrow().start());
         let range = self.range.borrow();
-        for id in view_order.iter() {
+        for id in view_order.ordered_record_ids() {
             if ids_to_add.contains(id) {
                 if let Some(record) = self.get(id) {
                     let new_widgets = Configuration::generate(&record, position, sender.clone());
@@ -555,7 +387,7 @@ where
                     else {
                         let prev_idx = (position - 1 - *range.start()).get();
                         log::info!("Index of previous elements: {}", prev_idx);
-                        let prev_id = view_order[(position - 1 - *range.start()).get()];
+                        let prev_id = view_order.get_order_idx((position - 1 - *range.start()).get());
                         let prev = widgets.get(&prev_id).unwrap();
                         view.insert_after(root, &prev.root)
                     };
@@ -573,7 +405,7 @@ where
             if ids_to_update.contains(id) {
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
-                        <Configuration as FactoryConfiguration<Allocator>>::update_record(record, position, &widget.widgets);
+                        <Configuration as FactoryConfiguration<Allocator, StoreIdAllocator>>::update_record(record, position, &widget.widgets);
                     }
                 }
             }
@@ -588,7 +420,6 @@ where
         }
 
         log::warn!("after");
-        log::info!("[StoreViewImplementation::generate] data in the store view \t\t\tdata.len(): {}", self.view_data.borrow().len());
         log::info!("[StoreViewImplementation::generate] view should have same length as data.\t\tview.len(): {}", view_order.len());
         log::info!("[StoreViewImplementation::generate] widgets should have same length as view.\twidgets.len(): {}", widgets.len());
         log::info!("[StoreViewImplementation::generate] Should be empty. Is it? {}", self.changes.borrow().is_empty());

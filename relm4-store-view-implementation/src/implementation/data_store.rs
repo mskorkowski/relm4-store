@@ -19,24 +19,26 @@ use store::math::Range;
 
 use super::StoreViewImplementation;
 
-impl<Configuration, Allocator> Identifiable<Self, Allocator::Type> for StoreViewImplementation<Configuration, Allocator>
+impl<Configuration, Allocator, StoreIdAllocator> Identifiable<Self, StoreIdAllocator::Type> for StoreViewImplementation<Configuration, Allocator, StoreIdAllocator>
 where
-    Configuration: 'static + ?Sized + FactoryConfiguration<Allocator>,
+    Configuration: 'static + ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator>,
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
-    type Id = StoreId<Self, Allocator>;
+    type Id = StoreId<Self, Allocator, StoreIdAllocator>;
 
     fn get_id(&self) -> Self::Id {
         self.id
     }
 }
 
-impl<Configuration, Allocator> DataStore<Allocator> for StoreViewImplementation<Configuration, Allocator> 
+impl<Configuration, Allocator, StoreIdAllocator> DataStore<Allocator, StoreIdAllocator> for StoreViewImplementation<Configuration, Allocator, StoreIdAllocator> 
 where 
-    Configuration: 'static + ?Sized + FactoryConfiguration<Allocator>,
+    Configuration: 'static + ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator>,
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
-    type Record = <Configuration::Store as DataStore<Allocator>>::Record;
+    type Record = <Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record;
 
     fn len(&self) -> usize {
         self.store.borrow().len()
@@ -46,35 +48,36 @@ where
         self.store.borrow().is_empty()
     }
 
-    fn get_range(&self, range: &Range) -> Vec<<Configuration::Store as DataStore<Allocator>>::Record> {
+    fn get_range(&self, range: &Range) -> Vec<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record> {
         self.store.borrow().get_range(range)
     }
 
-    fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record> {
+    fn get(&self, id: &Id<Self::Record, Allocator>) -> Option<Self::Record> {
         self.store.borrow().get(id)
     }
 
-    fn listen(&self, id: StoreId<Self, Allocator>, sender: Sender<StoreMsg<Self::Record>>) {
+    fn listen(&self, id: StoreId<Self, Allocator, StoreIdAllocator>, sender: Sender<StoreMsg<Self::Record, Allocator>>) {
         self.handlers.borrow_mut().insert(id, sender);
     }
 
-    fn unlisten(&self, handler_ref: StoreId<Self, Allocator>) {
+    fn unlisten(&self, handler_ref: StoreId<Self, Allocator, StoreIdAllocator>) {
         self.handlers.borrow_mut().remove(&handler_ref);
     }
 
-    fn sender(&self) -> Sender<StoreMsg<Self::Record>> {
+    fn sender(&self) -> Sender<StoreMsg<Self::Record, Allocator>> {
         self.sender.clone()
     }
 
-    fn send(&self, msg: StoreMsg<Self::Record>) {
+    fn send(&self, msg: StoreMsg<Self::Record, Allocator>) {
         self.sender.send(msg).expect("WTF? Since store view is here why it failed?");
     }
 }
 
-impl<Configuration, Allocator> StoreView<Allocator> for StoreViewImplementation<Configuration, Allocator> 
+impl<Configuration, Allocator, StoreIdAllocator> StoreView<Allocator, StoreIdAllocator> for StoreViewImplementation<Configuration, Allocator, StoreIdAllocator> 
 where
-    Configuration: 'static + ?Sized + FactoryConfiguration<Allocator>,
-    Allocator: TemporaryIdAllocator,
+    Configuration: 'static + ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator>,
+    Allocator: TemporaryIdAllocator + 'static,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
     type Configuration = Configuration;
 
@@ -82,16 +85,15 @@ where
         self.range.borrow().len()
     }
 
-    fn get_view_data(&self) -> Vec<RecordWithLocation<<Configuration::Store as DataStore<Allocator>>::Record>> {
-        let order = self.view.borrow();
-        let mut result = Vec::with_capacity(order.len());
+    fn get_view_data(&self) -> Vec<RecordWithLocation<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>> {
+        let view = self.view.borrow();
+        let mut result = Vec::with_capacity(view.len());
 
-        let data = self.view_data.borrow();
         let start = *self.range.borrow().start();
 
-        for (idx, id) in order.iter().enumerate() {
+        for (idx, id) in view.record_ids().enumerate() {
             let pos = Position(idx+start);
-            let record = data[id].clone();
+            let record = view.get_record(id).unwrap().clone();
             result.push(RecordWithLocation::new(pos, record));
         }
 
@@ -144,9 +146,9 @@ where
         self.range.borrow().clone()
     }
 
-    fn get_position(&self, id: &Id<Self::Record>) -> Option<Position> {
+    fn get_position(&self, id: &Id<Self::Record, Allocator>) -> Option<Position> {
         let view = self.view.borrow();
-        for (pos, view_id) in view.iter().enumerate() {
+        for (pos, view_id) in view.record_ids().enumerate() {
             if view_id == id {
                 return Some(Position(pos))
             }

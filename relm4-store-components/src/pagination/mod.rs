@@ -53,7 +53,7 @@ pub enum PaginationMsg {
 }
 
 /// Configuration of the pagination component
-pub trait PaginationConfiguration<Allocator=DefaultIdAllocator> 
+pub trait PaginationConfiguration<Allocator> 
 where 
     Allocator: TemporaryIdAllocator,
 {
@@ -70,7 +70,7 @@ where
 /// View model of the pagination component
 #[tracker::track]
 #[derive(Debug)]
-pub struct PaginationViewModel<Config, Allocator=DefaultIdAllocator>
+pub struct PaginationViewModel<Config, Allocator>
 where
     Config: PaginationConfiguration<Allocator> + 'static, 
     Allocator: TemporaryIdAllocator + 'static

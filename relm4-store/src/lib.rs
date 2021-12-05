@@ -124,11 +124,12 @@ pub use store_view_component::StoreViewInterfaceError;
 /// 
 /// If there are limitation on that please somewhere at the beginning of the docs note what limitations
 /// are around this values. It can easily become a deal breaker for users of your library.
-pub trait DataStore<Allocator>: Identifiable<Self, Allocator::Type, Id=StoreId<Self, Allocator>> 
-where Allocator: TemporaryIdAllocator
+pub trait DataStore<Allocator, StoreIdAllocator>: Identifiable<Self, StoreIdAllocator::Type, Id=StoreId<Self, Allocator, StoreIdAllocator>> 
+where Allocator: TemporaryIdAllocator,
+      StoreIdAllocator: TemporaryIdAllocator,
 {
     /// Type of records kept in the data store
-    type Record: Record + Debug + Clone + 'static;
+    type Record: Record<Allocator> + Debug + Clone + 'static;
 
     /// Registers message in the data store
     /// 
@@ -145,7 +146,7 @@ where Allocator: TemporaryIdAllocator
     /// Returns the record from the store
     /// 
     /// If returns [None] then it means there is no such record in the store
-    fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record>;
+    fn get(&self, id: &Id<Self::Record, Allocator>) -> Option<Self::Record>;
 
     /// Returns records which are in the store at the given range
     ///
@@ -156,18 +157,18 @@ where Allocator: TemporaryIdAllocator
     /// Attaches sender to the store
     /// 
     /// Sender is used to send a message whenever there are changes in the store
-    fn listen(&self, id: StoreId<Self, Allocator>, sender: Sender<StoreMsg<Self::Record>>);
+    fn listen(&self, id: StoreId<Self, Allocator, StoreIdAllocator>, sender: Sender<StoreMsg<Self::Record, Allocator>>);
 
     /// Removes handler from the store
     /// 
     /// Changes to the store will not be delivered after this handler is removed
-    fn unlisten(&self, handler_ref: StoreId<Self, Allocator>);
+    fn unlisten(&self, handler_ref: StoreId<Self, Allocator, StoreIdAllocator>);
 
     /// Returns sender for this store
-    fn sender(&self) -> Sender<StoreMsg<Self::Record>>;
+    fn sender(&self) -> Sender<StoreMsg<Self::Record, Allocator>>;
 
     /// Sends a message to this store
-    fn send(&self, msg: StoreMsg<Self::Record>);
+    fn send(&self, msg: StoreMsg<Self::Record, Allocator>);
 }
 
 /// StoreView allows you to access part of the data in the data store
@@ -181,12 +182,13 @@ where Allocator: TemporaryIdAllocator
 ///   Your business model has two data sets `A` and `B` and there is `1-*` relationship between the data.
 ///   There are valid scenarios when you would like to edit item in `A` and give the ability to modify
 ///   related items in `B` at the same time. 
-pub trait StoreView<Allocator>: DataStore<Allocator>
+pub trait StoreView<Allocator, StoreIdAllocator>: DataStore<Allocator, StoreIdAllocator>
 where
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
     /// Type describing configuration parts of the store view behavior
-    type Configuration: ?Sized + FactoryConfiguration<Allocator>;
+    type Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator>;
 
     /// How many records should be visible at any point of time
     /// 
@@ -203,7 +205,7 @@ where
     /// Returns vector with list of records in the current view
     /// 
     /// Returned records are **clones** of the actual records
-    fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record>>;
+    fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record, Allocator>>;
 
     /// Returns current number of elements visible via the store view
     /// 
@@ -213,7 +215,7 @@ where
     /// Returns the position of the record in the view
     /// 
     /// If returns `None` that means record is not in the view
-    fn get_position(&self, id: &Id<Self::Record>) -> Option<Position>;
+    fn get_position(&self, id: &Id<Self::Record, Allocator>) -> Option<Position>;
 
     /// Advance the store view to the next page (if it exists) of underlying store
     fn next_page(&self);

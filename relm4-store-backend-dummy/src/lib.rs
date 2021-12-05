@@ -15,7 +15,7 @@ pub mod test_cases;
 #[cfg(test)]
 mod tests;
 
-use record::UuidAllocator;
+use record::DefaultIdAllocator;
 use reexport::gtk;
 
 use std::cell::RefCell;
@@ -46,27 +46,29 @@ pub enum DummyStoreStep {
 
 /// Dummy store
 #[derive(Debug)]
-pub struct DummyBackend<Record, Allocator=UuidAllocator> 
+pub struct DummyBackend<Record, Allocator, StoreIdAllocator> 
 where
-    Record: 'static + record::Record + Debug + Clone, 
-    Allocator: TemporaryIdAllocator
+    Record: 'static + record::Record<Allocator> + Debug + Clone, 
+    Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator
 {
-    configuration: DummyBackendConfiguration<Record>,
+    configuration: DummyBackendConfiguration<Record, Allocator>,
     index: usize,
     initiated: bool,
-    id: StoreId<Self, Allocator>,
-    senders: RefCell<HashMap<StoreId<Self, Allocator>, Sender<StoreMsg<Record>>>>,
-    sender: Sender<StoreMsg<Record>>,
+    id: StoreId<Self, Allocator, StoreIdAllocator>,
+    senders: RefCell<HashMap<StoreId<Self, Allocator, StoreIdAllocator>, Sender<StoreMsg<Record, Allocator>>>>,
+    sender: Sender<StoreMsg<Record, Allocator>>,
     _allocator: PhantomData<Allocator>,
 }
 
-impl<Record, Allocator> DummyBackend<Record, Allocator> 
+impl<Record, Allocator, StoreIdAllocator> DummyBackend<Record, Allocator, StoreIdAllocator> 
 where
-    Record: 'static + record::Record + Debug + Clone,
+    Record: 'static + record::Record<Allocator> + Debug + Clone,
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
     /// Creates new instance of this structure
-    pub fn new(configuration: DummyBackendConfiguration<Record>) -> Self {
+    pub fn new(configuration: DummyBackendConfiguration<Record, Allocator>) -> Self {
         let (sender, _receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
         Self{
@@ -94,7 +96,7 @@ where
             panic!("Trying to advance above the configuration");
         }
 
-        let mut ids_for_remove: Vec<StoreId<Self, Allocator>> = Vec::new();
+        let mut ids_for_remove: Vec<StoreId<Self, Allocator, StoreIdAllocator>> = Vec::new();
 
         {
             let senders = self.senders.borrow();
@@ -134,12 +136,13 @@ where
     }
 }
 
-impl<Record, Allocator> Identifiable<Self, Allocator::Type> for DummyBackend<Record, Allocator> 
+impl<Record, Allocator, StoreIdAllocator> Identifiable<Self, StoreIdAllocator::Type> for DummyBackend<Record, Allocator, StoreIdAllocator> 
 where
-    Record: 'static + record::Record + Debug + Clone,
+    Record: 'static + record::Record<Allocator> + Debug + Clone,
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
-    type Id = StoreId<Self, Allocator>;
+    type Id = StoreId<Self, Allocator, StoreIdAllocator>;
 
     #[cfg(not(tarpaulin_include))]
     fn get_id(&self) -> Self::Id {
@@ -147,10 +150,11 @@ where
     }
 }
 
-impl<Record, Allocator> DataStore<Allocator> for DummyBackend<Record, Allocator>
+impl<Record, Allocator, StoreIdAllocator> DataStore<Allocator, StoreIdAllocator> for DummyBackend<Record, Allocator, StoreIdAllocator>
 where 
-    Record: 'static + record::Record + Debug + Clone,
+    Record: 'static + record::Record<Allocator> + Debug + Clone,
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
     type Record = Record;
 
@@ -167,7 +171,7 @@ where
         self.len() == 0
     }
 
-    fn get(&self, id: &record::Id<Self::Record>) -> Option<Self::Record> {
+    fn get(&self, id: &record::Id<Self::Record, Allocator>) -> Option<Self::Record> {
         if !self.initiated {
             self.configuration.initial_data.iter().find_map(|r|{
                 if r.get_id() == *id {
@@ -220,11 +224,11 @@ where
         result
     }
 
-    fn listen(&self, id: StoreId<Self, Allocator>, sender: reexport::relm4::Sender<StoreMsg<Self::Record>>) {
+    fn listen(&self, id: StoreId<Self, Allocator, StoreIdAllocator>, sender: reexport::relm4::Sender<StoreMsg<Self::Record, Allocator>>) {
         self.senders.borrow_mut().insert(id, sender);
     }
 
-    fn unlisten(&self, id: StoreId<Self, Allocator>) {
+    fn unlisten(&self, id: StoreId<Self, Allocator, StoreIdAllocator>) {
         self.senders.borrow_mut().remove(&id);
     }
 
@@ -232,13 +236,13 @@ where
     /// to trigger any events
     /// 
     /// This makes the state of this store easier to predict, since you trigger advancement of the state by hand
-    fn sender(&self) -> Sender<StoreMsg<Self::Record>> {
+    fn sender(&self) -> Sender<StoreMsg<Self::Record, Allocator>> {
         // coverage of this code is meaningless, this sender is dumb
         self.sender.clone()
     }
 
     /// This method is sending messages via sender whose receiver is not connected, so it won't do a lot
-    fn send(&self, msg: StoreMsg<Self::Record>) {
+    fn send(&self, msg: StoreMsg<Self::Record, Allocator>) {
         // coverage of this code is meaningless, this sender is dumb
         self.sender.send(msg).expect("Message should be sent, since store exists");
     }

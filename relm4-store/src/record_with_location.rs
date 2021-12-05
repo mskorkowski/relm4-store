@@ -3,16 +3,21 @@ use std::cmp::Ordering;
 use std::cmp::PartialEq;
 use std::cmp::PartialOrd;
 use std::fmt::Debug;
+use std::marker::PhantomData;
 use std::ops::Deref;
 
+use record::DefaultIdAllocator;
 use record::Record;
+use record::TemporaryIdAllocator;
 
 use super::Position;
 
 /// Passes information about record and it's order in store
 #[derive(Debug)]
-pub struct RecordWithLocation<T>
-where T: Record + Clone + Debug
+pub struct RecordWithLocation<T, Allocator>
+where 
+    T: Record<Allocator> + Clone + Debug,
+    Allocator: TemporaryIdAllocator
 {
     /// Position at which record is placed in the store
     /// 
@@ -21,10 +26,14 @@ where T: Record + Clone + Debug
 
     /// Copy of record in the store
     pub record: T,
+
+    _allocator: PhantomData<*const Allocator>,
 }
 
-impl<T> Deref for RecordWithLocation<T> 
-where T: Record + Clone + Debug
+impl<T, Allocator> Deref for RecordWithLocation<T, Allocator> 
+where 
+    T: Record<Allocator> + Clone + Debug,
+    Allocator: TemporaryIdAllocator
 {
     type Target = T;
 
@@ -34,20 +43,25 @@ where T: Record + Clone + Debug
     }
 }
 
-impl<T> RecordWithLocation<T> 
-where T: Record + Clone + Debug
+impl<T, Allocator> RecordWithLocation<T, Allocator> 
+where 
+    T: Record<Allocator> + Clone + Debug,
+    Allocator: TemporaryIdAllocator
 {
     /// Creates new instance of RecordWithLocation
     pub fn new(position: Position, record: T) -> Self {
         RecordWithLocation{
             position,
             record,
+            _allocator: PhantomData,
         }
     }
 }
 
-impl<T> PartialOrd for RecordWithLocation<T> 
-where T: Record + Clone + Debug
+impl<T, Allocator> PartialOrd for RecordWithLocation<T, Allocator> 
+where 
+    T: Record<Allocator> + Clone + Debug,
+    Allocator: TemporaryIdAllocator
 {
     /// Records have a natural order by the position
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -55,8 +69,10 @@ where T: Record + Clone + Debug
     }
 }
 
-impl<T> PartialEq for RecordWithLocation<T> 
-where T: Record + Clone + Debug
+impl<T, Allocator> PartialEq for RecordWithLocation<T, Allocator> 
+where 
+    T: Record<Allocator> + Clone + Debug,
+    Allocator: TemporaryIdAllocator,
 {
     /// Two records are equal if their id's are equal
     fn eq(&self, other: &Self) -> bool {
@@ -64,12 +80,16 @@ where T: Record + Clone + Debug
     }
 }
 
-impl<T> Eq for RecordWithLocation<T> 
-where T: Record + Clone + Debug
+impl<T, Allocator> Eq for RecordWithLocation<T, Allocator> 
+where 
+    T: Record<Allocator> + Clone + Debug,
+    Allocator: TemporaryIdAllocator
 {}
 
-impl<T> Ord for RecordWithLocation<T> 
-where T: Record + Clone + Debug
+impl<T, Allocator> Ord for RecordWithLocation<T, Allocator> 
+where 
+    T: Record<Allocator> + Clone + Debug,
+    Allocator: TemporaryIdAllocator
 {
 
     /// Records have a natural order by the position

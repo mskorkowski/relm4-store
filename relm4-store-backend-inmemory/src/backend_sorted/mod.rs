@@ -23,7 +23,7 @@ use store::StoreId;
 use store::StoreMsg;
 use store::math::Range;
 
-pub trait Sorter<Record: record::Record>: Copy {
+pub trait Sorter<Record: record::Record<Allocator>, Allocator: TemporaryIdAllocator>: Copy {
     fn cmp(&self, lhs: &Record, rhs: &Record) -> std::cmp::Ordering;
 }
 
@@ -32,10 +32,10 @@ pub trait OrderedStore<OrderBy> {
 }
 
 /// Configuration trait for the SortedInMemoryBackend
-pub trait SortedInMemoryBackendConfiguration {
+pub trait SortedInMemoryBackendConfiguration<Allocator: TemporaryIdAllocator> {
     /// Type of data in the in memory store
-    type Record: 'static + Record + Debug + Clone;
-    type OrderBy: 'static + Sorter<Self::Record> + Copy;
+    type Record: 'static + Record<Allocator> + Debug + Clone;
+    type OrderBy: 'static + Sorter<Self::Record, Allocator> + Copy;
 
     /// Returns initial dataset for the store
     fn initial_data() -> Vec<Self::Record>;
@@ -45,30 +45,32 @@ pub trait SortedInMemoryBackendConfiguration {
 
 /// In memory implementation of the data store
 #[derive(Debug)]
-pub struct SortedInMemoryBackend<Config, Allocator = DefaultIdAllocator> 
+pub struct SortedInMemoryBackend<Config, Allocator, StoreIdAllocator> 
 where 
-    Config: SortedInMemoryBackendConfiguration,
+    Config: SortedInMemoryBackendConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
-    id: StoreId<Self, Allocator>,
+    id: StoreId<Self, Allocator, StoreIdAllocator>,
 
     /// Order of profiles
-    order: RefCell<Vec<Id<Config::Record>>>,
+    order: RefCell<Vec<Id<Config::Record, Allocator>>>,
 
     /// profile storage
-    data: RefCell<HashMap<Id<Config::Record>, Config::Record>>,
+    data: RefCell<HashMap<Id<Config::Record, Allocator>, Config::Record>>,
 
-    senders: RefCell<HashMap<StoreId<Self, Allocator>, Sender<StoreMsg<Config::Record>>>>,
+    senders: RefCell<HashMap<StoreId<Self, Allocator, StoreIdAllocator>, Sender<StoreMsg<Config::Record, Allocator>>>>,
 
-    sender: Sender<StoreMsg<Config::Record>>,
+    sender: Sender<StoreMsg<Config::Record, Allocator>>,
 
     ordering: Config::OrderBy
 }
 
-impl<Config, Allocator> SortedInMemoryBackend<Config, Allocator> 
+impl<Config, Allocator, StoreIdAllocator> SortedInMemoryBackend<Config, Allocator, StoreIdAllocator> 
 where 
-    Config: SortedInMemoryBackendConfiguration + 'static,
-    Allocator: TemporaryIdAllocator + 'static
+    Config: SortedInMemoryBackendConfiguration<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator + 'static,
+    StoreIdAllocator: TemporaryIdAllocator + 'static,
 {
     /// Creates new instance of the InMemoryBackend
     pub fn new() -> Rc<RefCell<Self>> {
@@ -89,7 +91,7 @@ where
         
         {
             let context = glib::MainContext::default();
-            receiver.attach(Some(&context), move |msg:StoreMsg<Config::Record>| {
+            receiver.attach(Some(&context), move |msg:StoreMsg<Config::Record, Allocator>| {
                 log::info!("Message received in receiver: {:?}", &msg);
                 if let Ok(backend) = handler_backend.try_borrow() {
                     log::info!("Pushing message via inbox!");
@@ -118,7 +120,7 @@ where
         shared_backed
     }
 
-    fn inbox(&self, msg: StoreMsg<Config::Record>) {
+    fn inbox(&self, msg: StoreMsg<Config::Record, Allocator>) {
         log::info!("Received message: {:?}", &msg);
         match msg {
             StoreMsg::Commit(record) => {
@@ -143,7 +145,7 @@ where
         }
     }
 
-    fn fire_handlers(&self, message: StoreMsg<Config::Record>) {
+    fn fire_handlers(&self, message: StoreMsg<Config::Record, Allocator>) {
         let senders = self.senders.borrow();
 
         if senders.is_empty() {
@@ -161,7 +163,7 @@ where
         // removal we need to borrow again since, unlisten is
         // internally mutable which would cause UB, since we would 
         // iterate over collection which changes itself
-        let mut ids_for_remove: Vec<StoreId<Self, Allocator>> = Vec::new();
+        let mut ids_for_remove: Vec<StoreId<Self, Allocator, StoreIdAllocator>> = Vec::new();
 
         for (key, sender) in senders.iter() {
             if let Err( _ ) =sender.send(message.clone()) {
@@ -228,7 +230,7 @@ where
     /// 
     /// Running if you run it for nonexisting record this method is undefined. It might end up with panic or
     /// killing your cat, or flooding, or erupting volcanos, or whatever other disaster you might think of. 
-    fn update(&self, record: Config::Record) -> StoreMsg<Config::Record> {
+    fn update(&self, record: Config::Record) -> StoreMsg<Config::Record, Allocator> {
         let id = record.get_id();
         // record is already in store => it's safe to unwrap
         let old_record = self.data.borrow_mut().insert(id, record.clone()).unwrap();
@@ -298,22 +300,24 @@ where
     }
 }
 
-impl<Builder, Allocator> Identifiable<SortedInMemoryBackend<Builder, Allocator>, Allocator::Type> for SortedInMemoryBackend<Builder, Allocator>
+impl<Builder, Allocator, StoreIdAllocator> Identifiable<SortedInMemoryBackend<Builder, Allocator, StoreIdAllocator>, StoreIdAllocator::Type> for SortedInMemoryBackend<Builder, Allocator, StoreIdAllocator>
 where 
-    Builder: SortedInMemoryBackendConfiguration,
+    Builder: SortedInMemoryBackendConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
-    type Id=StoreId<Self, Allocator>;
+    type Id=StoreId<Self, Allocator, StoreIdAllocator>;
 
     fn get_id(&self) -> Self::Id {
         self.id
     }
 }
 
-impl<Builder, Allocator> DataStore<Allocator> for SortedInMemoryBackend<Builder, Allocator>
+impl<Builder, Allocator, StoreIdAllocator> DataStore<Allocator, StoreIdAllocator> for SortedInMemoryBackend<Builder, Allocator, StoreIdAllocator>
 where 
-    Builder: SortedInMemoryBackendConfiguration,
+    Builder: SortedInMemoryBackendConfiguration<Allocator>,
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
     type Record = Builder::Record;
  
@@ -345,26 +349,26 @@ where
         result
     }
 
-    fn get(&self, id: &Id<Builder::Record>) -> Option<Builder::Record> {
+    fn get(&self, id: &Id<Builder::Record, Allocator>) -> Option<Builder::Record> {
         let data = self.data.borrow();
         data.get(id)
             .map(|r| r.clone())
     }
 
-    fn listen<'b>(&self, handler_ref: StoreId<Self, Allocator>, sender: Sender<StoreMsg<Self::Record>>) {
+    fn listen<'b>(&self, handler_ref: StoreId<Self, Allocator, StoreIdAllocator>, sender: Sender<StoreMsg<Self::Record, Allocator>>) {
         self.senders.borrow_mut().insert(handler_ref, sender);
     }
 
-    fn unlisten(&self, handler_ref: StoreId<Self, Allocator>) {
+    fn unlisten(&self, handler_ref: StoreId<Self, Allocator, StoreIdAllocator>) {
         self.senders.borrow_mut().remove(&handler_ref);
     }
 
-    fn send(&self, msg: StoreMsg<Self::Record>) {
+    fn send(&self, msg: StoreMsg<Self::Record, Allocator>) {
         log::info!("Sending message via sender: {:?}", msg);
         self.sender.send(msg).expect("Message should be sent, since store exists");
     }
 
-    fn sender(&self) -> Sender<StoreMsg<Self::Record>> {
+    fn sender(&self) -> Sender<StoreMsg<Self::Record, Allocator>> {
         self.sender.clone()
     }
 }

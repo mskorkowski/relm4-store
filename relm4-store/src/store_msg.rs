@@ -1,13 +1,15 @@
 use std::fmt::Debug;
 
+use record::DefaultIdAllocator;
 use record::Id;
 use record::Record;
+use record::TemporaryIdAllocator;
 
 use super::Position;
 
 /// Messages sent to/between stores
 #[derive(Clone,Debug)]
-pub enum StoreMsg<T: Record + Debug + Clone> {
+pub enum StoreMsg<T: Record<Allocator> + Debug + Clone, Allocator: TemporaryIdAllocator + Clone> {
     /// New record was added at the given position
     NewAt(Position),
     /// One record in store has been moved
@@ -29,7 +31,7 @@ pub enum StoreMsg<T: Record + Debug + Clone> {
     /// Record was committed to the store
     Commit(T),
     /// Record was updates in the store
-    Update(Id<T>),
+    Update(Id<T, Allocator>),
     /// Store should be reloaded fully, dump all data, indexes, etc... and reload the data
     Reload,
 }
