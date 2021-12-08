@@ -10,7 +10,7 @@ impl<Value, Comparator> TreeImpl<Value, Comparator> {
         Self{
             root: NonNull::dangling(),
             count: 0,
-            configuration,
+            _configuration: configuration,
             _comparator: PhantomData,
             _value: PhantomData,
         }

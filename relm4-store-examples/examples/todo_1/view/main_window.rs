@@ -1,3 +1,4 @@
+use record::DefaultIdAllocator;
 use reexport::{gtk, relm4, relm4_macros};
 use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::GtkWindowExt;
@@ -34,7 +35,7 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list: StoreViewComponent<TasksListViewModel<Self>>
+    tasks_list: StoreViewComponent<TasksListViewModel<Self>, DefaultIdAllocator, DefaultIdAllocator>
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {

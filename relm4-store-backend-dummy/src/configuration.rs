@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 use std::ops::Index;
 
-use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
 use store::StoreMsg;
 

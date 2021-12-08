@@ -15,7 +15,6 @@ pub mod test_cases;
 #[cfg(test)]
 mod tests;
 
-use record::DefaultIdAllocator;
 use reexport::gtk;
 
 use std::cell::RefCell;

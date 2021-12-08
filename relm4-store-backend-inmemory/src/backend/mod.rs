@@ -13,7 +13,6 @@ use gtk::glib;
 
 use relm4::Sender;
 
-use record::DefaultIdAllocator;
 use record::Id;
 use record::Identifiable;
 use record::Record;

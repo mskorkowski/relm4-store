@@ -11,13 +11,13 @@ type ST = StoreViewTest<ValueTrackingWindow>;
 fn add_first_record() {
     ST::from(TestCases::add_first_record())
         .initial(&|_, store_view, _|{
-            assert!(store_view.current_len() == 0);
+            assert_eq!(store_view.current_len(), 0, "store must be empty at the beginning");
         })
         .step(&|test_data, store_view, _|{
-            assert!(store_view.current_len() == 1);
+            assert_eq!(store_view.current_len(), 1, "store must contain one element");
             let data = store_view.get_view_data();
-            assert!(data[0].position == Position(0));
-            assert!(data[0].record == test_data[0]);
+            assert_eq!(data[0].position, Position(0), "0th position don't match");
+            assert_eq!(data[0].record, test_data[0], "0th record don't match");
         })
         .run();
 }

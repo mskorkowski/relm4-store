@@ -1,16 +1,17 @@
 use backend_inmemory::Sorter;
 use backend_inmemory::SortedInMemoryBackend;
 use backend_inmemory::SortedInMemoryBackendConfiguration;
+use record::DefaultIdAllocator;
 use crate::model::Task;
 
-pub type Tasks = SortedInMemoryBackend<TasksBuilder>;
+pub type Tasks = SortedInMemoryBackend<TasksBuilder, DefaultIdAllocator, DefaultIdAllocator>;
 
 #[derive(Clone, Copy)]
 pub enum OrderTasksBy {
     Name,
 }
 
-impl Sorter<Task> for OrderTasksBy {
+impl Sorter<Task, DefaultIdAllocator> for OrderTasksBy {
     fn cmp(&self, lhs: &Task, rhs: &Task) -> std::cmp::Ordering {
         match self {
             OrderTasksBy::Name => {
@@ -23,7 +24,7 @@ impl Sorter<Task> for OrderTasksBy {
 
 pub struct TasksBuilder {}
 
-impl SortedInMemoryBackendConfiguration for TasksBuilder
+impl SortedInMemoryBackendConfiguration<DefaultIdAllocator> for TasksBuilder
 {
     type Record = Task;
     type OrderBy = OrderTasksBy;

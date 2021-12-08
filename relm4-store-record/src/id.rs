@@ -10,7 +10,6 @@ use std::marker::PhantomData;
 use super::Identity;
 use super::Record;
 use super::TemporaryIdAllocator;
-use super::DefaultIdAllocator;
 
 /// Id for models
 /// 

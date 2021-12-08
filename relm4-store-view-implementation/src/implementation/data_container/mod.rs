@@ -13,10 +13,7 @@ use std::collections::HashSet;
 use std::collections::hash_map::Keys;
 
 use record::Id;
-use record::Record;
 use record::TemporaryIdAllocator;
-use store::DataStore;
-use store::FactoryConfiguration;
 
 use crate::WindowChangeset;
 
@@ -26,9 +23,9 @@ use crate::WindowChangeset;
 /// 
 /// 1. `data` and `order` at the end of any method have the same length
 /// 2. `order` doesn't contain values not present in `data`
-pub struct DataContainer<Record, Allocator>
+pub(crate) struct DataContainer<Record, Allocator>
 where
-    Record: record::Record<Allocator> +'static,
+    Record: 'static + record::Record<Allocator> + std::fmt::Debug,
     Allocator: TemporaryIdAllocator,
 {
     #[allow(clippy::type_complexity)]
@@ -39,10 +36,10 @@ where
 
 impl<Record, Allocator> DataContainer<Record, Allocator>
 where
-    Record: record::Record<Allocator> +'static,
+    Record: 'static + record::Record<Allocator> + std::fmt::Debug,
     Allocator: TemporaryIdAllocator,
 {
-    pub fn new(max_size: usize) -> Self {
+    pub(crate) fn new(max_size: usize) -> Self {
         let dc = DataContainer{
             data: HashMap::default(),
             order: Vec::default(),
@@ -61,22 +58,22 @@ where
         assert_eq!(self.data.len(), self.order.len(), "`data` and `order` collections must have the same length");
     }
 
-    pub fn record_ids(&self) -> Keys<'_, Id<Record, Allocator>, Record> {
+    pub(crate) fn record_ids(&self) -> Keys<'_, Id<Record, Allocator>, Record> {
         let keys = self.data.keys();
         keys
     }
 
-    pub fn ordered_record_ids(&self) -> Iter<'_, Id<Record, Allocator>> {
+    pub(crate) fn ordered_record_ids(&self) -> Iter<'_, Id<Record, Allocator>> {
         self.order.iter()
     }
 
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         self.data.clear();
         self.order.clear();
         self.invariants();
     }
 
-    pub fn reload(&mut self, changeset: &mut WindowChangeset<Record, Allocator>, records: Vec<Record>) {
+    pub(crate) fn reload(&mut self, changeset: &mut WindowChangeset<Record, Allocator>, records: Vec<Record>) {
         let mut old_order = HashSet::new(); 
         old_order.extend(self.order.clone());
 
@@ -106,160 +103,257 @@ where
         self.invariants();
     }
 
-    pub fn insert_right(
+    pub(crate) fn insert_right(
         &mut self, 
         changeset: &mut WindowChangeset<Record, Allocator>, 
         position: usize, 
         records: Vec<Record>
     ) {
-        /*
+        let starting_len = self.len();
+
+        // if there is more records then place to put them truncate that to available space
+        let records_len = std::cmp::min(
+            records.len(), 
+            self.max_size - position
+        );
+
+        let for_removal = if starting_len + records_len >= self.max_size {
+            // returns amount of records above max size
+            starting_len + records_len - self.max_size
+        }
+        else {
+            // there is enough capacity in the data container to add all records without removal
+            0
+        };
         
         if for_removal > 0 {
+            let remove_start_idx = starting_len - for_removal;
+            let remove_end_idx = starting_len; //last index to remove (exclusive)
+            
             // Mark data for removal by adding them to changeset and remove them from view_data
-            for idx in view_len-for_removal..view_len {
-                let id_to_remove = view[idx].clone();
-                if view_data.contains_key(&id_to_remove) {
-                    view_data.remove(&id_to_remove);
+            for idx in remove_start_idx..remove_end_idx {
+                let id_to_remove = self.order[idx].clone();
+                
+                // if we test whole implementation to hold invariants in all cases this can be simplify
+                // to `self.data.remove(&id_to_remove)`
+                if self.data.contains_key(&id_to_remove) {
+                    self.data.remove(&id_to_remove);
                 }
                 else {
+                    // if something is in the order it must be in data, if we are here invariants are broken
                     panic!("view_data doesn't contain id which is expected to be there");
                 }
+                
                 changeset.widgets_to_remove.insert(id_to_remove);
             }
             
             // move all preserved id's to the right
-            // insert_right(_, 3, 3)
-            // |1, 2, 3, 4, 5, 6 , 7, 8, 9, 10| --> |1, 2, 3, [4], [5], [6], 4, 5, 6, 7|
+            // insert_right at 3, 3 records, max length 10
+            // |1, 2, 3, 4, 5, 6, 7, 8, 9, 10| --> |1, 2, 3, [4], [5], [6], 4, 5, 6, 7|
             //
             // [x] - element to override in next step
-            for idx in (start_idx..view_len-for_removal).rev() {
-                view[idx+by] = view[idx];
-                changeset.ids_to_update.insert(view[idx].clone());
-            }
-
-        }
-
-        assert_eq!(view_data.len()+for_removal, view_data_len, "We've just removed `{}` elements from the view_data", for_removal);
-        assert_eq!(view_data.len()+for_removal, view.len(), "View data length must be in sync with view");
-
-        // fill up 
-        for (idx, record) in data.iter().enumerate() {
-            // add new data so we can later generate widgets for them
-            let view_insertion_point = idx+start_idx;
-            changeset.ids_to_add.insert(record.get_id());
-            view_data.insert(record.get_id(), record.clone());
-
-            if view.len() <= view_insertion_point {
-                view.push(record.get_id());
-            }
-            else {
-                view[view_insertion_point] = record.get_id();
+            let move_end_idx = remove_start_idx; // range is exclusive at the right end
+            for idx in (position..move_end_idx).rev() {
+                let id = self.order[idx];
+                self.order[idx+records_len] = id;
+                changeset.ids_to_update.insert(id);
             }
         }
-
-        */
-
-
-        self.invariants();
-    }
-
-    pub fn insert_left(
-        &mut self,
-    ) {
-        /*
-
-        log::trace!("Insert left");
-        let (start, size) = {
-            let range = self.range.borrow();
-            (*range.start(), range.len())
-        };
-        let view_len = self.view.borrow().len();
-        
-        if start == 0 && view_len < size {
-            log::trace!("\t\t Doing insert right");
-            self.insert_right(changeset, pos, by)                        
-        }
-        else {
-            // it's responsibility of the WindowBehavior to make this math valid and truncate `pos` and `by` to the acceptable range
-            // and WindowBehavior logic was called before we reached here so we can assume we are safe here
-
-            let mut view = self.view.borrow_mut();
-            let mut view_data = self.view_data.borrow_mut();
-            let store = self.store.borrow();
-
-            let start_idx = pos - start; // index of first element in the view which is changed
-            let end_idx = start_idx + by;
-
-            let range_of_changes = Range::new(pos, end_idx+start);
-            let data = store.get_range(&range_of_changes);
-
-            // how many elements I need to remove?
-            let for_removal: usize = if view_len + by <= size { 0 } else { view_len + by - size };
-            if for_removal > 0 {
-                for idx in 0..for_removal {
-                    let id_to_remove = view[idx].clone();
-                    view_data.remove(&id_to_remove);
-                    changeset.widgets_to_remove.insert(id_to_remove);
-                }
-
-                // move all preserved id's to the left
-                for idx in (for_removal..start_idx).rev() {
-                    view[idx-by] = view[idx];
-                    changeset.ids_to_update.insert(view[idx].clone());
-                }
-            }
-
-            for idx in start_idx..end_idx {
-                // add new data so we can later generate widgets for them
-                let record = &data[idx - start_idx];
-                changeset.ids_to_add.insert(record.get_id());
-                view_data.insert(record.get_id(), record.clone());
-
-                if view.len() < size {
-                    view.insert(idx, record.get_id());
+        else if position < starting_len {
+            // for_removal == 0, all records can fit in but we need to move whatever is on the right
+            // of insertion point to new positions so we won't override still valid ids
+            //
+            // insert_right at 3, 4 records
+            // |1, 2, 3, 4, 5| --> |1, 2, 3, [4], [5], [4], [4], 4, 5| 
+            //
+            // [x] - element to override in next step
+            let move_end_idx = starting_len + records_len;
+            let insertion_end_idx = position + records_len;
+            for idx in starting_len..move_end_idx {
+                if idx < insertion_end_idx {
+                    let id = self.order[position];
+                    self.order.push(id);
                 }
                 else {
-                    view[idx] = record.get_id();
+                    let position_delta = insertion_end_idx - idx;
+                    let p = position + position_delta;
+                    let id = self.order[p];
+                    self.order.push(id);
+                    changeset.ids_to_update.insert(id);
                 }
             }
+        }
 
-            let new_range = {
-                let range = self.range.borrow();
-                range.to_left(by)
-            };
-            self.range.replace(new_range);
-        }         
+        // fill up 
+        for idx in 0..records_len {
+            let record = &records[idx];
+            // add new data so we can later generate widgets for them
+            let view_insertion_point = idx+position;
+            changeset.ids_to_add.insert(record.get_id());
+            self.data.insert(record.get_id(), record.clone());
 
-        */
+            if self.len() <= view_insertion_point {
+                self.order.push(record.get_id());
+            }
+            else {
+                self.order[view_insertion_point] = record.get_id();
+            }
+        }
 
         self.invariants();
     }
 
-    pub fn len(&self) -> usize {
+
+    /// Inserts records to the left of the position
+    /// 
+    /// ## Unresolved questions
+    /// 
+    /// ### Should we end at position or one before?
+    /// 
+    /// `insert_left` must be symmetric to the [`insert_right`]. There are two ways to do that
+    /// 
+    /// 1. Since [`insert_right`] starts at given index, then `insert_left` should end at given index
+    /// 2. Since [`insert_right`] starts at given index, then `insert_left` should end at position before given index
+    /// 
+    /// Currently I'm opting for 2, since it removes `+1` in the algorithm
+    pub(crate) fn insert_left(
+        &mut self,
+        changeset: &mut WindowChangeset<Record, Allocator>, 
+        position: usize, 
+        records: Vec<Record>
+    ) {
+        let starting_len = self.len();
+        let total_records_len = records.len();
+        
+        let records_len = std::cmp::min(
+            total_records_len,
+            position,
+        );
+
+        if records_len > 0 {
+            // we need to remove `records_len` elements so we can later insert this many 
+            // records before `position`
+            let remove_end_idx = std::cmp::min(
+                starting_len,
+                records_len
+            );
+
+            for idx in 0..remove_end_idx {
+                let id_to_remove = self.order[idx];
+
+                // if we test whole implementation to hold invariants in all cases this can be simplify
+                // to `self.data.remove(&id_to_remove)`
+                if self.data.contains_key(&id_to_remove) {
+                    self.data.remove(&id_to_remove);
+                }
+                else {
+                    // if something is in the order it must be in data, if we are here invariants are broken
+                    panic!("view_data doesn't contain id which is expected to be there");
+                }
+
+                changeset.widgets_to_remove.insert(id_to_remove);
+            }
+
+            let move_start_idx = records_len; // 0<= move_start_idx < position since 0 < records_len <= position
+
+            let move_end_idx = std::cmp::min(
+                starting_len,
+                position
+            );
+
+            for idx in move_start_idx..move_end_idx {
+                let idx_from_start = idx - move_start_idx;
+                let id = self.order[idx];
+                self.order[idx_from_start] = id;
+                changeset.ids_to_update.insert(id);
+            }
+        }
+
+
+        // fill up 
+        for idx in 0..records_len {
+            let idx_in_records = total_records_len - records_len + idx;
+            let record = &records[idx_in_records];
+            // add new data so we can later generate widgets for them
+            let view_insertion_point = position - records_len + idx;
+            changeset.ids_to_add.insert(record.get_id());
+            self.data.insert(record.get_id(), record.clone());
+
+            if self.len() <= view_insertion_point {
+                self.order.push(record.get_id());
+            }
+            else {
+                self.order[view_insertion_point] = record.get_id();
+            }
+        }
+
+        self.invariants();
+    }
+
+    pub(crate) fn len(&self) -> usize {
         self.order.len()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.order.is_empty()
-    }
+    // pub(crate) fn is_empty(&self) -> bool {
+    //     self.order.is_empty()
+    // }
 
-    pub fn update(&mut self, r: Record) {
+    pub(crate) fn update(&mut self, r: Record) {
         let id = r.get_id();
         if self.data.contains_key(&id) {
             self.data.insert(id, r);
         }
     }
 
-    pub fn get_order_idx(&self, idx: usize) -> &Id<Record, Allocator>{
+    pub(crate) fn get_order_idx(&self, idx: usize) -> &Id<Record, Allocator>{
         &self.order[idx]
     }
 
-    pub fn get_record(&self, id: &Id<Record, Allocator>) -> Option<&Record> {
+    pub(crate) fn get_record(&self, id: &Id<Record, Allocator>) -> Option<&Record> {
         self.data.get(id)
     }
 
-    pub fn get_record_in_order(&self, idx: usize) -> Option<&Record> {
-        let id = self.get_order_idx(idx);
-        self.get_record(id)
+    // pub(crate) fn get_record_in_order(&self, idx: usize) -> Option<&Record> {
+    //     let id = self.get_order_idx(idx);
+    //     self.get_record(id)
+    // }
+}
+
+impl<Record, Allocator> std::fmt::Debug for DataContainer<Record, Allocator>
+where
+    Record: 'static + record::Record<Allocator> + std::fmt::Debug,
+    Allocator: TemporaryIdAllocator,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut sf = f.debug_struct("DataContainer");
+        
+        let mut data = vec![];
+
+        for (idx, id) in self.order.iter().enumerate() {
+            if let Some(r) = self.data.get(&id) {
+                data.push(
+                    format!("{} => {:?}", idx, r)
+                )
+            }
+            else {
+                data.push(
+                    format!("{} => Missing `{:#?}`", idx, id)
+                )
+            }
+        }
+
+        sf.field("data", &data);
+
+        let mut out_of_order = vec![];
+
+        for (id, record) in &self.data {
+            if !self.order.contains(&id) {
+                out_of_order.push(record);
+            }
+        }
+
+        sf.field("out of order values", &out_of_order);
+
+        sf.finish()
     }
 }

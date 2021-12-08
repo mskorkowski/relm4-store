@@ -16,7 +16,6 @@ use relm4::factory::FactoryListView;
 use relm4::factory::FactoryPrototype;
 use relm4::factory::FactoryView;
 
-use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
 
 use crate::DataStore;

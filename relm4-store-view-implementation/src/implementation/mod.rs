@@ -9,7 +9,6 @@ use reexport::relm4;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::fmt;
 use std::fmt::Debug;
 use std::rc::Rc;
@@ -21,9 +20,7 @@ use relm4::Sender;
 use relm4::factory::FactoryListView;
 use relm4::factory::FactoryView;
 
-use record::DefaultIdAllocator;
 use record::Id;
-use record::Record;
 use record::TemporaryIdAllocator;
 
 use store::DataStore;
@@ -50,6 +47,8 @@ use super::widgets;
 /// 
 /// To interact with content you should use Store. Store will handle all the
 /// make sure all the updates are propagated to the view.
+/// 
+/// **Warning** This implementation of the store view doesn't work for multisets (aka data repetition).
 pub struct StoreViewImplementation<Configuration, Allocator, StoreIdAllocator>
 where
     Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator> + 'static,
@@ -184,20 +183,16 @@ where
     fn insert_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>, pos: usize, by: usize) {
         // it's responsibility of the WindowBehavior to make this math valid and truncate `pos` and `by` to the acceptable range
         // and WindowBehavior logic was called before we reached here so we can assume we are safe here
-
-        let range = self.range.borrow();
         let mut view = self.view.borrow_mut();
         let store = self.store.borrow();
-
-        let start = *range.start();
-        let size = range.len();
-
-        let start_idx = pos - start; // index of first element in the view which is changed
+        let range = self.range.borrow();
 
         let range_of_changes = Range::new(pos, pos+by);
         let data = store.get_range(&range_of_changes);
+        let position = pos - range.start();
 
-        view.insert_right(changeset, pos, data);
+
+        view.insert_right(changeset, position, data);
         
     }
 
@@ -218,8 +213,25 @@ where
     /// Third case:
     /// 
     fn insert_left(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>, pos: usize, by: usize) {
+        // it's responsibility of the WindowBehavior to make this math valid and truncate `pos` and `by` to the acceptable range
+        // and WindowBehavior logic was called before we reached here so we can assume we are safe here
 
-           
+        let mut view = self.view.borrow_mut();
+        let store = self.store.borrow();
+        let range = self.range.borrow();
+        
+        let start = *range.start();
+        let range_of_changes = Range::new(pos, pos+by);
+        let data = store.get_range(&range_of_changes);
+        
+        let position = pos - start;
+
+        if start == 0 && view.len() < self.size {
+            view.insert_right(changeset, position, data);
+        }
+        else {
+            view.insert_left(changeset, position, data);
+        }
     }
 
     fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator> {

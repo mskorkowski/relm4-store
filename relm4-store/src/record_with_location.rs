@@ -6,7 +6,6 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::ops::Deref;
 
-use record::DefaultIdAllocator;
 use record::Record;
 use record::TemporaryIdAllocator;
 

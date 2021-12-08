@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 
-use record::DefaultIdAllocator;
 use record::Id;
 use record::Record;
 use record::TemporaryIdAllocator;

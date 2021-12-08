@@ -17,7 +17,6 @@ use relm4::Sender;
 use relm4::Widgets;
 use relm4::factory::Factory;
 
-use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
 
 use crate::FactoryConfiguration;

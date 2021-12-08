@@ -24,29 +24,29 @@ impl<Value, Comparator> TreeImpl<Value, Comparator> {
 }
 
 impl<Value, Comparator> Node<Value, Comparator> {
-    /// Returns number of elements in this subtree
-    pub fn len(&self) -> usize {
-        let mut count: usize = 0;
+    // Returns number of elements in this subtree
+    // pub fn len(&self) -> usize {
+    //     let mut count: usize = 0;
 
-        for c in &self.kids {
-            count += c.count
-        }
+    //     for c in &self.kids {
+    //         count += c.count
+    //     }
         
-        count += self.elems.len();
+    //     count += self.elems.len();
 
-        return count
-    }
+    //     return count
+    // }
     
-    /// Alias to len for ease of writing unsafe code
-    /// 
-    /// Will be removed in near future
-    #[deprecated]    
-    pub fn count(&self) -> usize {
-        self.len()
-    }
+    // /// Alias to len for ease of writing unsafe code
+    // /// 
+    // /// Will be removed in near future
+    // #[deprecated]    
+    // pub fn count(&self) -> usize {
+    //     self.len()
+    // }
 
-    /// Returns true if this sub tree is empty
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
+    // /// Returns true if this sub tree is empty
+    // pub fn is_empty(&self) -> bool {
+    //     self.len() == 0
+    // }
 }

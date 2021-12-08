@@ -23,18 +23,20 @@ use std::ptr::NonNull;
 
 use crate::TreeConfiguration;
 
+/// Implementation of the B+Tree
+#[derive(Debug)]
 pub struct TreeImpl<Value, Comparator> {
     root: NonNull<Node<Value, Comparator>>,
-    configuration: TreeConfiguration,
+    _configuration: TreeConfiguration,
     count: usize,
     _comparator: PhantomData<*mut Comparator>, //invariance in comparator
     _value: PhantomData<Value>, // forces covariance over Value
 }
 
 struct Node<Value, Comparator> {
-    parent: *const Node<Value, Comparator>,
+    _parent: *const Node<Value, Comparator>,
 
-    leaf: bool,
+    _leaf: bool,
 
     kids: VecDeque<CountedNode<Value, Comparator>>,
 
@@ -45,7 +47,7 @@ struct Node<Value, Comparator> {
 
 struct CountedNode<Value, Comparator> {
     node: NonNull<Node<Value, Comparator>>,
-    count: usize,
+    _count: usize,
     _comparator: PhantomData<*mut Comparator>, //invariance in comparator
     _value: PhantomData<Value>, // forces covariance over Value
 }
