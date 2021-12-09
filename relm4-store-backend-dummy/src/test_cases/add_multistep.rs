@@ -70,7 +70,7 @@ impl TestCases {
             steps,
             initial_data,
         };
-
+        
         TestCase{
             configuration,
             data,

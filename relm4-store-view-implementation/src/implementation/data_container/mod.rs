@@ -55,7 +55,12 @@ where
         for r in &self.order {
             assert!(self.data.contains_key(r), "`data` must contain records for all id's in `order`");
         }
+
+        for record in self.data.values() {
+            assert!(self.order.contains(&record.get_id()), "Order must contain entries for all records in data");
+        }
         assert_eq!(self.data.len(), self.order.len(), "`data` and `order` collections must have the same length");
+        assert!(self.max_size >= self.len(), "DataContainer size can't exceed max size");
     }
 
     pub(crate) fn record_ids(&self) -> Keys<'_, Id<Record, Allocator>, Record> {
@@ -85,13 +90,13 @@ where
             let record = records[idx].clone();
             let id = record.get_id();
             self.order.push(id);
+            self.data.insert(id, record);
             if old_order.contains(&id) {
                 //old view had this record
                 old_order.remove(&id); //removes id's from old view. It will allow us to remove unneeded data from the view
                 changeset.ids_to_update.insert(id);
             }
             else {
-                self.data.insert(id, record);
                 changeset.ids_to_add.insert(id);
             }
         }
@@ -126,62 +131,42 @@ where
             0
         };
         
-        if for_removal > 0 {
-            let remove_start_idx = starting_len - for_removal;
-            let remove_end_idx = starting_len; //last index to remove (exclusive)
+        let remove_start_idx = starting_len - for_removal;
+        let remove_end_idx = starting_len; //last index to remove (exclusive)
+        
+        // Mark data for removal by adding them to changeset and remove them from view_data
+        for idx in remove_start_idx..remove_end_idx {
+            let id_to_remove = self.order[idx].clone();
             
-            // Mark data for removal by adding them to changeset and remove them from view_data
-            for idx in remove_start_idx..remove_end_idx {
-                let id_to_remove = self.order[idx].clone();
-                
-                // if we test whole implementation to hold invariants in all cases this can be simplify
-                // to `self.data.remove(&id_to_remove)`
-                if self.data.contains_key(&id_to_remove) {
-                    self.data.remove(&id_to_remove);
-                }
-                else {
-                    // if something is in the order it must be in data, if we are here invariants are broken
-                    panic!("view_data doesn't contain id which is expected to be there");
-                }
-                
-                changeset.widgets_to_remove.insert(id_to_remove);
+            // if we test whole implementation to hold invariants in all cases this can be simplify
+            // to `self.data.remove(&id_to_remove)`
+            if self.data.contains_key(&id_to_remove) {
+                self.data.remove(&id_to_remove);
+            }
+            else {
+                // if something is in the order it must be in data, if we are here invariants are broken
+                panic!("view_data doesn't contain id which is expected to be there");
             }
             
-            // move all preserved id's to the right
-            // insert_right at 3, 3 records, max length 10
-            // |1, 2, 3, 4, 5, 6, 7, 8, 9, 10| --> |1, 2, 3, [4], [5], [6], 4, 5, 6, 7|
-            //
-            // [x] - element to override in next step
-            let move_end_idx = remove_start_idx; // range is exclusive at the right end
-            for idx in (position..move_end_idx).rev() {
-                let id = self.order[idx];
-                self.order[idx+records_len] = id;
-                changeset.ids_to_update.insert(id);
-            }
+            changeset.widgets_to_remove.insert(id_to_remove);
         }
-        else if position < starting_len {
-            // for_removal == 0, all records can fit in but we need to move whatever is on the right
-            // of insertion point to new positions so we won't override still valid ids
-            //
-            // insert_right at 3, 4 records
-            // |1, 2, 3, 4, 5| --> |1, 2, 3, [4], [5], [4], [4], 4, 5| 
-            //
-            // [x] - element to override in next step
-            let move_end_idx = starting_len + records_len;
-            let insertion_end_idx = position + records_len;
-            for idx in starting_len..move_end_idx {
-                if idx < insertion_end_idx {
-                    let id = self.order[position];
-                    self.order.push(id);
-                }
-                else {
-                    let position_delta = insertion_end_idx - idx;
-                    let p = position + position_delta;
-                    let id = self.order[p];
-                    self.order.push(id);
-                    changeset.ids_to_update.insert(id);
-                }
+        
+        // move all preserved id's to the right
+        // insert_right at 3, 3 records, max length 10
+        // |1, 2, 3, 4, 5, 6, 7, 8, 9, 10| --> |1, 2, 3, [4], [5], [6], 4, 5, 6, 7|
+        //
+        // [x] - element to override in next step
+        let move_end_idx = remove_start_idx; // range is exclusive at the right end
+        for idx in (position..move_end_idx).rev() {
+            let id = self.order[idx];
+            let target_idx = idx+records_len;
+            if target_idx < self.order.len() {
+                self.order[idx+records_len] = id;
             }
+            else {
+                self.order.push(id);
+            }
+            changeset.ids_to_update.insert(id);
         }
 
         // fill up 
@@ -206,16 +191,12 @@ where
 
     /// Inserts records to the left of the position
     /// 
-    /// ## Unresolved questions
+    /// If there is more **records** then place to insert the data only feting data from the end of the
+    /// **records** will be inserted
     /// 
-    /// ### Should we end at position or one before?
-    /// 
-    /// `insert_left` must be symmetric to the [`insert_right`]. There are two ways to do that
-    /// 
-    /// 1. Since [`insert_right`] starts at given index, then `insert_left` should end at given index
-    /// 2. Since [`insert_right`] starts at given index, then `insert_left` should end at position before given index
-    /// 
-    /// Currently I'm opting for 2, since it removes `+1` in the algorithm
+    /// - **changeset** structure holding information which elements of the view require update
+    /// - **position** index at which last record will be inserted
+    /// - **records** ordered vector holding values to be inserted
     pub(crate) fn insert_left(
         &mut self,
         changeset: &mut WindowChangeset<Record, Allocator>, 
@@ -224,10 +205,12 @@ where
     ) {
         let starting_len = self.len();
         let total_records_len = records.len();
-        
+        let end = position + 1;
+
+
         let records_len = std::cmp::min(
             total_records_len,
-            position,
+            end,
         );
 
         if records_len > 0 {
@@ -258,7 +241,7 @@ where
 
             let move_end_idx = std::cmp::min(
                 starting_len,
-                position
+                end
             );
 
             for idx in move_start_idx..move_end_idx {
@@ -275,7 +258,7 @@ where
             let idx_in_records = total_records_len - records_len + idx;
             let record = &records[idx_in_records];
             // add new data so we can later generate widgets for them
-            let view_insertion_point = position - records_len + idx;
+            let view_insertion_point = end - records_len + idx;
             changeset.ids_to_add.insert(record.get_id());
             self.data.insert(record.get_id(), record.clone());
 

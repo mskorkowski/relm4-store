@@ -65,7 +65,11 @@ fn test_sender() {
 
 ```
 
-While running the tests which touch upon `glib::MainContext::default(); context.iteration(true);` and friends you **must** run them with `--test-threads=1`.
+## gtk tests
+
+To run gtk tests you must run them in serial manner. `https://crates.io/crates/serial_test` is your friend.
+
+While running the tests which touch upon `glib::MainContext::default(); context.iteration(true);` and friends you **must** run them with `--test-threads=1`. There are parts of gtk which require to be run from the same thread.
 
 Example:
 
@@ -74,6 +78,7 @@ RUST_BACKTRACE=1 cargo tarpaulin --packages relm4-store-backend-dummy --exclude-
 ```
 
 Otherwise you are going to hit an error `Value accessed from different thread than where it was created`
+
 
 ## `context.iteration(true)` vs `context.iteration(false)`
 
@@ -84,3 +89,4 @@ Otherwise you are going to hit an error `Value accessed from different thread th
 ## Where to place tests
 
 Tests using `gtk` and/or `gtk_test` must live as integration tests. If you try to place them in the package itself gtk will fail to initialize.
+

@@ -41,14 +41,6 @@ impl WindowBehavior for ValueTrackingWindow {
     ///   Increase index of elements from `p` by 1. Insert p at `p.pos`
     /// ```
     fn insert(state: &StoreState<'_>, p: &Point) -> WindowTransition {
-
-        log::error!("ValueTrackingWindow::insert");
-        log::error!("\tstate.page.start: {}", state.page.start());
-        log::error!("\tstate.page.end:   {}", state.page.end());
-        log::error!("\tstate.page.len:   {}", state.page.len());
-        log::error!("\tstate.view:       {}", state.view);
-        log::error!("\tpoint:            {}", p);
-
         if p >= state.page.end() {
             log::error!("Insert after");
             WindowTransition::Identity
@@ -62,14 +54,14 @@ impl WindowBehavior for ValueTrackingWindow {
             if p < &half {
                 log::error!("Insert first half");
                 WindowTransition::InsertLeft{
-                    pos: p.value() - *state.page.start(),
+                    pos: p.value(),
                     by: 1,
                 }
             }
             else {
                 log::error!("Insert second half");
                 WindowTransition::InsertRight{
-                    pos: p.value() - state.page.start(),
+                    pos: p.value(),
                     by: 1,
                 }
             }

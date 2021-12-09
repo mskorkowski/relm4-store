@@ -191,7 +191,6 @@ where
         let data = store.get_range(&range_of_changes);
         let position = pos - range.start();
 
-
         view.insert_right(changeset, position, data);
         
     }
@@ -226,7 +225,7 @@ where
         
         let position = pos - start;
 
-        if start == 0 && view.len() < self.size {
+        if start == 0 && view.len() + by <= self.size {
             view.insert_right(changeset, position, data);
         }
         else {

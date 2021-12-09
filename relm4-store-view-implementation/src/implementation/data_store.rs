@@ -91,7 +91,7 @@ where
 
         let start = *self.range.borrow().start();
 
-        for (idx, id) in view.record_ids().enumerate() {
+        for (idx, id) in view.ordered_record_ids().enumerate() {
             let pos = Position(idx+start);
             let record = view.get_record(id).unwrap().clone();
             result.push(RecordWithLocation::new(pos, record));

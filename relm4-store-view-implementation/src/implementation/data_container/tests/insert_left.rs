@@ -20,22 +20,6 @@ fn insert_left_first_record_at_0() {
     dc.insert_left(&mut changeset, position, records);
 
     dc.invariants();
-    assert_eq!(dc.len(), 0);
-    assert_eq!(dc.data.len(), 0);
-    assert_eq!(dc.order.len(), 0);
-}
-
-#[test]
-fn insert_left_first_record_at_1() {
-    let mut dc: DataContainer<TestRecord, DefaultIdAllocator> = DataContainer::new(10);
-    let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
-    let record: TestRecord = TestRecord::constant("First record to add");
-    let records: Vec<TestRecord> = vec![record.clone()];
-    let position: usize = 1;
-
-    dc.insert_left(&mut changeset, position, records);
-
-    dc.invariants();
     assert_eq!(dc.len(), 1);
     assert_eq!(dc.data[&record.get_id()], record);
     assert_eq!(dc.order[0], record.get_id());
@@ -48,7 +32,7 @@ fn insert_left_second_two_records() {
     let record1: TestRecord = TestRecord::constant("First record to add");
     let record2: TestRecord = TestRecord::constant("Second record to add");
     let records: Vec<TestRecord> = vec![record1.clone(), record2.clone()];
-    let position: usize = 2;
+    let position: usize = 1;
 
     dc.insert_left(&mut changeset, position, records);
 
@@ -68,7 +52,7 @@ fn insert_left_three_records() {
     let record2: TestRecord = TestRecord::constant("Second record to add");
     let record3: TestRecord = TestRecord::constant("Third record to add");
     let records: Vec<TestRecord> = vec![record1.clone(), record2.clone(), record3.clone()];
-    let position: usize = 3;
+    let position: usize = 2;
 
     dc.insert_left(&mut changeset, position, records);
 
@@ -112,7 +96,7 @@ mod max_size_3 {
             let TestData{ records, mut container } = TestData::new(RECORDS_CNT, MAX_SIZE);
             let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
             let new_records = vec![];
-            let position = records.len();
+            let position = records.len()-1;
 
             container.insert_left(&mut changeset, position, new_records);
 
@@ -135,7 +119,7 @@ mod max_size_3 {
             let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
             let new_record = TestRecord::since("Record added at pos 0", 1);
             let new_records = vec![new_record.clone()];
-            let position = records.len();
+            let position = records.len()-1;
 
             container.insert_left(&mut changeset, position, new_records);
 
@@ -158,7 +142,7 @@ mod max_size_3 {
             let new_record1 = TestRecord::since("Record added at pos 0 - 0", 1);
             let new_record2 = TestRecord::since("Record added at pos 0 - 1", 1);
             let new_records = vec![new_record1.clone(), new_record2.clone()];
-            let position = records.len();
+            let position = records.len()-1;
 
             
             container.insert_left(&mut changeset, position, new_records);
@@ -182,7 +166,7 @@ mod max_size_3 {
             let new_record2 = TestRecord::since("Record added at pos 0 - 1", 1);
             let new_record3 = TestRecord::since("Record added at pos 0 - 2", 1);
             let new_records = vec![new_record1.clone(), new_record2.clone(), new_record3.clone()];
-            let position = records.len();
+            let position = records.len()-1;
             
             container.insert_left(&mut changeset, position, new_records);
             
@@ -199,7 +183,7 @@ mod max_size_3 {
         
         #[test]
         fn add_at_max_elements_4() {
-            let TestData{ mut container, records } = TestData::new(RECORDS_CNT, MAX_SIZE);
+            let TestData{ mut container, .. } = TestData::new(RECORDS_CNT, MAX_SIZE);
             let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
             let new_record1 = TestRecord::since("Record added at pos 0 - 0", 1);
             let new_record2 = TestRecord::since("Record added at pos 0 - 1", 1);
@@ -211,7 +195,7 @@ mod max_size_3 {
                 new_record3.clone(), 
                 new_record4.clone()
             ];
-            let position = records.len();
+            let position = RECORDS_CNT-1;
 
             container.insert_left(&mut changeset, position, new_records);
             
@@ -228,7 +212,7 @@ mod max_size_3 {
 
         #[test]
         fn add_at_max_elements_5() {
-            let TestData{ mut container, records } = TestData::new(RECORDS_CNT, MAX_SIZE);
+            let TestData{ mut container, ..} = TestData::new(RECORDS_CNT, MAX_SIZE);
             let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
             let new_record1 = TestRecord::since("Record added at pos 0 - 0", 1);
             let new_record2 = TestRecord::since("Record added at pos 0 - 1", 1);
@@ -242,7 +226,7 @@ mod max_size_3 {
                 new_record4.clone(),
                 new_record5.clone(),
             ];
-            let position = records.len();
+            let position = RECORDS_CNT-1;
 
             container.insert_left(&mut changeset, position, new_records);
 
@@ -259,13 +243,13 @@ mod max_size_3 {
     }
 
     #[test]
-    fn add_at_1() {
+    fn add_at_0() {
         
         let TestData{ records, mut container } = TestData::new(RECORDS_CNT, MAX_SIZE);
         let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
         let new_record = TestRecord::since("Record added at pos 0", 1);
         let new_records = vec![new_record.clone()];
-        let position = 1;
+        let position = 0;
 
         container.insert_left(&mut changeset, position, new_records);
 
@@ -281,12 +265,12 @@ mod max_size_3 {
     }
 
     #[test]
-    fn add_at_2() {   
+    fn add_at_1() {   
         let TestData{ records, mut container } = TestData::new(RECORDS_CNT, MAX_SIZE);
         let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
         let new_record = TestRecord::since("Record added at pos 1", 1);
         let new_records = vec![new_record.clone()];
-        let position = 2;
+        let position = 1;
 
         container.insert_left(&mut changeset, position, new_records);
 
