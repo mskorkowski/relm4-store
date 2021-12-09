@@ -217,9 +217,12 @@ where
 
         let mut view = self.view.borrow_mut();
         let store = self.store.borrow();
-        let range = self.range.borrow();
+
         
-        let start = *range.start();
+        let start = {
+            let range = self.range.borrow();
+            *range.start()
+        };
         let range_of_changes = Range::new(pos, pos+by);
         let data = store.get_range(&range_of_changes);
         
@@ -230,7 +233,17 @@ where
         }
         else {
             view.insert_left(changeset, position, data);
+            //insert_left is not neutral in terms of the data range
+            //so we need to move the window to the right by the `by`
+            
+            let new_range = {
+                let range = self.range.borrow();
+                range.to_right(by)
+            };
+            self.range.replace(new_range);
         }
+
+
     }
 
     fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator> {

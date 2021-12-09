@@ -205,7 +205,7 @@ where
     ) {
         let starting_len = self.len();
         let total_records_len = records.len();
-        let end = position + 1;
+        let end = position;
 
 
         let records_len = std::cmp::min(

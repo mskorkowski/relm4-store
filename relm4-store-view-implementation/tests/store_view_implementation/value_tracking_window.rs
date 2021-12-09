@@ -638,7 +638,6 @@ mod window_size_4 {
     use store::Position;
     use store::StoreSize;
     use store::StoreView;
-    use store::math::Range;
 
     use super::ST;
 
@@ -666,10 +665,10 @@ mod window_size_4 {
             .run();
     }
 
-    /// |[0, 1, 2]| -> |
+    /// |[0, 1, 2, 3]| -> |[4, 1, 2, 3]|
     #[test]
     #[serial(gtk)]
-    fn add_fourth_record_at_0 () {
+    fn add_fourth_record_at_1 () {
         let tc = TestCases::multistep_add_unsafe(
             4,
             vec![
@@ -685,12 +684,12 @@ mod window_size_4 {
             .step(&|test_data, store_view,_|{
                 assert_eq!(store_view.current_len(), 4);
                 let data = store_view.get_view_data();
-                assert_eq!(data[0].position, Position(0));
-                assert_eq!(data[1].position, Position(1));
-                assert_eq!(data[2].position, Position(2));
-                assert_eq!(data[3].position, Position(3));
-                assert_eq!(data[0].record, test_data[1]);
-                assert_eq!(data[1].record, test_data[4]);
+                assert_eq!(data[0].position, Position(1));
+                assert_eq!(data[1].position, Position(2));
+                assert_eq!(data[2].position, Position(3));
+                assert_eq!(data[3].position, Position(4));
+                assert_eq!(data[0].record, test_data[4]);
+                assert_eq!(data[1].record, test_data[1]);
                 assert_eq!(data[2].record, test_data[2]);
                 assert_eq!(data[3].record, test_data[3]);
             })
