@@ -371,3 +371,29 @@ where
         self.sender.clone()
     }
 }
+
+impl<Config, Allocator, StoreIdAllocator> OrderedStore<Config::OrderBy> for  SortedInMemoryBackend<Config, Allocator, StoreIdAllocator> 
+where 
+    Config: SortedInMemoryBackendConfiguration<Allocator> + 'static,
+    Allocator: TemporaryIdAllocator + 'static,
+    StoreIdAllocator: TemporaryIdAllocator + 'static,
+{
+    fn set_order(&mut self, ordering: Config::OrderBy) {
+        self.ordering = ordering;
+
+        let mut order = self.order.borrow_mut();
+        let data = self.data.borrow();
+
+        println!("[order][before] {:#?}", order);
+
+        order.sort_by(move |lhs, rhs| {
+            let l = &data[lhs];
+            let r = &data[rhs];
+            ordering.cmp(l, r)
+        });
+
+        println!("[order][after] {:#?}", order);
+
+        self.fire_handlers(StoreMsg::Reload);
+    }
+}

@@ -168,12 +168,18 @@ where
     }
 
     fn reload(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore<Allocator, StoreIdAllocator>>::Record, Allocator>) {
+        println!("RELOAD");
+
         let store = self.store.borrow();
         let range_of_changes = self.range.borrow().clone();
         let new_records: Vec<<Self as DataStore<Allocator, StoreIdAllocator>>::Record> = store.get_range(&range_of_changes);
         let mut view = self.view.borrow_mut();
         
+        println!("[view][reload][before] {:#?}", view);
+
         view.reload(changeset, new_records);
+
+        println!("[view][reload][after] {:#?}", view);
     }
 
     /// Inserts `by` elements at the position `pos`
@@ -375,6 +381,18 @@ where
             return
         }
 
+        let old_order = {
+            let view_order = self.view.borrow();
+            let iter = view_order.ordered_record_ids();
+            let mut v = Vec::with_capacity(view_order.len());
+            for id in iter { //manual copy cos of the lifetime
+                v.push(id.clone());
+            }
+
+            v
+        };
+        let old_order_len = old_order.len();
+
         let WindowChangeset{
             widgets_to_remove,
             ids_to_add,
@@ -405,13 +423,13 @@ where
 
 
 
-                    let root = if widgets.is_empty() || position.get() == *range.start() {
+                    let root = if widgets.is_empty() || position.0 == *range.start() {
                         view.push_front(root)
                     }
                     else {
-                        let prev_idx = (position - 1 - *range.start()).get();
+                        let prev_idx = (position - 1 - *range.start()).0;
                         log::info!("Index of previous elements: {}", prev_idx);
-                        let prev_id = view_order.get_order_idx((position - 1 - *range.start()).get());
+                        let prev_id = view_order.get_order_idx((position - 1 - *range.start()).0);
                         let prev = widgets.get(&prev_id).unwrap();
                         view.insert_after(root, &prev.root)
                     };
@@ -427,11 +445,39 @@ where
             }
             
             if ids_to_update.contains(id) {
+                
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
                         <Configuration as FactoryConfiguration<Allocator, StoreIdAllocator>>::update_record(record, position, &widget.widgets);
+                        if old_order_len > position.0 {
+                            if old_order[position.0] != *id {
+                                // things got reordered so we need to remove widget from old place and attach it to the new one
+                                if let Some(widget) = widgets.remove(&id) {
+                                    view.remove(&widget.root);
+                                    let root = if position.0 == *range.start() {
+                                        view.push_front(Configuration::get_root(&widget.widgets))
+                                    }
+                                    else {
+                                        let prev_idx = (position - 1 - *range.start()).0;
+                                        log::info!("Index of previous elements: {}", prev_idx);
+                                        let prev_id = view_order.get_order_idx((position - 1 - *range.start()).0);
+                                        let prev = widgets.get(&prev_id).unwrap();
+                                        view.insert_after(Configuration::get_root(&widget.widgets), &prev.root)
+                                    };
+
+                                    widgets.insert(
+                                        *id,
+                                        widgets::Widgets{
+                                            widgets: widget.widgets,
+                                            root,
+                                        }
+                                    );
+                                }
+                            }
+                        }
                     }
                 }
+
             }
 
             position = position + 1;

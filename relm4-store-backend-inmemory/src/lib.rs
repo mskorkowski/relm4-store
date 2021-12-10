@@ -16,3 +16,5 @@ pub use backend::InMemoryBackendConfiguration;
 pub use backend_sorted::SortedInMemoryBackend;
 pub use backend_sorted::SortedInMemoryBackendConfiguration;
 pub use backend_sorted::Sorter;
+
+pub use backend_sorted::OrderedStore;
