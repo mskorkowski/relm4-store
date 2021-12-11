@@ -22,7 +22,7 @@ use store::StoreId;
 use store::StoreMsg;
 use store::math::Range;
 
-pub trait Sorter<Record: record::Record<Allocator>, Allocator: TemporaryIdAllocator>: Copy {
+pub trait Sorter<Record: record::Record<Allocator>, Allocator: TemporaryIdAllocator>: Copy + Debug {
     fn cmp(&self, lhs: &Record, rhs: &Record) -> std::cmp::Ordering;
 }
 
@@ -103,12 +103,7 @@ where
             });
         }
         
-        
-        let order = Config::initial_order();
-        let mut initial_data = Config::initial_data();
-        initial_data.sort_by(|lhs, rhs| {
-            order.cmp(lhs, rhs)
-        });
+        let initial_data = Config::initial_data();
 
         for record in initial_data {
             shared_backed.borrow().inbox(StoreMsg::Commit(record));
@@ -200,7 +195,7 @@ where
             let r = record.clone();
             order.binary_search_by(|other_id| {
                 let other = data.get(other_id).unwrap();
-                ordering.cmp(&r, other)
+                ordering.cmp(&r, other).reverse()
             })
         };
 
@@ -240,7 +235,7 @@ where
             let ordering = self.ordering;
             let position = order.binary_search_by(|other_id| {
                 let other = data.get(other_id).unwrap();
-                ordering.cmp(&old_record, other)
+                ordering.cmp(&old_record, other).reverse()
             });
 
             match position {
@@ -359,7 +354,7 @@ where
     }
 
     fn unlisten(&self, handler_ref: StoreId<Self, Allocator, StoreIdAllocator>) {
-        self.senders.borrow_mut().remove(&handler_ref);
+        self.senders.borrow_mut().remove(&handler_ref); 
     }
 
     fn send(&self, msg: StoreMsg<Self::Record, Allocator>) {
@@ -379,18 +374,32 @@ where
     StoreIdAllocator: TemporaryIdAllocator + 'static,
 {
     fn set_order(&mut self, ordering: Config::OrderBy) {
-        self.ordering = ordering;
-
+        
         let mut order = self.order.borrow_mut();
         let data = self.data.borrow();
+        
+        let mut ordered_data_before = vec![];
+        
+        for idx in order.iter() {
+            ordered_data_before.push(data[idx].clone())
+        }
+        
+        println!("[ordering][before] {:#?}", self.ordering);
+        println!("[ordering][after] {:#?}", ordering);
+        println!("[order][before] {:#?}", ordered_data_before);
 
-        println!("[order][before] {:#?}", order);
+        self.ordering = ordering;
 
         order.sort_by(move |lhs, rhs| {
             let l = &data[lhs];
             let r = &data[rhs];
             ordering.cmp(l, r)
         });
+
+        let mut ordered_data_after = vec![];
+        for idx in order.iter() {
+            ordered_data_after.push(self.data.borrow()[idx].clone())
+        }
 
         println!("[order][after] {:#?}", order);
 

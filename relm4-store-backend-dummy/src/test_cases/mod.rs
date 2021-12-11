@@ -22,7 +22,11 @@ use super::DummyBackendConfiguration;
 #[derive(Debug, Clone)]
 pub struct TestRecord {
     id: Id<Self, DefaultIdAllocator>,
-    label: String,
+    /// Human understandable description of this record
+    /// 
+    /// Setting proper description for the test record describing what, when, why, where
+    /// makes debugging tests easier by a lot
+    pub label: String,
     added: Option<usize>,
     removed: Option<usize>,
 }

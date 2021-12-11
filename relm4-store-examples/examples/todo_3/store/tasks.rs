@@ -6,7 +6,7 @@ use crate::model::Task;
 
 pub type Tasks = SortedInMemoryBackend<TasksBuilder, DefaultIdAllocator, DefaultIdAllocator>;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum OrderTasksBy {
     Name,
 }

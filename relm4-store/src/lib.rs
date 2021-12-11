@@ -29,6 +29,7 @@ pub mod redraw_messages;
 mod store_id;
 mod store_msg;
 mod store_size;
+mod store;
 mod store_view_component;
 pub mod window;
 
@@ -52,6 +53,7 @@ pub use factory_configuration::StoreViewInnerComponent;
 pub use pagination::Pagination;
 pub use position::Position;
 pub use record_with_location::RecordWithLocation;
+pub use store::Store;
 pub use store_id::StoreId;
 pub use store_msg::StoreMsg;
 pub use store_size::StoreSize;

@@ -6,7 +6,7 @@ use crate::model::Task;
 
 pub type Tasks = SortedInMemoryBackend<TasksBuilder, DefaultIdAllocator, DefaultIdAllocator>;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum OrderTasksBy {
     Name{ascending: bool},
 }
@@ -16,10 +16,10 @@ impl Sorter<Task, DefaultIdAllocator> for OrderTasksBy {
         match self {
             OrderTasksBy::Name{ascending} => {
                 if *ascending {
-                    lhs.description.cmp(&rhs.description).reverse()
+                    lhs.description.cmp(&rhs.description)
                 }
                 else {
-                    lhs.description.cmp(&rhs.description)
+                    lhs.description.cmp(&rhs.description).reverse()
                 }
             },
         }
@@ -48,7 +48,7 @@ impl SortedInMemoryBackendConfiguration<DefaultIdAllocator> for TasksBuilder
     }
 
     fn initial_order() -> Self::OrderBy {
-        OrderTasksBy::Name{ascending: false}
+        OrderTasksBy::Name{ascending: true}
     }
 }
 
