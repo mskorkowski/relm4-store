@@ -10,7 +10,6 @@ use std::marker::PhantomData;
 use super::Identity;
 use super::Record;
 use super::TemporaryIdAllocator;
-use super::DefaultIdAllocator;
 
 /// Id for models
 /// 
@@ -51,7 +50,7 @@ use super::DefaultIdAllocator;
 /// 
 /// If you would like to have an id with values which differ from uuid you should
 /// implement your own [TemporaryIdAllocator] and pass it as a second type.
-pub enum Id<T, Allocator=DefaultIdAllocator> 
+pub enum Id<T, Allocator> 
 where
     Allocator: TemporaryIdAllocator,
     T: ?Sized + Record<Allocator>,

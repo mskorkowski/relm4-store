@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::TemporaryIdAllocator;
 
 /// Allocator for uuid
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct UuidAllocator{}
 
 impl TemporaryIdAllocator for UuidAllocator {

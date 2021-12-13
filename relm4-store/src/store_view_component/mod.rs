@@ -5,7 +5,6 @@ use reexport::relm4;
 use std::cell::BorrowError;
 use std::cell::BorrowMutError;
 use std::cell::RefCell;
-use std::cell::RefMut;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::rc::Rc;
@@ -18,16 +17,12 @@ use relm4::Sender;
 use relm4::Widgets;
 use relm4::factory::Factory;
 
-use record::DefaultIdAllocator;
-use record::Identifiable;
 use record::TemporaryIdAllocator;
 
-use crate::DataStore;
 use crate::FactoryConfiguration;
 use crate::FactoryContainerWidgets;
 use crate::StoreSize;
 use crate::StoreView;
-use crate::StoreViewImplementation;
 use crate::StoreViewInnerComponent;
 use crate::redraw_messages::RedrawMessages;
 
@@ -91,13 +86,14 @@ impl Debug for StoreViewInterfaceError {
 }
 
 /// Specialized kind of component to handle store view 
-pub struct StoreViewComponent<Configuration, Allocator= DefaultIdAllocator> 
+pub struct StoreViewComponent<Configuration, Allocator, StoreIdAllocator> 
 where
-    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator> + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
-    view: Rc<RefCell<StoreViewImplementation<Configuration, Allocator>>>,
+    view: Rc<RefCell<Configuration::StoreView>>,
     _components: Rc<RefCell<<Configuration::ViewModel as ViewModel>::Components>>,
     _container: Rc<RefCell<<Configuration::ViewModel as ViewModel>::Widgets>>,
     _view_model: Rc<RefCell<Configuration::ViewModel>>,
@@ -106,11 +102,12 @@ where
     _redraw_sender: Sender<RedrawMessages>,
 }
 
-impl<Configuration, Allocator> std::fmt::Debug for StoreViewComponent<Configuration, Allocator> 
+impl<Configuration, Allocator, StoreIdAllocator> std::fmt::Debug for StoreViewComponent<Configuration, Allocator, StoreIdAllocator> 
 where 
-    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator> + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
     Allocator: TemporaryIdAllocator + 'static,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StoreViewComponent")
@@ -120,17 +117,18 @@ where
 }
 
 
-impl<Configuration, Allocator> StoreViewComponent<Configuration, Allocator> 
+impl<Configuration, Allocator, StoreIdAllocator> StoreViewComponent<Configuration, Allocator, StoreIdAllocator> 
 where 
-    Configuration: ?Sized + FactoryConfiguration<Allocator> + 'static,
-    <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel> + FactoryContainerWidgets<Configuration, Allocator>,
+    Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator> + 'static,
+    <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel> + FactoryContainerWidgets<Configuration, Allocator, StoreIdAllocator>,
     <Configuration::ViewModel as ViewModel>::Components: relm4::Components<Configuration::ViewModel> + StoreViewInnerComponent<Configuration::ViewModel>,
     Allocator: TemporaryIdAllocator + 'static,
+    StoreIdAllocator: TemporaryIdAllocator + 'static,
 {
     /// Creates new instance of the [StoreViewInterface]
     pub fn new(
         parent_view_model: &Configuration::ParentViewModel,
-        parent_widgets: &<Configuration::ParentViewModel as ViewModel>::Widgets,
+        // parent_widgets: &<Configuration::ParentViewModel as ViewModel>::Widgets,
         store: Rc<RefCell<Configuration::Store>>, 
         size: StoreSize
     ) -> Self {
@@ -140,31 +138,23 @@ where
         let (redraw_sender, redraw_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let handler_redraw_sender = redraw_sender.clone();
 
-        let view = StoreViewImplementation::new(store.clone(), size.items(), redraw_sender.clone());
-        let view_id = view.get_id();
+        let view = Configuration::init_store_view(store.clone(), size, redraw_sender.clone());
 
-        {
-            let s: RefMut<'_, Configuration::Store> = store.borrow_mut();
-            s.listen(
-                view_id.transfer(),
-                view.sender(),       
-            );
-        }
         let shared_view = Rc::new(RefCell::new(view));
         let redraw_handler_view = shared_view.clone();
 
 
         let view_model = Configuration::init_view_model(parent_view_model, shared_view.clone());
+        let components = <<Configuration::ViewModel as ViewModel>::Components as relm4::Components<Configuration::ViewModel>>::init_components(&view_model, sender.clone());
         let container = {
             <Configuration::ViewModel as ViewModel>::Widgets::init_view(
                 &view_model,
-                &parent_widgets,
+                &components,
                 sender.clone(),
             )
         };
 
-        let components = <<Configuration::ViewModel as ViewModel>::Components as relm4::Components<Configuration::ViewModel>>::init_components(&view_model, &container, sender.clone());
-        container.connect_components(&view_model, &components);
+        // container.connect_components(&view_model, &components);
         let shared_components = Rc::new(RefCell::new(components));
         let redraw_handler_components = shared_components.clone();
 

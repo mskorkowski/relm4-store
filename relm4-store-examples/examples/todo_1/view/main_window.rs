@@ -1,3 +1,4 @@
+use record::DefaultIdAllocator;
 use reexport::{gtk, relm4, relm4_macros};
 use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::GtkWindowExt;
@@ -34,19 +35,20 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list: StoreViewComponent<TasksListViewModel<Self>>
+    tasks_list: StoreViewComponent<TasksListViewModel<Self>, DefaultIdAllocator, DefaultIdAllocator>
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
     fn init_components(
         parent_model: &MainWindowViewModel,
-        parent_widgets: &MainWindowWidgets,
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            tasks_list: StoreViewComponent::new(parent_model, parent_widgets, parent_model.tasks.clone(), StoreSize::Unlimited)
+            tasks_list: StoreViewComponent::new(parent_model, parent_model.tasks.clone(), StoreSize::Unlimited)
         }
     }
+
+    fn connect_parent(&mut self, _parent_widgets: &MainWindowWidgets) { }
 }
 
 impl TasksListConfiguration for MainWindowComponents {
@@ -63,7 +65,7 @@ impl TasksListConfiguration for MainWindowComponents {
 impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
     view!{
         root = gtk::ApplicationWindow {
-            set_child: component!(Some(components.tasks_list.root_widget())),
+            set_child: Some(components.tasks_list.root_widget()),
             set_default_size: args!(350, 800),
         }
     }

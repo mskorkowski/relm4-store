@@ -4,11 +4,11 @@ use std::fmt::{self, Debug, Display, Formatter};
 
 use uuid::Uuid;
 
-use record::{Id, Record};
+use record::{Id, Record, DefaultIdAllocator};
 
 #[derive(Clone)]
 pub struct Task {
-    id: Id<Task>,
+    id: Id<Task, DefaultIdAllocator>,
     pub description: String,
     pub completed: bool,
 }
@@ -23,8 +23,8 @@ impl Task {
     }
 }
 
-impl Record for Task {
-    fn get_id(&self) -> Id<Task> {
+impl Record<DefaultIdAllocator> for Task {
+    fn get_id(&self) -> Id<Task, DefaultIdAllocator> {
         self.id
     }
 

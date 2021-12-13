@@ -1,0 +1,12 @@
+[package]
+name = "relm4-store-backend-dummy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reexport = { path = "../relm4-store-reexport", package = "relm4-store-reexport" }
+record = { path = "../relm4-store-record", package = "relm4-store-record" }
+store = { path = "../relm4-store", package = "relm4-store" }
+
+[dev-dependencies]
+gtk-test="0.7.0"

@@ -1,7 +1,7 @@
 [package]
 name="relm4-store-record"
 version= "0.1.0"
-edition = "2018"
+edition = "2021"
 description = "Library for buildiong application model."
 
 keywords = ["model", "data"]

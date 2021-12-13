@@ -11,25 +11,34 @@ use gtk::glib::Sender;
 use gtk::prelude::WidgetExt;
 
 use relm4::Model as ViewModel;
+use relm4::factory::Factory;
 use relm4::factory::FactoryListView;
+use relm4::factory::FactoryPrototype;
 use relm4::factory::FactoryView;
 
-use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
 
 use crate::DataStore;
+use crate::StoreSize;
+use crate::StoreView;
 use crate::position::Position;
-use crate::store_view_implementation::StoreViewImplementation;
+use crate::redraw_messages::RedrawMessages;
 use crate::window::WindowBehavior;
 
-
 /// Configuration of the [StoreViewComponent]
-pub trait FactoryConfiguration<Allocator=DefaultIdAllocator>
+pub trait FactoryConfiguration<Allocator, StoreIdAllocator>
 where
     Allocator: TemporaryIdAllocator,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
     /// Store type which will be a backend for your data
-    type Store: DataStore<Allocator>;
+    type Store: DataStore<Allocator, StoreIdAllocator>;
+    /// StoreView type
+    type StoreView: StoreView<Allocator, StoreIdAllocator, Record=<Self::Store as DataStore<Allocator, StoreIdAllocator>>::Record> + 
+        Factory<Self::StoreView, Self::View> +
+        FactoryPrototype<Factory=Self::StoreView, Msg=<Self::ViewModel as ViewModel>::Msg, Widgets=Self::RecordWidgets, Root=Self::Root, View=Self::View> + 
+        Debug;
+
     /// Structure with widgets used by this component
     type RecordWidgets: Debug;
     /// Type of root widget in [FactoryConfiguration::RecordWidgets]
@@ -50,10 +59,13 @@ where
     /// ViewModel of the parent component
     type ParentViewModel: ViewModel;
 
+    /// Initialize store view
+    fn init_store_view(store: Rc<RefCell<Self::Store>>, size: StoreSize, redraw_sender: Sender<RedrawMessages>) -> Self::StoreView;
+
     /// Creates instance of the [Self::RecordWidgets] responsible for displaying `record`
     /// at the `position`
     fn generate(
-        record: &<Self::Store as DataStore<Allocator>>::Record,
+        record: &<Self::Store as DataStore<Allocator, StoreIdAllocator>>::Record,
         position: Position,
         sender: Sender<<Self::ViewModel as ViewModel>::Msg>,
     ) -> Self::RecordWidgets;
@@ -61,7 +73,7 @@ where
     /// Function called when record in store view is modified and you need to 
     /// synchronize the state of the view with data in the model
     fn update_record(
-        model: <Self::Store as DataStore<Allocator>>::Record,
+        model: <Self::Store as DataStore<Allocator, StoreIdAllocator>>::Record,
         position: Position,
         widgets: &Self::RecordWidgets,
     );
@@ -76,13 +88,13 @@ where
     /// Creates new instance of [FactoryConfiguration]
     /// 
     /// If you wish to use store view in widgets you must save it in your model
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self, Allocator>>>) -> Self::ViewModel;
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<Self::StoreView>>) -> Self::ViewModel;
 
     /// Returns position of record inside the widget
     /// 
     /// Useful for [gtk::Grid]
     fn position(
-        model: <Self::Store as DataStore<Allocator>>::Record, 
+        model: <Self::Store as DataStore<Allocator, StoreIdAllocator>>::Record, 
         position: Position,
     ) -> <Self::View as FactoryView<Self::Root>>::Position;
 
@@ -91,13 +103,14 @@ where
 }
 
 /// Trait describing what do we need from widgets to be usable for the [StoreViewComponent]
-pub trait FactoryContainerWidgets<Configuration, Allocator=DefaultIdAllocator> 
+pub trait FactoryContainerWidgets<Configuration, Allocator, StoreIdAllocator> 
 where
+    Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator>,
     Allocator: TemporaryIdAllocator,
-    Configuration: ?Sized + FactoryConfiguration<Allocator>,
+    StoreIdAllocator: TemporaryIdAllocator,
 {
     /// Returns reference to the widget containing the records from the store view
-    fn container_widget(&self) -> &<Configuration as FactoryConfiguration<Allocator>>::View;
+    fn container_widget(&self) -> &<Configuration as FactoryConfiguration<Allocator, StoreIdAllocator>>::View;
 }
 
 /// Extra methods required by components embedded in StoreViewComponent

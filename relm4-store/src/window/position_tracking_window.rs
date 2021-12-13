@@ -3,6 +3,7 @@ use std::cmp::min;
 use crate::Range;
 use crate::math::Point;
 
+use super::StoreState;
 use super::WindowBehavior;
 use super::WindowTransition;
 
@@ -34,13 +35,13 @@ impl WindowBehavior for PositionTrackingWindow  {
     /// Position of value in range `P = p.pos - range.start`. 
     /// Indexes from `[range.start, P)` are kept. Value is inserted at P.
     /// Indexes from `[P+1, range.end)` are increased
-    fn insert(r: &Range, p: &Point) -> WindowTransition {
-        if p >= r.end() { // Case 2
+    fn insert(state: &StoreState<'_>, p: &Point) -> WindowTransition {
+        if p >= state.page.end() { // Case 2
             WindowTransition::Identity
         } 
-        else if p < r.start() { // Case 1
+        else if p < state.page.start() { // Case 1
             WindowTransition::InsertRight {
-                pos: *r.start(),
+                pos: *state.page.start(),
                 by: 1,
             }
         } 
@@ -69,19 +70,19 @@ impl WindowBehavior for PositionTrackingWindow  {
     /// Position of value in range is `P = p.pos - range.start`.
     /// Indexes from `[range.start, P) are kept. Value is removed at P.
     /// Indexes from `[P+1, range.end) are decreased by 1.
-    fn remove(r: &Range, p: &Point) -> WindowTransition {
-        if p >= r.end() { // Case 2
+    fn remove(state: &StoreState<'_>, p: &Point) -> WindowTransition {
+        if p >= state.page.end() { // Case 2
             WindowTransition::Identity
         }
-        else if p < r.start() { // Case 1
+        else if p < state.page.start() { // Case 1
             WindowTransition::RemoveRight {
-                pos: *r.start(),
+                pos: *state.page.start(),
                 by: 1,
             }
         }
         else { // Case 3
             WindowTransition::RemoveRight {
-                pos: p.value() - r.start(),
+                pos: p.value() - state.page.start(),
                 by: 1,
             }
         }
@@ -114,29 +115,29 @@ impl WindowBehavior for PositionTrackingWindow  {
     /// ## Case 6: moved range is subset of `r`
     ///
     /// It's equivalent of inserting `moved.len()` at `moved.start()`
-    fn slide(r: &Range, moved: &Range) -> WindowTransition {
-        if r.end() <= moved.start() { // Case 2
+    fn slide(state: &StoreState<'_>, moved: &Range) -> WindowTransition {
+        if state.page.end() <= moved.start() { // Case 2
             WindowTransition::Identity
         }
-        else if moved.start() <= r.start() && r.end() <= moved.end() { // Case 3
+        else if moved.start() <= state.page.start() && state.page.end() <= moved.end() { // Case 3
             WindowTransition::InsertRight{
                 pos: 0,
-                by: min(moved.len(), r.len())
+                by: min(moved.len(), state.page.len())
             }
-        } else if moved.start() < r.start() { // Case 1 and 4
+        } else if moved.start() < state.page.start() { // Case 1 and 4
             WindowTransition::InsertRight{
                 pos: 0,
                 by: min(
-                    min(r.start(), moved.end()) - moved.start(),
-                    r.len()
+                    min(state.page.start(), moved.end()) - moved.start(),
+                    state.page.len()
                 )
             }
         } else { // Case 5 and 6
             WindowTransition::InsertRight{
-                pos: moved.start() - r.start(),
+                pos: moved.start() - state.page.start(),
                 by: min(
-                    min(r.end(), moved.end()) - moved.start(),
-                    r.len()
+                    min(state.page.end(), moved.end()) - moved.start(),
+                    state.page.len()
                 )
             }
         }

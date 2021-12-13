@@ -1,3 +1,4 @@
+use record::DefaultIdAllocator;
 use reexport::gtk;
 use reexport::log;
 use reexport::relm4;
@@ -30,18 +31,18 @@ use store::DataStore;
 use store::FactoryConfiguration;
 use store::FactoryContainerWidgets;
 use store::Position;
-use store::StoreViewImplementation;
 use store::window::PositionTrackingWindow;
+use store_view::StoreViewImplementation;
 
 use crate::model::Task;
 use crate::store::Tasks;
 
-type StoreMsg = store::StoreMsg<Task>;
+type StoreMsg = store::StoreMsg<Task, DefaultIdAllocator>;
 
 pub enum TaskMsg {
     Toggle{
         complete: bool,
-        id: Id<Task>,
+        id: Id<Task, DefaultIdAllocator>,
     },
     New,
 }
@@ -62,7 +63,7 @@ pub trait TasksListConfiguration {
 pub struct TasksListViewModel<Config: TasksListConfiguration + 'static> {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<Self>>>,
+    store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>>>,
 }
 
 impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
@@ -71,14 +72,19 @@ impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel<Config> {
+impl<Config: TasksListConfiguration> FactoryConfiguration<DefaultIdAllocator, DefaultIdAllocator> for TasksListViewModel<Config> {
     type Store = Tasks;
+    type StoreView = StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
     type Window = PositionTrackingWindow;
     type ViewModel = Self;
     type ParentViewModel = Config::ParentViewModel;
+
+    fn init_store_view(store: Rc<RefCell<Self::Store>>, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
+        StoreViewImplementation::new(store, size.items(), redraw_sender)
+    }
 
     fn generate(
         record: &Task,
@@ -171,7 +177,7 @@ impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>>>) -> Self {
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
@@ -203,8 +209,8 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
     }
 }
 
-impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets {
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration>::View {
+impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>, DefaultIdAllocator, DefaultIdAllocator> for TasksListViewWidgets {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<DefaultIdAllocator, DefaultIdAllocator>>::View {
         &self.container
     }
 }
