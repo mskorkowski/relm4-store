@@ -2,9 +2,9 @@ use record::DefaultIdAllocator;
 use reexport::{gtk, relm4, relm4_macros};
 use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::{BoxExt, OrientableExt, GtkWindowExt};
-use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets};
+use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets, WidgetPlus};
 use relm4_macros::widget;
-use store::{StoreSize, StoreViewComponent, window::{PositionTrackingWindow, ValueTrackingWindow, KeepOnBottom, KeepOnTop}};
+use store::{StoreSize, StoreViewComponent, window::{KeepOnBottom, KeepOnTop, PositionTrackingWindow, ValueTrackingWindow}};
 
 use crate::{
     store::Tasks,
@@ -102,6 +102,7 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
                 set_orientation: gtk::Orientation::Horizontal,
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
+                    set_margin_all: 12,
                     append = &gtk::Label {
                         set_label: "PositionTrackingWindow",
                     },
@@ -109,6 +110,7 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
                 },
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
+                    set_margin_all: 12,
                     append = &gtk::Label {
                         set_label: "ValueTrackingWindow",
                     },
@@ -116,6 +118,7 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
                 },
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
+                    set_margin_all: 12,
                     append = &gtk::Label {
                         set_label: "KeepOnTop",
                     },
@@ -123,6 +126,7 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
                 },
                 append = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
+                    set_margin_all: 12,
                     append = &gtk::Label {
                         set_label: "KeepOnBottom",
                     },
