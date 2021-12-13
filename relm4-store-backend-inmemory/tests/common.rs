@@ -5,14 +5,14 @@ use relm4_store_backend_inmemory::SortedInMemoryBackend;
 use relm4_store_backend_inmemory::SortedInMemoryBackendConfiguration;
 use relm4_store_backend_inmemory::Sorter;
 
-pub type TestRecordsBase<Config> = SortedInMemoryBackend<Config, DefaultIdAllocator, DefaultIdAllocator>;
+pub type TestRecordsBase<Config> = SortedInMemoryBackend<Config, DefaultIdAllocator>;
 
 #[derive(Clone, Copy, Debug)]
 pub enum OrderTestRecordsBy {
     Name{ascending: bool},
 }
 
-impl Sorter<TestRecord, DefaultIdAllocator> for OrderTestRecordsBy {
+impl Sorter<TestRecord> for OrderTestRecordsBy {
     fn cmp(&self, lhs: &TestRecord, rhs: &TestRecord) -> std::cmp::Ordering {
         match self {
             OrderTestRecordsBy::Name{ascending} => {
@@ -28,7 +28,7 @@ impl Sorter<TestRecord, DefaultIdAllocator> for OrderTestRecordsBy {
 }
 
 pub struct TestRecordsConfigDescEmpty {}
-impl SortedInMemoryBackendConfiguration<DefaultIdAllocator> for TestRecordsConfigDescEmpty
+impl SortedInMemoryBackendConfiguration for TestRecordsConfigDescEmpty
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;
@@ -43,7 +43,7 @@ impl SortedInMemoryBackendConfiguration<DefaultIdAllocator> for TestRecordsConfi
 }
 
 pub struct TestRecordsConfigDesc8 {}
-impl SortedInMemoryBackendConfiguration<DefaultIdAllocator> for TestRecordsConfigDesc8
+impl SortedInMemoryBackendConfiguration for TestRecordsConfigDesc8
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;
@@ -67,7 +67,7 @@ impl SortedInMemoryBackendConfiguration<DefaultIdAllocator> for TestRecordsConfi
 }
 
 pub struct TestRecordsConfigAscEmpty {}
-impl SortedInMemoryBackendConfiguration<DefaultIdAllocator> for TestRecordsConfigAscEmpty
+impl SortedInMemoryBackendConfiguration for TestRecordsConfigAscEmpty
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;
@@ -82,7 +82,7 @@ impl SortedInMemoryBackendConfiguration<DefaultIdAllocator> for TestRecordsConfi
 }
 
 pub struct TestRecordsConfigAsc8 {}
-impl SortedInMemoryBackendConfiguration<DefaultIdAllocator> for TestRecordsConfigAsc8
+impl SortedInMemoryBackendConfiguration for TestRecordsConfigAsc8
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;

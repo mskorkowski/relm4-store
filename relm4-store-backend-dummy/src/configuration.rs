@@ -1,44 +1,40 @@
 use std::fmt::Debug;
 use std::ops::Index;
 
-use record::TemporaryIdAllocator;
 use store::StoreMsg;
 
 #[derive(Debug, Clone)]
-pub struct Step<Record: record::Record<Allocator> + Debug + Clone, Allocator: TemporaryIdAllocator> {
+pub struct Step<Record: record::Record + Clone> {
     pub data: Vec<Record>,
-    pub events: Vec<StoreMsg<Record, Allocator>>,
+    pub events: Vec<StoreMsg<Record>>,
 }
 
 /// Configuration of the dummy data store
 #[derive(Clone)]
-pub struct DummyBackendConfiguration<Record, Allocator> 
+pub struct DummyBackendConfiguration<Record> 
 where
-    Record: record::Record<Allocator> + Debug + Clone, 
-    Allocator: TemporaryIdAllocator, 
+    Record: record::Record + Debug + Clone,
 {
     /// List of states for dummy backend configuration
-    pub steps: Vec<Step<Record, Allocator>>,
+    pub steps: Vec<Step<Record>>,
     /// Data in the store at the beginning of the test
     pub initial_data: Vec<Record>,
 }
 
-impl<Record, Allocator> Index<usize> for DummyBackendConfiguration<Record, Allocator> 
+impl<Record> Index<usize> for DummyBackendConfiguration<Record> 
 where 
-    Record: record::Record<Allocator> + Debug + Clone,
-    Allocator: TemporaryIdAllocator,
+    Record: record::Record + Debug + Clone,
 {
-    type Output = Step<Record, Allocator>;
+    type Output = Step<Record>;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.steps[index]
     }
 }
 
-impl<Record, Allocator> DummyBackendConfiguration<Record, Allocator> 
+impl<Record> DummyBackendConfiguration<Record> 
 where 
-    Record: record::Record<Allocator> + Debug + Clone,
-    Allocator: TemporaryIdAllocator,
+    Record: record::Record + Debug + Clone,
 {
     /// Returns count of steps in the configuration
     /// 
@@ -49,10 +45,9 @@ where
 }
 
 
-impl<Record, Allocator> Debug for DummyBackendConfiguration<Record, Allocator> 
+impl<Record> Debug for DummyBackendConfiguration<Record> 
 where 
-    Record: record::Record<Allocator> + Debug + Clone,
-    Allocator: TemporaryIdAllocator + Debug,
+    Record: record::Record + Debug + Clone,
 {
     #[cfg(not(tarpaulin_include))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

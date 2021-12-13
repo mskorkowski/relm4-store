@@ -3,11 +3,11 @@ use backend_inmemory::InMemoryBackendConfiguration;
 use record::DefaultIdAllocator;
 use crate::model::Task;
 
-pub type Tasks = InMemoryBackend<TasksBuilder, DefaultIdAllocator, DefaultIdAllocator>;
+pub type Tasks = InMemoryBackend<TasksBuilder, DefaultIdAllocator>;
 
 pub struct TasksBuilder {}
 
-impl InMemoryBackendConfiguration<DefaultIdAllocator> for TasksBuilder
+impl InMemoryBackendConfiguration for TasksBuilder
 {
     type Record = Task;
 

@@ -8,7 +8,7 @@ use record::{Id, Record, DefaultIdAllocator};
 
 #[derive(Clone)]
 pub struct Task {
-    id: Id<Task, DefaultIdAllocator>,
+    id: Id<Task>,
     pub description: String,
     pub completed: bool,
 }
@@ -23,8 +23,10 @@ impl Task {
     }
 }
 
-impl Record<DefaultIdAllocator> for Task {
-    fn get_id(&self) -> Id<Task, DefaultIdAllocator> {
+impl Record for Task {
+    type Allocator = DefaultIdAllocator;
+
+    fn get_id(&self) -> Id<Task> {
         self.id
     }
 

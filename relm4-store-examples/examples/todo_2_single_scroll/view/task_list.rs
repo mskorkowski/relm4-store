@@ -41,12 +41,12 @@ use crate::model::Task;
 use crate::store::Tasks;
 
 
-type StoreMsg = store::StoreMsg<Task, DefaultIdAllocator>;
+type StoreMsg = store::StoreMsg<Task>;
 
 pub enum TaskMsg {
     Toggle{
         complete: bool,
-        id: Id<Task, DefaultIdAllocator>,
+        id: Id<Task>,
     },
     New,
     Scrolled,
@@ -72,7 +72,7 @@ where Config: TasksListConfiguration + 'static,
 {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>>>,
+    store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator>>>,
     scroll_adjustment: gtk::Adjustment,
 }
 
@@ -84,11 +84,11 @@ where Config: TasksListConfiguration + 'static,
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryConfiguration<DefaultIdAllocator, DefaultIdAllocator> for TasksListViewModel<Config> 
+impl<Config: TasksListConfiguration> FactoryConfiguration<DefaultIdAllocator> for TasksListViewModel<Config> 
 where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
-    type StoreView = StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>;
+    type StoreView = StoreViewImplementation<Self, DefaultIdAllocator>;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
@@ -202,7 +202,7 @@ where Config: TasksListConfiguration + 'static,
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator>>>) -> Self {
         let view_length = store_view.borrow().len();
 
         TasksListViewModel{
@@ -251,8 +251,8 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
     }
 }
 
-impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>, DefaultIdAllocator, DefaultIdAllocator> for TasksListViewWidgets {
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<DefaultIdAllocator, DefaultIdAllocator>>::View {
+impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>, DefaultIdAllocator> for TasksListViewWidgets {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<DefaultIdAllocator>>::View {
         &self.container
     }
 }

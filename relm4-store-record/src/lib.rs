@@ -42,12 +42,18 @@ pub trait Identifiable<T: ?Sized, Type> {
 /// Definition of the record in the data store
 /// 
 /// By default it's using uuid as identifiers so it's almost impossible to generate the collision for two records
-pub trait Record<Allocator: TemporaryIdAllocator>: Clone {
+pub trait Record: Clone {
+    /// This defines how this record will get it's id's.
+    /// 
+    /// If you don't care about id's (do not store your records in the database) then [`DefaultIdAllocator`] will do the job.
+    /// If you store your records in the MySql, Postgresql or anything else you should create appropriate id allocator
+    type Allocator: TemporaryIdAllocator;
+
     /// Returns the id of this object
-    fn get_id(&self) -> Id<Self, Allocator>;
+    fn get_id(&self) -> Id<Self>;
 
     /// Updates record to use permanent
-    fn set_permanent_id(&mut self, value: Allocator::Type) -> Result<(), IdentityError>;
+    fn set_permanent_id(&mut self, value: <Self::Allocator as TemporaryIdAllocator>::Type) -> Result<(), IdentityError>;
 }
 
 /// Provides a way to create temporary id's

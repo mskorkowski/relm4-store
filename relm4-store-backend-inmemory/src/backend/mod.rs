@@ -24,9 +24,9 @@ use store::StoreMsg;
 use store::math::Range;
 
 /// Configuration trait for the InMemoryBackend
-pub trait InMemoryBackendConfiguration<Allocator: TemporaryIdAllocator> {
+pub trait InMemoryBackendConfiguration {
     /// Type of data in the in memory store
-    type Record: 'static + Record<Allocator> + Debug + Clone;
+    type Record: 'static + Record + Debug + Clone;
 
     /// Returns initial dataset for the store
     fn initial_data() -> Vec<Self::Record>;
@@ -36,36 +36,34 @@ pub trait InMemoryBackendConfiguration<Allocator: TemporaryIdAllocator> {
 
 /// In memory implementation of the data store
 #[derive(Debug)]
-pub struct InMemoryBackend<Configuration, Allocator, StoreIdAllocator> 
+pub struct InMemoryBackend<Configuration, StoreIdAllocator> 
 where 
-    Configuration: InMemoryBackendConfiguration<Allocator>,
-    Allocator: TemporaryIdAllocator,
+    Configuration: InMemoryBackendConfiguration,
     StoreIdAllocator: TemporaryIdAllocator,
 {
-    id: StoreId<Self, Allocator, StoreIdAllocator>,
+    id: StoreId<Self, StoreIdAllocator>,
 
     /// Order of profiles
-    order: RefCell<VecDeque<Id<Configuration::Record, Allocator>>>,
+    order: RefCell<VecDeque<Id<Configuration::Record>>>,
 
     /// profile storage
-    data: RefCell<HashMap<Id<Configuration::Record, Allocator>, Configuration::Record>>,
+    data: RefCell<HashMap<Id<Configuration::Record>, Configuration::Record>>,
 
-    senders: RefCell<HashMap<StoreId<Self, Allocator, StoreIdAllocator>, Sender<StoreMsg<Configuration::Record, Allocator>>>>,
+    senders: RefCell<HashMap<StoreId<Self, StoreIdAllocator>, Sender<StoreMsg<Configuration::Record>>>>,
 
-    sender: Sender<StoreMsg<Configuration::Record, Allocator>>,
+    sender: Sender<StoreMsg<Configuration::Record>>,
 }
 
-impl<Configuration, Allocator, StoreIdAllocator> InMemoryBackend<Configuration, Allocator, StoreIdAllocator> 
+impl<Configuration, StoreIdAllocator> InMemoryBackend<Configuration, StoreIdAllocator> 
 where 
-    Configuration: InMemoryBackendConfiguration<Allocator> + 'static,
-    Allocator: TemporaryIdAllocator + 'static,
+    Configuration: InMemoryBackendConfiguration + 'static,
     StoreIdAllocator: TemporaryIdAllocator + 'static,
 {
     /// Creates new instance of the InMemoryBackend
     pub fn new() -> Rc<RefCell<Self>> {
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
-        let backend: InMemoryBackend<Configuration, Allocator, StoreIdAllocator> = InMemoryBackend{
+        let backend: InMemoryBackend<Configuration, StoreIdAllocator> = InMemoryBackend{
             id: StoreId::new(),
             order: RefCell::new(VecDeque::new()),
             data: RefCell::new(HashMap::new()),
@@ -78,7 +76,7 @@ where
 
         {
             let context = glib::MainContext::default();
-            receiver.attach(Some(&context), move |msg:StoreMsg<Configuration::Record, Allocator>| {
+            receiver.attach(Some(&context), move |msg:StoreMsg<Configuration::Record>| {
                 log::info!("Message received in receiver: {:?}", &msg);
                 if let Ok(backend) = handler_backend.try_borrow() {
                     log::info!("Pushing message via inbox!");
@@ -102,7 +100,7 @@ where
         shared_backed
     }
 
-    fn inbox(&self, msg: StoreMsg<Configuration::Record, Allocator>) {
+    fn inbox(&self, msg: StoreMsg<Configuration::Record>) {
         log::info!("Received message: {:?}", &msg);
         match msg {
             StoreMsg::Commit(record) => {
@@ -128,8 +126,8 @@ where
         }
     }
 
-    fn fire_handlers(&self, message: StoreMsg<Configuration::Record, Allocator>) {
-        let mut ids_for_remove: Vec<StoreId<Self, Allocator, StoreIdAllocator>> = Vec::new();
+    fn fire_handlers(&self, message: StoreMsg<Configuration::Record>) {
+        let mut ids_for_remove: Vec<StoreId<Self, StoreIdAllocator>> = Vec::new();
 
         {
             let senders = self.senders.borrow();
@@ -179,23 +177,21 @@ where
     }
 }
 
-impl<Configuration, Allocator, StoreIdAllocator> Identifiable<InMemoryBackend<Configuration, Allocator, StoreIdAllocator>, StoreIdAllocator::Type> for InMemoryBackend<Configuration, Allocator, StoreIdAllocator>
+impl<Configuration, StoreIdAllocator> Identifiable<InMemoryBackend<Configuration, StoreIdAllocator>, StoreIdAllocator::Type> for InMemoryBackend<Configuration, StoreIdAllocator>
 where 
-    Configuration: InMemoryBackendConfiguration<Allocator>,
-    Allocator: TemporaryIdAllocator,
+    Configuration: InMemoryBackendConfiguration,
     StoreIdAllocator: TemporaryIdAllocator,
 {
-    type Id=StoreId<Self, Allocator, StoreIdAllocator>;
+    type Id=StoreId<Self, StoreIdAllocator>;
 
     fn get_id(&self) -> Self::Id {
         self.id
     }
 }
 
-impl<Configuration, Allocator, StoreIdAllocator> DataStore<Allocator, StoreIdAllocator> for InMemoryBackend<Configuration, Allocator, StoreIdAllocator>
+impl<Configuration, StoreIdAllocator> DataStore<StoreIdAllocator> for InMemoryBackend<Configuration, StoreIdAllocator>
 where 
-    Configuration: InMemoryBackendConfiguration<Allocator>,
-    Allocator: TemporaryIdAllocator,
+    Configuration: InMemoryBackendConfiguration,
     StoreIdAllocator: TemporaryIdAllocator,
 {
     type Record = Configuration::Record;
@@ -230,26 +226,26 @@ where
         result
     }
 
-    fn get(&self, id: &Id<Configuration::Record, Allocator>) -> Option<Configuration::Record> {
+    fn get(&self, id: &Id<Configuration::Record>) -> Option<Configuration::Record> {
         let data = self.data.borrow();
         data.get(id)
             .map(|r| r.clone())
     }
 
-    fn listen<'b>(&self, handler_ref: StoreId<Self, Allocator, StoreIdAllocator>, sender: Sender<StoreMsg<Self::Record, Allocator>>) {
+    fn listen<'b>(&self, handler_ref: StoreId<Self, StoreIdAllocator>, sender: Sender<StoreMsg<Self::Record>>) {
         self.senders.borrow_mut().insert(handler_ref, sender);
     }
 
-    fn unlisten(&self, handler_ref: StoreId<Self, Allocator, StoreIdAllocator>) {
+    fn unlisten(&self, handler_ref: StoreId<Self, StoreIdAllocator>) {
         self.senders.borrow_mut().remove(&handler_ref);
     }
 
-    fn send(&self, msg: StoreMsg<Self::Record, Allocator>) {
+    fn send(&self, msg: StoreMsg<Self::Record>) {
         log::info!("Sending message via sender: {:?}", msg);
         self.sender.send(msg).expect("Message should be sent, since store exists");
     }
 
-    fn sender(&self) -> Sender<StoreMsg<Self::Record, Allocator>> {
+    fn sender(&self) -> Sender<StoreMsg<Self::Record>> {
         self.sender.clone()
     }
 }

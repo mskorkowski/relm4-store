@@ -1,6 +1,5 @@
 
 mod test_record {
-    use record::DefaultIdAllocator;
     use reexport::uuid::Uuid;
 
     use record::Id;
@@ -25,7 +24,7 @@ mod test_record {
         let mut record = TestRecord::constant("Sample record");
 
         let new_id = Uuid::new_v4();
-        let permanent_id = Id::<TestRecord, DefaultIdAllocator>::from(new_id);
+        let permanent_id = Id::<TestRecord>::from(new_id);
 
         record.set_permanent_id(new_id).expect("Setting permanent id for the first time should work");
 
@@ -37,7 +36,7 @@ mod test_record {
         let mut record = TestRecord::constant("Sample record");
 
         let new_id = Uuid::new_v4();
-        let permanent_id = Id::<TestRecord, DefaultIdAllocator>::from(new_id);
+        let permanent_id = Id::<TestRecord>::from(new_id);
 
         record.set_permanent_id(new_id).expect("Setting permanent id for the first time should work");
 
@@ -76,7 +75,7 @@ mod test_cases {
                 let TestCase{configuration, data: _} = TestCases::empty(0);
                 assert!(configuration.len() == 0);
 
-                let be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+                let be = DummyBackend::<TestRecord, DefaultIdAllocator>::new(configuration);
                 assert!(be.len() ==  0);
             }
 
@@ -85,7 +84,7 @@ mod test_cases {
                 let TestCase{configuration, data: _} = TestCases::empty(2);
                 assert!(configuration.len() == 2);
 
-                let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+                let mut be = DummyBackend::<TestRecord, DefaultIdAllocator>::new(configuration);
                 assert!(be.len() ==  0);
                 be.advance();
                 assert!(be.len() == 0);
@@ -99,7 +98,7 @@ mod test_cases {
         fn add_first_record() {
             let TestCase{configuration, data: _} = TestCases::add_first_record();
             assert!(configuration.len() == 1);
-            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator>::new(configuration);
             
             assert!(be.is_empty());
             assert!(be.len() == 0);
@@ -112,7 +111,7 @@ mod test_cases {
         fn add_second_record_at_the_beginning() {
             let TestCase{configuration, data: _} = TestCases::add_second_record_at_the_beginning();
             assert!(configuration.len() == 1);
-            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator>::new(configuration);
 
             assert!(!be.is_empty());
             assert!(be.len() == 1);
@@ -125,7 +124,7 @@ mod test_cases {
         fn add_second_record_at_the_end() {
             let TestCase{configuration, data: _} = TestCases::add_second_record_at_the_end();
             assert!(configuration.len() == 1);
-            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator>::new(configuration);
 
             assert!(!be.is_empty());
             assert!(be.len() == 1);
@@ -138,7 +137,7 @@ mod test_cases {
         fn add_third_record_at_the_beginning() {
             let TestCase{configuration, data:_} = TestCases::add_third_record_at_the_beginning();
             assert!(configuration.len() == 1);
-            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator>::new(configuration);
 
             assert!(!be.is_empty());
             assert!(be.len() == 2);
@@ -151,7 +150,7 @@ mod test_cases {
         fn add_third_record_in_the_middle() {
             let TestCase{configuration, data:_} = TestCases::add_third_record_in_the_middle();
             assert!(configuration.len() == 1);
-            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator>::new(configuration);
 
             assert!(!be.is_empty());
             assert!(be.len() == 2);
@@ -164,7 +163,7 @@ mod test_cases {
         fn add_third_record_at_the_end() {
             let TestCase{configuration, data:_} = TestCases::add_third_record_at_the_end();
             assert!(configuration.len() == 1);
-            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator>::new(configuration);
 
             assert!(!be.is_empty());
             assert!(be.len() == 2);
@@ -177,7 +176,7 @@ mod test_cases {
         fn reload_an_empty_store() {
             let TestCase{configuration, data:_} = TestCases::reload_empty_store();
             assert!(configuration.len() == 1);
-            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator>::new(configuration);
 
             assert!(be.is_empty());
             assert!(be.len() == 0);
@@ -205,7 +204,7 @@ mod test_cases {
             ));
             assert!(configuration.len() == 2);
             assert!(data.len() == 5+7+11);
-            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+            let mut be = DummyBackend::<TestRecord, DefaultIdAllocator>::new(configuration);
 
             assert!(be.len() == 5);
             be.advance();

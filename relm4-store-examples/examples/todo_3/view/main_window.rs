@@ -36,10 +36,10 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list_1: StoreViewComponent<TasksListViewModel<TaskList1Configuration>, DefaultIdAllocator, DefaultIdAllocator>,
-    tasks_list_2: StoreViewComponent<TasksListViewModel<TaskList2Configuration>, DefaultIdAllocator, DefaultIdAllocator>,
-    tasks_list_3: StoreViewComponent<TasksListViewModel<TaskList3Configuration>, DefaultIdAllocator, DefaultIdAllocator>,
-    tasks_list_4: StoreViewComponent<TasksListViewModel<TaskList4Configuration>, DefaultIdAllocator, DefaultIdAllocator>,
+    tasks_list_1: StoreViewComponent<TasksListViewModel<TaskList1Configuration>, DefaultIdAllocator>,
+    tasks_list_2: StoreViewComponent<TasksListViewModel<TaskList2Configuration>, DefaultIdAllocator>,
+    tasks_list_3: StoreViewComponent<TasksListViewModel<TaskList3Configuration>, DefaultIdAllocator>,
+    tasks_list_4: StoreViewComponent<TasksListViewModel<TaskList4Configuration>, DefaultIdAllocator>,
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {

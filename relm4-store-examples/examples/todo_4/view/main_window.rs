@@ -56,7 +56,7 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list_1: StoreViewComponent<TasksListViewModel<TaskList1Configuration>, DefaultIdAllocator, DefaultIdAllocator>,
+    tasks_list_1: StoreViewComponent<TasksListViewModel<TaskList1Configuration>, DefaultIdAllocator>,
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {

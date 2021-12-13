@@ -13,14 +13,13 @@ impl<ParentModel: ViewModel> StoreViewInnerComponent<ParentModel> for () {
     fn on_store_update(&mut self) {}
 }
 
-impl<Configuration, Allocator, StoreIdAllocator> FactoryContainerWidgets<Configuration, Allocator, StoreIdAllocator> for () 
+impl<Configuration, StoreIdAllocator> FactoryContainerWidgets<Configuration, StoreIdAllocator> for () 
 where
-    Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator, View=()>,
+    Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator, View=()>,
     Configuration::ViewModel: ViewModel<Widgets=()>,
-    Allocator: TemporaryIdAllocator,
     StoreIdAllocator: TemporaryIdAllocator,
 {
-    fn container_widget(&self) -> &<Configuration as FactoryConfiguration<Allocator, StoreIdAllocator>>::View {
+    fn container_widget(&self) -> &<Configuration as FactoryConfiguration<StoreIdAllocator>>::View {
         &()
     }
 }

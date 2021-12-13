@@ -13,7 +13,6 @@ use std::collections::HashSet;
 use std::collections::hash_map::Keys;
 
 use record::Id;
-use record::TemporaryIdAllocator;
 
 use crate::WindowChangeset;
 
@@ -23,21 +22,19 @@ use crate::WindowChangeset;
 /// 
 /// 1. `data` and `order` at the end of any method have the same length
 /// 2. `order` doesn't contain values not present in `data`
-pub(crate) struct DataContainer<Record, Allocator>
+pub(crate) struct DataContainer<Record>
 where
-    Record: 'static + record::Record<Allocator> + std::fmt::Debug,
-    Allocator: TemporaryIdAllocator,
+    Record: 'static + record::Record + std::fmt::Debug,
 {
     #[allow(clippy::type_complexity)]
-    data: HashMap<Id<Record, Allocator>, Record>,
-    order: Vec<Id<Record, Allocator>>,
+    data: HashMap<Id<Record>, Record>,
+    order: Vec<Id<Record>>,
     max_size: usize,
 }
 
-impl<Record, Allocator> DataContainer<Record, Allocator>
+impl<Record> DataContainer<Record>
 where
-    Record: 'static + record::Record<Allocator> + std::fmt::Debug,
-    Allocator: TemporaryIdAllocator,
+    Record: 'static + record::Record + std::fmt::Debug,
 {
     pub(crate) fn new(max_size: usize) -> Self {
         let dc = DataContainer{
@@ -63,12 +60,12 @@ where
         assert!(self.max_size >= self.len(), "DataContainer size can't exceed max size");
     }
 
-    pub(crate) fn record_ids(&self) -> Keys<'_, Id<Record, Allocator>, Record> {
+    pub(crate) fn record_ids(&self) -> Keys<'_, Id<Record>, Record> {
         let keys = self.data.keys();
         keys
     }
 
-    pub(crate) fn ordered_record_ids(&self) -> Iter<'_, Id<Record, Allocator>> {
+    pub(crate) fn ordered_record_ids(&self) -> Iter<'_, Id<Record>> {
         self.order.iter()
     }
 
@@ -78,7 +75,7 @@ where
         self.invariants();
     }
 
-    pub(crate) fn reload(&mut self, changeset: &mut WindowChangeset<Record, Allocator>, records: Vec<Record>) {
+    pub(crate) fn reload(&mut self, changeset: &mut WindowChangeset<Record>, records: Vec<Record>) {
         let mut old_order = HashSet::new(); 
         old_order.extend(self.order.clone());
 
@@ -110,7 +107,7 @@ where
 
     pub(crate) fn insert_right(
         &mut self, 
-        changeset: &mut WindowChangeset<Record, Allocator>, 
+        changeset: &mut WindowChangeset<Record>, 
         position: usize, 
         records: Vec<Record>
     ) {
@@ -199,7 +196,7 @@ where
     /// - **records** ordered vector holding values to be inserted
     pub(crate) fn insert_left(
         &mut self,
-        changeset: &mut WindowChangeset<Record, Allocator>, 
+        changeset: &mut WindowChangeset<Record>, 
         position: usize, 
         records: Vec<Record>
     ) {
@@ -288,11 +285,11 @@ where
         }
     }
 
-    pub(crate) fn get_order_idx(&self, idx: usize) -> &Id<Record, Allocator>{
+    pub(crate) fn get_order_idx(&self, idx: usize) -> &Id<Record>{
         &self.order[idx]
     }
 
-    pub(crate) fn get_record(&self, id: &Id<Record, Allocator>) -> Option<&Record> {
+    pub(crate) fn get_record(&self, id: &Id<Record>) -> Option<&Record> {
         self.data.get(id)
     }
 
@@ -302,10 +299,9 @@ where
     // }
 }
 
-impl<Record, Allocator> std::fmt::Debug for DataContainer<Record, Allocator>
+impl<Record> std::fmt::Debug for DataContainer<Record>
 where
-    Record: 'static + record::Record<Allocator> + std::fmt::Debug,
-    Allocator: TemporaryIdAllocator,
+    Record: 'static + record::Record + std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut sf = f.debug_struct("DataContainer");
