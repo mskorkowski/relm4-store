@@ -10,7 +10,6 @@ use relm4::factory::FactoryPrototype;
 
 use record::Id;
 use record::Record;
-use record::TemporaryIdAllocator;
 
 use store::DataStore;
 use store::StoreView;
@@ -19,11 +18,10 @@ use store::FactoryConfiguration;
 use super::StoreViewImplementation;
 
 
-impl<Configuration, StoreIdAllocator> FactoryPrototype for StoreViewImplementation<Configuration, StoreIdAllocator>
+impl<Configuration> FactoryPrototype for StoreViewImplementation<Configuration>
 where
-    Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
-    StoreIdAllocator: TemporaryIdAllocator + 'static,
 {
     type Factory = Self;
     type Msg = <Configuration::ViewModel as ViewModel>::Msg;
@@ -59,7 +57,7 @@ where
     ) {
         let model = self.get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
         let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
-        <Configuration as FactoryConfiguration<StoreIdAllocator>>::update_record(model, position, widgets)
+        <Configuration as FactoryConfiguration>::update_record(model, position, widgets)
     }
 
     /// Get the outermost widget from the widgets.
@@ -68,13 +66,12 @@ where
     }
 }
 
-impl<Configuration, StoreIdAllocator> Factory<StoreViewImplementation<Configuration, StoreIdAllocator>, Configuration::View> for StoreViewImplementation<Configuration, StoreIdAllocator>
+impl<Configuration> Factory<StoreViewImplementation<Configuration>, Configuration::View> for StoreViewImplementation<Configuration>
 where
-    Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
-    StoreIdAllocator: TemporaryIdAllocator + 'static
 {
-    type Key = Id<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>;
+    type Key = Id<<Configuration::Store as DataStore>::Record>;
 
     fn generate(&self, view: &Configuration::View, sender: Sender<<Configuration::ViewModel as ViewModel>::Msg>) {
         self.view(view, sender);
@@ -82,16 +79,15 @@ where
 }
 
 /// Required for `relm4::widget` factory macro to work
-impl<Configuration, StoreIdAllocator> Factory<StoreViewImplementation<Configuration, StoreIdAllocator>, Configuration::View> for Ref<'_, StoreViewImplementation<Configuration, StoreIdAllocator>>
+impl<Configuration> Factory<StoreViewImplementation<Configuration>, Configuration::View> for Ref<'_, StoreViewImplementation<Configuration>>
 where
-    Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
-    StoreIdAllocator: TemporaryIdAllocator + 'static, 
 {
-    type Key = Id<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>;
+    type Key = Id<<Configuration::Store as DataStore>::Record>;
 
     fn generate(&self, view: &Configuration::View, sender: Sender<<Configuration::ViewModel as ViewModel>::Msg>) {
-        let me: &StoreViewImplementation<Configuration, StoreIdAllocator> = self;
+        let me: &StoreViewImplementation<Configuration> = self;
         me.view(view, sender);
     }
 }

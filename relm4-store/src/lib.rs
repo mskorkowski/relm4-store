@@ -126,12 +126,31 @@ pub use store_view_component::StoreViewInterfaceError;
 /// 
 /// If there are limitation on that please somewhere at the beginning of the docs note what limitations
 /// are around this values. It can easily become a deal breaker for users of your library.
-pub trait DataStore<StoreIdAllocator>: Identifiable<Self, StoreIdAllocator::Type, Id=StoreId<Self, StoreIdAllocator>> 
-where 
-    StoreIdAllocator: TemporaryIdAllocator,
+pub trait DataStore: Identifiable<Self, <Self::Allocator as TemporaryIdAllocator>::Type, Id=StoreId<Self>> 
 {
     /// Type of records kept in the data store
     type Record: Record + Debug + Clone + 'static;
+
+    /// Id allocator for this data store
+    /// 
+    /// ## TL;DR;
+    /// 
+    /// You should keep it as
+    /// 
+    /// ```text
+    /// type Allocator = DefaultIdAllocator;
+    /// ```
+    /// 
+    /// ## Longer version
+    /// 
+    /// As long as possible (and little bit longer) you should use `[DefaultIdAllocator]` Overriding it
+    /// might be necessary in some super rare cases where you have more then one data store for the same
+    /// kind of data or you have dynamic number of data stores of given kind. Both of the cases are in the
+    /// "please don't do that" area from design perspective. 
+    /// 
+    /// If you are reading this section in 99% of cases creating a custom DataStore which will be backed by
+    /// more then one backend is the proper solution for your issues.
+    type Allocator: TemporaryIdAllocator;
 
     /// Registers message in the data store
     /// 
@@ -159,12 +178,12 @@ where
     /// Attaches sender to the store
     /// 
     /// Sender is used to send a message whenever there are changes in the store
-    fn listen(&self, id: StoreId<Self, StoreIdAllocator>, sender: Sender<StoreMsg<Self::Record>>);
+    fn listen(&self, id: StoreId<Self>, sender: Sender<StoreMsg<Self::Record>>);
 
     /// Removes handler from the store
     /// 
     /// Changes to the store will not be delivered after this handler is removed
-    fn unlisten(&self, handler_ref: StoreId<Self, StoreIdAllocator>);
+    fn unlisten(&self, handler_ref: StoreId<Self>);
 
     /// Returns sender for this store
     fn sender(&self) -> Sender<StoreMsg<Self::Record>>;
@@ -184,12 +203,10 @@ where
 ///   Your business model has two data sets `A` and `B` and there is `1-*` relationship between the data.
 ///   There are valid scenarios when you would like to edit item in `A` and give the ability to modify
 ///   related items in `B` at the same time. 
-pub trait StoreView<StoreIdAllocator>: DataStore<StoreIdAllocator>
-where
-    StoreIdAllocator: TemporaryIdAllocator,
+pub trait StoreView: DataStore
 {
     /// Type describing configuration parts of the store view behavior
-    type Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator>;
+    type Configuration: ?Sized + FactoryConfiguration;
 
     /// How many records should be visible at any point of time
     /// 

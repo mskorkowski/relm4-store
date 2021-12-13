@@ -19,24 +19,23 @@ use store::math::Range;
 
 use super::StoreViewImplementation;
 
-impl<Configuration, StoreIdAllocator> Identifiable<Self, StoreIdAllocator::Type> for StoreViewImplementation<Configuration, StoreIdAllocator>
+impl<Configuration> Identifiable<Self, <<Configuration::Store as DataStore>::Allocator as TemporaryIdAllocator>::Type> for StoreViewImplementation<Configuration>
 where
-    Configuration: 'static + ?Sized + FactoryConfiguration<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Configuration: 'static + ?Sized + FactoryConfiguration,
 {
-    type Id = StoreId<Self, StoreIdAllocator>;
+    type Id = StoreId<Self>;
 
     fn get_id(&self) -> Self::Id {
         self.id
     }
 }
 
-impl<Configuration, StoreIdAllocator> DataStore<StoreIdAllocator> for StoreViewImplementation<Configuration, StoreIdAllocator> 
+impl<Configuration> DataStore for StoreViewImplementation<Configuration> 
 where 
-    Configuration: 'static + ?Sized + FactoryConfiguration<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Configuration: 'static + ?Sized + FactoryConfiguration,
 {
-    type Record = <Configuration::Store as DataStore<StoreIdAllocator>>::Record;
+    type Record = <Configuration::Store as DataStore>::Record;
+    type Allocator = <Configuration::Store as DataStore>::Allocator;
 
     fn len(&self) -> usize {
         self.store.borrow().len()
@@ -46,7 +45,7 @@ where
         self.store.borrow().is_empty()
     }
 
-    fn get_range(&self, range: &Range) -> Vec<<Configuration::Store as DataStore<StoreIdAllocator>>::Record> {
+    fn get_range(&self, range: &Range) -> Vec<<Configuration::Store as DataStore>::Record> {
         self.store.borrow().get_range(range)
     }
 
@@ -54,11 +53,11 @@ where
         self.store.borrow().get(id)
     }
 
-    fn listen(&self, id: StoreId<Self, StoreIdAllocator>, sender: Sender<StoreMsg<Self::Record>>) {
+    fn listen(&self, id: StoreId<Self>, sender: Sender<StoreMsg<Self::Record>>) {
         self.handlers.borrow_mut().insert(id, sender);
     }
 
-    fn unlisten(&self, handler_ref: StoreId<Self, StoreIdAllocator>) {
+    fn unlisten(&self, handler_ref: StoreId<Self>) {
         self.handlers.borrow_mut().remove(&handler_ref);
     }
 
@@ -71,10 +70,9 @@ where
     }
 }
 
-impl<Configuration, StoreIdAllocator> StoreView<StoreIdAllocator> for StoreViewImplementation<Configuration, StoreIdAllocator> 
+impl<Configuration> StoreView for StoreViewImplementation<Configuration> 
 where
-    Configuration: 'static + ?Sized + FactoryConfiguration<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Configuration: 'static + ?Sized + FactoryConfiguration,
 {
     type Configuration = Configuration;
 
@@ -82,7 +80,7 @@ where
         self.range.borrow().len()
     }
 
-    fn get_view_data(&self) -> Vec<RecordWithLocation<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>> {
+    fn get_view_data(&self) -> Vec<RecordWithLocation<<Configuration::Store as DataStore>::Record>> {
         let view = self.view.borrow();
         let mut result = Vec::with_capacity(view.len());
 

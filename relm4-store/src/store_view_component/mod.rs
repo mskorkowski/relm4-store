@@ -17,8 +17,6 @@ use relm4::Sender;
 use relm4::Widgets;
 use relm4::factory::Factory;
 
-use record::TemporaryIdAllocator;
-
 use crate::FactoryConfiguration;
 use crate::FactoryContainerWidgets;
 use crate::StoreSize;
@@ -86,11 +84,10 @@ impl Debug for StoreViewInterfaceError {
 }
 
 /// Specialized kind of component to handle store view 
-pub struct StoreViewComponent<Configuration, StoreIdAllocator> 
+pub struct StoreViewComponent<Configuration> 
 where
-    Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
     view: Rc<RefCell<Configuration::StoreView>>,
     _components: Rc<RefCell<<Configuration::ViewModel as ViewModel>::Components>>,
@@ -101,11 +98,10 @@ where
     _redraw_sender: Sender<RedrawMessages>,
 }
 
-impl<Configuration, StoreIdAllocator> std::fmt::Debug for StoreViewComponent<Configuration, StoreIdAllocator> 
+impl<Configuration> std::fmt::Debug for StoreViewComponent<Configuration> 
 where 
-    Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator> + 'static,
+    Configuration: ?Sized + FactoryConfiguration + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StoreViewComponent")
@@ -115,12 +111,11 @@ where
 }
 
 
-impl<Configuration, StoreIdAllocator> StoreViewComponent<Configuration, StoreIdAllocator> 
+impl<Configuration> StoreViewComponent<Configuration> 
 where 
-    Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator> + 'static,
-    <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel> + FactoryContainerWidgets<Configuration, StoreIdAllocator>,
+    Configuration: ?Sized + FactoryConfiguration + 'static,
+    <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel> + FactoryContainerWidgets<Configuration>,
     <Configuration::ViewModel as ViewModel>::Components: relm4::Components<Configuration::ViewModel> + StoreViewInnerComponent<Configuration::ViewModel>,
-    StoreIdAllocator: TemporaryIdAllocator + 'static,
 {
     /// Creates new instance of the [StoreViewInterface]
     pub fn new(

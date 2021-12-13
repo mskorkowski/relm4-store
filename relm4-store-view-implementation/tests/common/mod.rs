@@ -1,4 +1,3 @@
-use record::DefaultIdAllocator;
 use reexport::glib;
 use reexport::gtk;
 use reexport::relm4;
@@ -31,9 +30,9 @@ pub struct TestConfig<Window: 'static + WindowBehavior> {
     _window: PhantomData<*const Window>,
 }
 
-impl<Window: 'static + WindowBehavior> FactoryConfiguration<DefaultIdAllocator> for TestConfig<Window> {
-    type Store = DummyBackend<TestRecord, DefaultIdAllocator>;
-    type StoreView = StoreViewImplementation<Self, DefaultIdAllocator>;
+impl<Window: 'static + WindowBehavior> FactoryConfiguration for TestConfig<Window> {
+    type Store = DummyBackend<TestRecord>;
+    type StoreView = StoreViewImplementation<Self>;
     type RecordWidgets = TestWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
@@ -45,27 +44,27 @@ impl<Window: 'static + WindowBehavior> FactoryConfiguration<DefaultIdAllocator> 
         StoreViewImplementation::new(store, size.items(), redraw_sender)
     }
 
-    fn generate(_record: &<Self::Store as store::DataStore<DefaultIdAllocator>>::Record, _position: Position, _sender: Sender<()>) -> Self::RecordWidgets {
+    fn generate(_record: &<Self::Store as store::DataStore>::Record, _position: Position, _sender: Sender<()>) -> Self::RecordWidgets {
         TestWidgets{
             root: gtk::Box::default()
         }
     }
 
-    fn update_record(_model: <Self::Store as store::DataStore<DefaultIdAllocator>>::Record, _position: Position, _widgets: &Self::RecordWidgets) {}
+    fn update_record(_model: <Self::Store as store::DataStore>::Record, _position: Position, _widgets: &Self::RecordWidgets) {}
 
     fn update(_view_model: &mut Self::ViewModel, _msg: (), _sender: Sender<()>) {}
     
     fn init_view_model(_parent_view_model: &Self::ParentViewModel, _store_view: std::rc::Rc<std::cell::RefCell<Self::StoreView>>) -> Self::ViewModel {}
 
-    fn position(_model: <Self::Store as store::DataStore<DefaultIdAllocator>>::Record, _position: Position) {}
+    fn position(_model: <Self::Store as store::DataStore>::Record, _position: Position) {}
 
     fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root {
         &widgets.root
     }
 }
 
-pub type Assertion<Window> = &'static dyn Fn(&Vec<TestRecord>, &StoreViewImplementation<TestConfig<Window>, DefaultIdAllocator>, &Vec<TestRecord>) -> ();
-pub type Prepare<Window> = &'static dyn Fn(&StoreViewImplementation<TestConfig<Window>, DefaultIdAllocator>) -> bool;
+pub type Assertion<Window> = &'static dyn Fn(&Vec<TestRecord>, &StoreViewImplementation<TestConfig<Window>>, &Vec<TestRecord>) -> ();
+pub type Prepare<Window> = &'static dyn Fn(&StoreViewImplementation<TestConfig<Window>>) -> bool;
 
 pub struct StoreViewTest<Window>
 where
@@ -131,10 +130,10 @@ where
 
         let container = gtk::Box::default();
 
-        let data_store: DummyBackend<TestRecord, DefaultIdAllocator> = DummyBackend::new(self.test_case.configuration.clone());
+        let data_store: DummyBackend<TestRecord> = DummyBackend::new(self.test_case.configuration.clone());
         let shared_store = Rc::new(RefCell::new(data_store));
 
-        let store_view: StoreViewImplementation<TestConfig<Window>, DefaultIdAllocator> = StoreViewImplementation::new(
+        let store_view: StoreViewImplementation<TestConfig<Window>> = StoreViewImplementation::new(
             shared_store.clone(), 
             self.window_size.items(), 
             sender

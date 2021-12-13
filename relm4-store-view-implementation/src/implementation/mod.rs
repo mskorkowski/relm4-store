@@ -21,7 +21,6 @@ use relm4::factory::FactoryListView;
 use relm4::factory::FactoryView;
 
 use record::Id;
-use record::TemporaryIdAllocator;
 
 use store::DataStore;
 use store::FactoryConfiguration;
@@ -49,29 +48,27 @@ use super::widgets;
 /// make sure all the updates are propagated to the view.
 /// 
 /// **Warning** This implementation of the store view doesn't work for multisets (aka data repetition).
-pub struct StoreViewImplementation<Configuration, StoreIdAllocator>
+pub struct StoreViewImplementation<Configuration>
 where
-    Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator> + 'static,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Configuration: ?Sized + FactoryConfiguration + 'static,
 {
-    id: StoreId<Self, StoreIdAllocator>,
+    id: StoreId<Self>,
     store: Rc<RefCell<Configuration::Store>>,
-    handlers: Rc<RefCell<HashMap<StoreId<Self, StoreIdAllocator>, Sender<StoreMsg<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>>>>>,
+    handlers: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreMsg<<Configuration::Store as DataStore>::Record>>>>>,
     #[allow(clippy::type_complexity)]
-    view: Rc<RefCell<DataContainer<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>>>,
+    view: Rc<RefCell<DataContainer<<Configuration::Store as DataStore>::Record>>>,
     #[allow(clippy::type_complexity)]
-    widgets: Rc<RefCell<HashMap<Id<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>, widgets::Widgets<Configuration::RecordWidgets, <Configuration::View as FactoryView<Configuration::Root>>::Root>>>>,
-    changes: Rc<RefCell<Vec<StoreMsg<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>>>>,
+    widgets: Rc<RefCell<HashMap<Id<<Configuration::Store as DataStore>::Record>, widgets::Widgets<Configuration::RecordWidgets, <Configuration::View as FactoryView<Configuration::Root>>::Root>>>>,
+    changes: Rc<RefCell<Vec<StoreMsg<<Configuration::Store as DataStore>::Record>>>>,
     range: Rc<RefCell<Range>>,
     size: usize,
     redraw_sender: Sender<RedrawMessages>,
-    sender: Sender<StoreMsg<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>>,
+    sender: Sender<StoreMsg<<Configuration::Store as DataStore>::Record>>,
 }
 
-impl<Configuration, StoreIdAllocator> Debug for StoreViewImplementation<Configuration, StoreIdAllocator>
+impl<Configuration> Debug for StoreViewImplementation<Configuration>
 where
-    Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator> + 'static,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Configuration: ?Sized + FactoryConfiguration + 'static,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("StoreViewImplementation")
@@ -81,10 +78,9 @@ where
     }
 }
 
-impl<Configuration, StoreIdAllocator> StoreViewImplementation<Configuration, StoreIdAllocator> 
+impl<Configuration> StoreViewImplementation<Configuration> 
 where
-    Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator> + 'static,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Configuration: ?Sized + FactoryConfiguration + 'static,
 {
     ///Creates  new instance of this struct
     /// 
@@ -114,7 +110,7 @@ where
             });
         }
 
-        let id: StoreId<Self, StoreIdAllocator> = StoreId::new();
+        let id: StoreId<Self> = StoreId::new();
         
         store.borrow().listen(id.transfer(), sender.clone());
         changes.borrow_mut().push(StoreMsg::Reload);
@@ -133,12 +129,12 @@ where
         }
     }
 
-    fn inbox(&self, message: StoreMsg<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>) {
+    fn inbox(&self, message: StoreMsg<<Configuration::Store as DataStore>::Record>) {
         self.changes.borrow_mut().push(message);
         self.redraw_sender.send(RedrawMessages::Redraw).expect("Unexpected failure while sending message via redraw_sender");
     }
 
-    fn convert_to_transition(&self, state: &StoreState<'_>, message: &StoreMsg<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>) -> WindowTransition {
+    fn convert_to_transition(&self, state: &StoreState<'_>, message: &StoreMsg<<Configuration::Store as DataStore>::Record>) -> WindowTransition {
         match message {
             StoreMsg::NewAt(p) => {
                 Configuration::Window::insert(state, &p.to_point())
@@ -164,12 +160,12 @@ where
         }
     }
 
-    fn reload(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>) {
+    fn reload(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>) {
         println!("RELOAD");
 
         let store = self.store.borrow();
         let range_of_changes = self.range.borrow().clone();
-        let new_records: Vec<<Self as DataStore<StoreIdAllocator>>::Record> = store.get_range(&range_of_changes);
+        let new_records: Vec<<Self as DataStore>::Record> = store.get_range(&range_of_changes);
         let mut view = self.view.borrow_mut();
         
         println!("[view][reload][before] {:#?}", view);
@@ -183,7 +179,7 @@ where
     /// 
     /// Insert is limited by the page size. For example if the window starts at `10` and ends at `20`, and you insert
     /// `5` records at position `18` you will basically insert two elements 18 and 19.
-    fn insert_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>, pos: usize, by: usize) {
+    fn insert_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, pos: usize, by: usize) {
         // it's responsibility of the WindowBehavior to make this math valid and truncate `pos` and `by` to the acceptable range
         // and WindowBehavior logic was called before we reached here so we can assume we are safe here
         let mut view = self.view.borrow_mut();
@@ -214,7 +210,7 @@ where
     ///
     /// Third case:
     /// 
-    fn insert_left(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore<StoreIdAllocator>>::Record>, pos: usize, by: usize) {
+    fn insert_left(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, pos: usize, by: usize) {
         // it's responsibility of the WindowBehavior to make this math valid and truncate `pos` and `by` to the acceptable range
         // and WindowBehavior logic was called before we reached here so we can assume we are safe here
 
@@ -249,7 +245,7 @@ where
 
     }
 
-    fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore<StoreIdAllocator>>::Record> {
+    fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore>::Record> {
         let mut changeset = WindowChangeset::default();
 
         let mut changes = self.changes.borrow_mut();
@@ -445,7 +441,7 @@ where
                 
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
-                        <Configuration as FactoryConfiguration<StoreIdAllocator>>::update_record(record, position, &widget.widgets);
+                        <Configuration as FactoryConfiguration>::update_record(record, position, &widget.widgets);
                         if old_order_len > position.0 {
                             if old_order[position.0] != *id {
                                 // things got reordered so we need to remove widget from old place and attach it to the new one

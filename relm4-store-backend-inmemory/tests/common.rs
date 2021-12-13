@@ -5,7 +5,7 @@ use relm4_store_backend_inmemory::SortedInMemoryBackend;
 use relm4_store_backend_inmemory::SortedInMemoryBackendConfiguration;
 use relm4_store_backend_inmemory::Sorter;
 
-pub type TestRecordsBase<Config> = SortedInMemoryBackend<Config, DefaultIdAllocator>;
+pub type TestRecordsBase<Config> = SortedInMemoryBackend<Config>;
 
 #[derive(Clone, Copy, Debug)]
 pub enum OrderTestRecordsBy {
@@ -32,6 +32,7 @@ impl SortedInMemoryBackendConfiguration for TestRecordsConfigDescEmpty
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;
+    type Allocator = DefaultIdAllocator;
 
     fn initial_data() -> Vec<Self::Record> {
         vec![]
@@ -47,6 +48,7 @@ impl SortedInMemoryBackendConfiguration for TestRecordsConfigDesc8
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;
+    type Allocator = DefaultIdAllocator;
 
     fn initial_data() -> Vec<Self::Record> {
         vec![
@@ -71,6 +73,7 @@ impl SortedInMemoryBackendConfiguration for TestRecordsConfigAscEmpty
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;
+    type Allocator = DefaultIdAllocator;
 
     fn initial_data() -> Vec<Self::Record> {
         vec![]
@@ -86,6 +89,7 @@ impl SortedInMemoryBackendConfiguration for TestRecordsConfigAsc8
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;
+    type Allocator = DefaultIdAllocator;
 
     fn initial_data() -> Vec<Self::Record> {
         vec![

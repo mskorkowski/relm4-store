@@ -5,7 +5,6 @@ use std::fmt::Debug;
 use std::fmt::Result as FmtResult;
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::marker::PhantomData;
 
 use record::Identity;
 use record::TemporaryIdAllocator;
@@ -59,25 +58,21 @@ use super::DataStore;
 /// 
 /// PS. If you change the default allocator for just part of stores and do something more 
 /// interesting then just store to store-view I wish you good luck. Sincerely yours, author. 
-pub struct StoreId<Store, StoreIdAllocator>
+pub struct StoreId<Store>
 where
-    Store: ?Sized + DataStore<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Store: ?Sized + DataStore,
 {
-    value: StoreIdAllocator::Type,
-    _store: PhantomData<*const Store>,
+    value: <Store::Allocator as TemporaryIdAllocator>::Type,
 }
 
-impl<Store, StoreIdAllocator> StoreId<Store, StoreIdAllocator> 
+impl<Store> StoreId<Store> 
 where
-    Store: ?Sized + DataStore<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Store: ?Sized + DataStore,
 {
     /// Creates new instance of [StoreId]
     pub fn new() -> Self {
         StoreId {
-            value: StoreIdAllocator::new_id(),
-            _store: PhantomData,
+            value: <Store::Allocator as TemporaryIdAllocator>::new_id(),
         }
     }
 
@@ -85,62 +80,55 @@ where
     /// 
     /// This is possible if and only if other store's allocator and current store's allocator internal 
     /// id data type is the same
-    pub fn transfer<OtherStore, OtherStoreIdAllocator>(&self) -> StoreId<OtherStore, OtherStoreIdAllocator> 
+    pub fn transfer<OtherStore>(&self) -> StoreId<OtherStore> 
     where
-        OtherStoreIdAllocator: TemporaryIdAllocator<Type=StoreIdAllocator::Type>,
-        OtherStore: ?Sized + DataStore<OtherStoreIdAllocator>,
+        OtherStore: ?Sized + DataStore,
+        OtherStore::Allocator: TemporaryIdAllocator<Type=<Store::Allocator as TemporaryIdAllocator>::Type>
     {
         StoreId{
             value: self.value,
-            _store: PhantomData,
         }
     }
 }
 
-impl<Store, StoreIdAllocator> Default for StoreId<Store, StoreIdAllocator> 
+impl<Store> Default for StoreId<Store> 
 where
-    Store: ?Sized + DataStore<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Store: ?Sized + DataStore,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<Store, StoreIdAllocator> Clone for StoreId<Store, StoreIdAllocator> 
+impl<Store> Clone for StoreId<Store> 
 where
-    Store: ?Sized + DataStore<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Store: ?Sized + DataStore,
 {
     fn clone(&self) -> Self {
         Self {
             value: self.value,
-            _store: PhantomData,
         }
     }
 }
 
-impl<Store, StoreIdAllocator> Hash for StoreId<Store, StoreIdAllocator> 
+impl<Store> Hash for StoreId<Store> 
 where
-    Store: ?Sized + DataStore<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Store: ?Sized + DataStore,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.value.hash(state);
     }
 }
 
-impl<Store, StoreIdAllocator> Copy for StoreId<Store, StoreIdAllocator>
+impl<Store> Copy for StoreId<Store>
 where
-    Store: ?Sized + DataStore<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Store: ?Sized + DataStore,
 {}
 
 
-impl<Store, StoreIdAllocator> PartialEq for StoreId<Store, StoreIdAllocator> 
+impl<Store> PartialEq for StoreId<Store> 
 where
-    Store: ?Sized + DataStore<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Store: ?Sized + DataStore,
 {
     fn eq(&self, other: &Self) -> bool {
         self.value.eq(&other.value)
@@ -148,27 +136,24 @@ where
 }
 
 
-impl<Store, StoreIdAllocator> Identity<Store, StoreIdAllocator::Type> for StoreId<Store, StoreIdAllocator>
+impl<Store> Identity<Store, <Store::Allocator as TemporaryIdAllocator>::Type> for StoreId<Store>
 where
-    Store: ?Sized + DataStore<StoreIdAllocator, Id=StoreId<Store, StoreIdAllocator>>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Store: ?Sized + DataStore<Id=StoreId<Store>>,
 {
-    fn get_value(&self) -> StoreIdAllocator::Type {
+    fn get_value(&self) -> <Store::Allocator as TemporaryIdAllocator>::Type {
         self.value
     }
 }
 
-impl<Store, StoreIdAllocator> Eq for StoreId<Store, StoreIdAllocator> 
+impl<Store> Eq for StoreId<Store> 
 where
-    Store: ?Sized + DataStore<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Store: ?Sized + DataStore,
 {}
 
-impl<Store, StoreIdAllocator> Debug for StoreId<Store, StoreIdAllocator> 
+impl<Store> Debug for StoreId<Store> 
 where
-    Store: ?Sized + DataStore<StoreIdAllocator>, 
-    StoreIdAllocator: TemporaryIdAllocator,
-    StoreIdAllocator::Type: Debug,
+    Store: ?Sized + DataStore, 
+    <Store::Allocator as TemporaryIdAllocator>::Type: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         f.debug_struct("StoreId").

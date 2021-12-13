@@ -34,6 +34,7 @@ pub trait OrderedStore<OrderBy> {
 pub trait SortedInMemoryBackendConfiguration {
     /// Type of data in the in memory store
     type Record: 'static + Record + Debug + Clone;
+    type Allocator: TemporaryIdAllocator;
     type OrderBy: 'static + Sorter<Self::Record> + Copy;
 
     /// Returns initial dataset for the store
@@ -44,12 +45,11 @@ pub trait SortedInMemoryBackendConfiguration {
 
 /// In memory implementation of the data store
 #[derive(Debug)]
-pub struct SortedInMemoryBackend<Config, StoreIdAllocator> 
+pub struct SortedInMemoryBackend<Config> 
 where 
     Config: SortedInMemoryBackendConfiguration,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
-    id: StoreId<Self, StoreIdAllocator>,
+    id: StoreId<Self>,
 
     /// Order of profiles
     order: RefCell<Vec<Id<Config::Record>>>,
@@ -57,17 +57,16 @@ where
     /// profile storage
     data: RefCell<HashMap<Id<Config::Record>, Config::Record>>,
 
-    senders: RefCell<HashMap<StoreId<Self, StoreIdAllocator>, Sender<StoreMsg<Config::Record>>>>,
+    senders: RefCell<HashMap<StoreId<Self>, Sender<StoreMsg<Config::Record>>>>,
 
     sender: Sender<StoreMsg<Config::Record>>,
 
     ordering: Config::OrderBy
 }
 
-impl<Config, StoreIdAllocator> SortedInMemoryBackend<Config, StoreIdAllocator> 
+impl<Config> SortedInMemoryBackend<Config> 
 where 
     Config: SortedInMemoryBackendConfiguration + 'static,
-    StoreIdAllocator: TemporaryIdAllocator + 'static,
 {
     /// Creates new instance of the InMemoryBackend
     pub fn new() -> Rc<RefCell<Self>> {
@@ -160,7 +159,7 @@ where
         // removal we need to borrow again since, unlisten is
         // internally mutable which would cause UB, since we would 
         // iterate over collection which changes itself
-        let mut ids_for_remove: Vec<StoreId<Self, StoreIdAllocator>> = Vec::new();
+        let mut ids_for_remove: Vec<StoreId<Self>> = Vec::new();
 
         for (key, sender) in senders.iter() {
             if let Err( _ ) =sender.send(message.clone()) {
@@ -297,24 +296,23 @@ where
     }
 }
 
-impl<Builder, StoreIdAllocator> Identifiable<SortedInMemoryBackend<Builder, StoreIdAllocator>, StoreIdAllocator::Type> for SortedInMemoryBackend<Builder, StoreIdAllocator>
+impl<Configuration> Identifiable<SortedInMemoryBackend<Configuration>, <Configuration::Allocator as TemporaryIdAllocator>::Type> for SortedInMemoryBackend<Configuration>
 where 
-    Builder: SortedInMemoryBackendConfiguration,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Configuration: SortedInMemoryBackendConfiguration,
 {
-    type Id=StoreId<Self, StoreIdAllocator>;
+    type Id=StoreId<Self>;
 
     fn get_id(&self) -> Self::Id {
         self.id
     }
 }
 
-impl<Builder, StoreIdAllocator> DataStore<StoreIdAllocator> for SortedInMemoryBackend<Builder, StoreIdAllocator>
+impl<Configuration> DataStore for SortedInMemoryBackend<Configuration>
 where 
-    Builder: SortedInMemoryBackendConfiguration,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Configuration: SortedInMemoryBackendConfiguration,
 {
-    type Record = Builder::Record;
+    type Record = Configuration::Record;
+    type Allocator = Configuration::Allocator;
  
     fn len(&self) -> usize {
         self.data.borrow().len()
@@ -344,17 +342,17 @@ where
         result
     }
 
-    fn get(&self, id: &Id<Builder::Record>) -> Option<Builder::Record> {
+    fn get(&self, id: &Id<Configuration::Record>) -> Option<Configuration::Record> {
         let data = self.data.borrow();
         data.get(id)
             .map(|r| r.clone())
     }
 
-    fn listen<'b>(&self, handler_ref: StoreId<Self, StoreIdAllocator>, sender: Sender<StoreMsg<Self::Record>>) {
+    fn listen<'b>(&self, handler_ref: StoreId<Self>, sender: Sender<StoreMsg<Self::Record>>) {
         self.senders.borrow_mut().insert(handler_ref, sender);
     }
 
-    fn unlisten(&self, handler_ref: StoreId<Self, StoreIdAllocator>) {
+    fn unlisten(&self, handler_ref: StoreId<Self>) {
         self.senders.borrow_mut().remove(&handler_ref); 
     }
 
@@ -368,10 +366,9 @@ where
     }
 }
 
-impl<Config, StoreIdAllocator> OrderedStore<Config::OrderBy> for  SortedInMemoryBackend<Config, StoreIdAllocator> 
+impl<Config> OrderedStore<Config::OrderBy> for  SortedInMemoryBackend<Config> 
 where 
     Config: SortedInMemoryBackendConfiguration + 'static,
-    StoreIdAllocator: TemporaryIdAllocator + 'static,
 {
     fn set_order(&mut self, ordering: Config::OrderBy) {
         

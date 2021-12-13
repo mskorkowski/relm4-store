@@ -2,7 +2,6 @@
 
 use std::borrow::Borrow;
 use std::cell::RefCell;
-use std::marker::PhantomData;
 use std::rc::Rc;
 
 use record::Identifiable;
@@ -13,35 +12,30 @@ use crate::StoreId;
 
 /// DataStore wrapper around all the rc/refcell stuff. Makes ownership bit easier
 #[derive(Debug)]
-pub struct Store<Backend, StoreIdAllocator> 
+pub struct Store<Backend> 
 where
-    Backend: DataStore<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Backend: DataStore,
 {
     backend: Rc<RefCell<Backend>>,
-    _store_id_allocator: PhantomData<*const StoreIdAllocator>,
 }
 
-impl<Backend, StoreIdAllocator> Store<Backend, StoreIdAllocator> 
+impl<Backend> Store<Backend> 
 where
-    Backend: DataStore<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Backend: DataStore,
 {
     /// Creates new instance of the Store
     pub fn new(backend: Rc<RefCell<Backend>>) -> Self {
         Store {
             backend,
-            _store_id_allocator: PhantomData,
         }
     }
 }
 
-impl<Backend, StoreIdAllocator> Identifiable<Store<Backend, StoreIdAllocator>, StoreIdAllocator::Type> for Store<Backend, StoreIdAllocator>
-where 
-    StoreIdAllocator: TemporaryIdAllocator,
-    Backend: DataStore<StoreIdAllocator>
+impl<Backend> Identifiable<Store<Backend>, <Backend::Allocator as TemporaryIdAllocator>::Type> for Store<Backend>
+where
+    Backend: DataStore
 {
-    type Id=StoreId<Self, StoreIdAllocator>;
+    type Id=StoreId<Self>;
 
     fn get_id(&self) -> Self::Id {
         let be: &RefCell<Backend> = self.backend.borrow();
@@ -49,11 +43,11 @@ where
     }
 }
 
-impl<Backend, StoreIdAllocator> DataStore<StoreIdAllocator> for Store<Backend, StoreIdAllocator> 
+impl<Backend> DataStore for Store<Backend> 
 where
-    Backend: DataStore<StoreIdAllocator>,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Backend: DataStore,
 {
+    type Allocator = Backend::Allocator;
     type Record = Backend::Record;
 
     fn len(&self) -> usize {
@@ -76,12 +70,12 @@ where
         be.borrow().get_range(range)
     }
 
-    fn listen(&self, id: StoreId<Self, StoreIdAllocator>, sender: reexport::relm4::Sender<crate::StoreMsg<Self::Record>>) {
+    fn listen(&self, id: StoreId<Self>, sender: reexport::relm4::Sender<crate::StoreMsg<Self::Record>>) {
         let be: &RefCell<Backend> = self.backend.borrow();
         be.borrow().listen(id.transfer(), sender);
     }
 
-    fn unlisten(&self, handler_ref: StoreId<Self, StoreIdAllocator>) {
+    fn unlisten(&self, handler_ref: StoreId<Self>) {
         let be: &RefCell<Backend> = self.backend.borrow();
         be.borrow().unlisten(handler_ref.transfer());
     }

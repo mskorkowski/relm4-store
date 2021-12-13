@@ -1,4 +1,3 @@
-use record::DefaultIdAllocator;
 use reexport::gtk;
 use reexport::log;
 use reexport::relm4;
@@ -73,7 +72,7 @@ where Config: TasksListConfiguration + 'static,
 {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator>>>,
+    store_view: Rc<RefCell<StoreViewImplementation<Self>>>,
 }
 
 impl<Config> ViewModel for TasksListViewModel<Config> 
@@ -84,11 +83,11 @@ where Config: TasksListConfiguration + 'static,
     type Components = TasksListComponents<Config>;
 }
 
-impl<Config> FactoryConfiguration<DefaultIdAllocator> for TasksListViewModel<Config> 
+impl<Config> FactoryConfiguration for TasksListViewModel<Config> 
 where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
-    type StoreView = StoreViewImplementation<Self, DefaultIdAllocator>;
+    type StoreView = StoreViewImplementation<Self>;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
@@ -191,7 +190,7 @@ where Config: TasksListConfiguration + 'static,
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self>>>) -> Self {
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
@@ -202,7 +201,7 @@ where Config: TasksListConfiguration + 'static,
 
 pub struct TasksListComponents<Config>
 where Config: TasksListConfiguration + 'static {
-    pagination: RelmComponent<PaginationViewModel<Self, DefaultIdAllocator>, TasksListViewModel<Config>>
+    pagination: RelmComponent<PaginationViewModel<Self>, TasksListViewModel<Config>>
 }
 
 impl<Config> Components<TasksListViewModel<Config>> for TasksListComponents<Config> 
@@ -220,11 +219,11 @@ where Config: TasksListConfiguration,
     fn connect_parent(&mut self, _parent_widgets: &TasksListViewWidgets) {}
 }
 
-impl<Config> PaginationConfiguration<DefaultIdAllocator> for TasksListComponents<Config>
+impl<Config> PaginationConfiguration for TasksListComponents<Config>
 where Config: TasksListConfiguration + 'static {
     type FactoryConfiguration = TasksListViewModel<Config>;
 
-    fn get_view(parent_view_model: &<Self::FactoryConfiguration as FactoryConfiguration<DefaultIdAllocator>>::ViewModel) -> Rc<RefCell<StoreViewImplementation<Self::FactoryConfiguration, DefaultIdAllocator>>> {
+    fn get_view(parent_view_model: &<Self::FactoryConfiguration as FactoryConfiguration>::ViewModel) -> Rc<RefCell<StoreViewImplementation<Self::FactoryConfiguration>>> {
         parent_view_model.store_view.clone()
     }
 }
@@ -260,8 +259,8 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
     }
 }
 
-impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>, DefaultIdAllocator> for TasksListViewWidgets {
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<DefaultIdAllocator>>::View {
+impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration>::View {
         &self.container
     }
 }

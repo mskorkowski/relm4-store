@@ -1,4 +1,3 @@
-use record::DefaultIdAllocator;
 use reexport::gtk;
 use reexport::relm4;
 use reexport::relm4_macros;
@@ -72,7 +71,7 @@ where Config: TasksListConfiguration + 'static,
 {
     tasks: Rc<RefCell<Tasks>>,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator>>>,
+    store_view: Rc<RefCell<StoreViewImplementation<Self>>>,
     scroll_adjustment: gtk::Adjustment,
 }
 
@@ -84,11 +83,11 @@ where Config: TasksListConfiguration + 'static,
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryConfiguration<DefaultIdAllocator> for TasksListViewModel<Config> 
+impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel<Config> 
 where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
-    type StoreView = StoreViewImplementation<Self, DefaultIdAllocator>;
+    type StoreView = StoreViewImplementation<Self>;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
@@ -202,7 +201,7 @@ where Config: TasksListConfiguration + 'static,
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self>>>) -> Self {
         let view_length = store_view.borrow().len();
 
         TasksListViewModel{
@@ -251,8 +250,8 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
     }
 }
 
-impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>, DefaultIdAllocator> for TasksListViewWidgets {
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<DefaultIdAllocator>>::View {
+impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration>::View {
         &self.container
     }
 }

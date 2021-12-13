@@ -27,6 +27,8 @@ use store::math::Range;
 pub trait InMemoryBackendConfiguration {
     /// Type of data in the in memory store
     type Record: 'static + Record + Debug + Clone;
+    type Allocator: TemporaryIdAllocator;
+
 
     /// Returns initial dataset for the store
     fn initial_data() -> Vec<Self::Record>;
@@ -36,12 +38,11 @@ pub trait InMemoryBackendConfiguration {
 
 /// In memory implementation of the data store
 #[derive(Debug)]
-pub struct InMemoryBackend<Configuration, StoreIdAllocator> 
+pub struct InMemoryBackend<Configuration> 
 where 
     Configuration: InMemoryBackendConfiguration,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
-    id: StoreId<Self, StoreIdAllocator>,
+    id: StoreId<Self>,
 
     /// Order of profiles
     order: RefCell<VecDeque<Id<Configuration::Record>>>,
@@ -49,21 +50,20 @@ where
     /// profile storage
     data: RefCell<HashMap<Id<Configuration::Record>, Configuration::Record>>,
 
-    senders: RefCell<HashMap<StoreId<Self, StoreIdAllocator>, Sender<StoreMsg<Configuration::Record>>>>,
+    senders: RefCell<HashMap<StoreId<Self>, Sender<StoreMsg<Configuration::Record>>>>,
 
     sender: Sender<StoreMsg<Configuration::Record>>,
 }
 
-impl<Configuration, StoreIdAllocator> InMemoryBackend<Configuration, StoreIdAllocator> 
+impl<Configuration> InMemoryBackend<Configuration> 
 where 
     Configuration: InMemoryBackendConfiguration + 'static,
-    StoreIdAllocator: TemporaryIdAllocator + 'static,
 {
     /// Creates new instance of the InMemoryBackend
     pub fn new() -> Rc<RefCell<Self>> {
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
-        let backend: InMemoryBackend<Configuration, StoreIdAllocator> = InMemoryBackend{
+        let backend: InMemoryBackend<Configuration> = InMemoryBackend{
             id: StoreId::new(),
             order: RefCell::new(VecDeque::new()),
             data: RefCell::new(HashMap::new()),
@@ -127,7 +127,7 @@ where
     }
 
     fn fire_handlers(&self, message: StoreMsg<Configuration::Record>) {
-        let mut ids_for_remove: Vec<StoreId<Self, StoreIdAllocator>> = Vec::new();
+        let mut ids_for_remove: Vec<StoreId<Self>> = Vec::new();
 
         {
             let senders = self.senders.borrow();
@@ -177,24 +177,23 @@ where
     }
 }
 
-impl<Configuration, StoreIdAllocator> Identifiable<InMemoryBackend<Configuration, StoreIdAllocator>, StoreIdAllocator::Type> for InMemoryBackend<Configuration, StoreIdAllocator>
+impl<Configuration> Identifiable<InMemoryBackend<Configuration>, <Configuration::Allocator as TemporaryIdAllocator>::Type> for InMemoryBackend<Configuration>
 where 
     Configuration: InMemoryBackendConfiguration,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
-    type Id=StoreId<Self, StoreIdAllocator>;
+    type Id=StoreId<Self>;
 
     fn get_id(&self) -> Self::Id {
         self.id
     }
 }
 
-impl<Configuration, StoreIdAllocator> DataStore<StoreIdAllocator> for InMemoryBackend<Configuration, StoreIdAllocator>
+impl<Configuration> DataStore for InMemoryBackend<Configuration>
 where 
     Configuration: InMemoryBackendConfiguration,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
     type Record = Configuration::Record;
+    type Allocator = Configuration::Allocator;
 
     fn len(&self) -> usize {
         self.data.borrow().len()
@@ -232,11 +231,11 @@ where
             .map(|r| r.clone())
     }
 
-    fn listen<'b>(&self, handler_ref: StoreId<Self, StoreIdAllocator>, sender: Sender<StoreMsg<Self::Record>>) {
+    fn listen<'b>(&self, handler_ref: StoreId<Self>, sender: Sender<StoreMsg<Self::Record>>) {
         self.senders.borrow_mut().insert(handler_ref, sender);
     }
 
-    fn unlisten(&self, handler_ref: StoreId<Self, StoreIdAllocator>) {
+    fn unlisten(&self, handler_ref: StoreId<Self>) {
         self.senders.borrow_mut().remove(&handler_ref);
     }
 

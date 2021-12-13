@@ -15,7 +15,9 @@ pub mod test_cases;
 #[cfg(test)]
 mod tests;
 
+use record::DefaultIdAllocator;
 use reexport::gtk;
+use reexport::uuid::Uuid;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -24,7 +26,6 @@ use std::fmt::Debug;
 use gtk::glib;
 
 use record::Identifiable;
-use record::TemporaryIdAllocator;
 use reexport::relm4::Sender;
 use store::DataStore;
 use store::StoreId;
@@ -44,23 +45,21 @@ pub enum DummyStoreStep {
 
 /// Dummy store
 #[derive(Debug)]
-pub struct DummyBackend<Record, StoreIdAllocator> 
+pub struct DummyBackend<Record> 
 where
-    Record: 'static + record::Record + Debug + Clone, 
-    StoreIdAllocator: TemporaryIdAllocator
+    Record: 'static + record::Record + Debug + Clone,
 {
     configuration: DummyBackendConfiguration<Record>,
     index: usize,
     initiated: bool,
-    id: StoreId<Self, StoreIdAllocator>,
-    senders: RefCell<HashMap<StoreId<Self, StoreIdAllocator>, Sender<StoreMsg<Record>>>>,
+    id: StoreId<Self>,
+    senders: RefCell<HashMap<StoreId<Self>, Sender<StoreMsg<Record>>>>,
     sender: Sender<StoreMsg<Record>>,
 }
 
-impl<Record, StoreIdAllocator> DummyBackend<Record, StoreIdAllocator> 
+impl<Record> DummyBackend<Record> 
 where
     Record: 'static + record::Record + Debug + Clone,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
     /// Creates new instance of this structure
     pub fn new(configuration: DummyBackendConfiguration<Record>) -> Self {
@@ -90,7 +89,7 @@ where
             panic!("Trying to advance above the configuration");
         }
 
-        let mut ids_for_remove: Vec<StoreId<Self, StoreIdAllocator>> = Vec::new();
+        let mut ids_for_remove: Vec<StoreId<Self>> = Vec::new();
 
         {
             let senders = self.senders.borrow();
@@ -130,12 +129,11 @@ where
     }
 }
 
-impl<Record, StoreIdAllocator> Identifiable<Self, StoreIdAllocator::Type> for DummyBackend<Record, StoreIdAllocator> 
+impl<Record> Identifiable<Self, Uuid> for DummyBackend<Record> 
 where
     Record: 'static + record::Record + Debug + Clone,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
-    type Id = StoreId<Self, StoreIdAllocator>;
+    type Id = StoreId<Self>;
 
     #[cfg(not(tarpaulin_include))]
     fn get_id(&self) -> Self::Id {
@@ -143,12 +141,12 @@ where
     }
 }
 
-impl<Record, StoreIdAllocator> DataStore<StoreIdAllocator> for DummyBackend<Record, StoreIdAllocator>
+impl<Record> DataStore for DummyBackend<Record>
 where 
     Record: 'static + record::Record + Debug + Clone,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
     type Record = Record;
+    type Allocator = DefaultIdAllocator;
 
     fn len(&self) -> usize {
         if !self.initiated {
@@ -216,11 +214,11 @@ where
         result
     }
 
-    fn listen(&self, id: StoreId<Self, StoreIdAllocator>, sender: reexport::relm4::Sender<StoreMsg<Self::Record>>) {
+    fn listen(&self, id: StoreId<Self>, sender: reexport::relm4::Sender<StoreMsg<Self::Record>>) {
         self.senders.borrow_mut().insert(id, sender);
     }
 
-    fn unlisten(&self, id: StoreId<Self, StoreIdAllocator>) {
+    fn unlisten(&self, id: StoreId<Self>) {
         self.senders.borrow_mut().remove(&id);
     }
 

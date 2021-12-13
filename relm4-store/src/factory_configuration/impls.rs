@@ -2,8 +2,6 @@ use reexport::relm4;
 
 use relm4::Model as ViewModel;
 
-use record::TemporaryIdAllocator;
-
 use crate::FactoryConfiguration;
 use crate::FactoryContainerWidgets;
 
@@ -13,13 +11,12 @@ impl<ParentModel: ViewModel> StoreViewInnerComponent<ParentModel> for () {
     fn on_store_update(&mut self) {}
 }
 
-impl<Configuration, StoreIdAllocator> FactoryContainerWidgets<Configuration, StoreIdAllocator> for () 
+impl<Configuration> FactoryContainerWidgets<Configuration> for () 
 where
-    Configuration: ?Sized + FactoryConfiguration<StoreIdAllocator, View=()>,
+    Configuration: ?Sized + FactoryConfiguration<View=()>,
     Configuration::ViewModel: ViewModel<Widgets=()>,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
-    fn container_widget(&self) -> &<Configuration as FactoryConfiguration<StoreIdAllocator>>::View {
+    fn container_widget(&self) -> &<Configuration as FactoryConfiguration>::View {
         &()
     }
 }
