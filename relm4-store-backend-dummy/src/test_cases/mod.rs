@@ -6,6 +6,7 @@ mod add_multistep;
 mod tests;
 use record::DefaultIdAllocator;
 use record::UuidAllocator;
+use record::TemporaryIdAllocator;
 use reexport::uuid;
 
 
@@ -74,6 +75,12 @@ impl TestRecord {
             added: Some(added),
             removed: Some(removed),
         }
+    }
+
+    /// Make record permanent
+    pub fn permanent(mut self) -> Self {
+        self.set_permanent_id(DefaultIdAllocator::new_id()).unwrap();
+        self
     }
 }
 

@@ -30,7 +30,7 @@ mod empty {
 
         let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
         let store: Store<TestRecords, DefaultIdAllocator, DefaultIdAllocator> = Store::new(backend);
-        let new_record = TestRecord::since("First record to be added", 0);
+        let new_record = TestRecord::since("First record to be added", 0).permanent();
         store.send(StoreMsg::Commit(new_record.clone()));
         
         assert_eq!(store.len(), 0, "Store should be empty at the beginning");
@@ -54,8 +54,8 @@ mod empty {
 
         let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
         let store: Store<TestRecords, DefaultIdAllocator, DefaultIdAllocator> = Store::new(backend);
-        let new_record1 = TestRecord::since("A - First record to be added", 0);
-        let new_record2 = TestRecord::since("B - Second record to be added", 0);
+        let new_record1 = TestRecord::since("A - First record to be added", 0).permanent();
+        let new_record2 = TestRecord::since("B - Second record to be added", 0).permanent();
         store.send(StoreMsg::Commit(new_record1.clone()));
         store.send(StoreMsg::Commit(new_record2.clone()));
         
@@ -83,8 +83,8 @@ mod empty {
 
         let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
         let store: Store<TestRecords, DefaultIdAllocator, DefaultIdAllocator> = Store::new(backend);
-        let new_record1 = TestRecord::since("A - First record to be added", 0);
-        let new_record2 = TestRecord::since("B - Second record to be added", 0);
+        let new_record1 = TestRecord::since("A - First record to be added", 0).permanent();
+        let new_record2 = TestRecord::since("B - Second record to be added", 0).permanent();
         store.send(StoreMsg::Commit(new_record2.clone()));
         store.send(StoreMsg::Commit(new_record1.clone()));
         
@@ -131,9 +131,9 @@ mod empty {
 
             let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
             let store: Store<TestRecords, DefaultIdAllocator, DefaultIdAllocator> = Store::new(backend);
-            let new_record1 = TestRecord::since("B - First record to be added", 0);
-            let new_record2 = TestRecord::since("D - Second record to be added", 0);
-            let new_record3 = TestRecord::since("E - Third records to be added", 0);
+            let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
+            let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();
+            let new_record3 = TestRecord::since("E - Third records to be added", 0).permanent();
             store.send(StoreMsg::Commit(new_record1.clone()));
             store.send(StoreMsg::Commit(new_record2.clone()));
             store.send(StoreMsg::Commit(new_record3.clone()));
@@ -163,9 +163,9 @@ mod empty {
 
             let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
             let store: Store<TestRecords, DefaultIdAllocator, DefaultIdAllocator> = Store::new(backend);
-            let new_record1 = TestRecord::since("B - First record to be added", 0);
-            let new_record2 = TestRecord::since("D - Second record to be added", 0);
-            let new_record3 = TestRecord::since("C - Third records to be added", 0);
+            let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
+            let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();
+            let new_record3 = TestRecord::since("C - Third records to be added", 0).permanent();
             store.send(StoreMsg::Commit(new_record1.clone()));
             store.send(StoreMsg::Commit(new_record2.clone()));
             store.send(StoreMsg::Commit(new_record3.clone()));
@@ -195,9 +195,9 @@ mod empty {
 
             let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
             let store: Store<TestRecords, DefaultIdAllocator, DefaultIdAllocator> = Store::new(backend);
-            let new_record1 = TestRecord::since("B - First record to be added", 0);
-            let new_record2 = TestRecord::since("D - Second record to be added", 0);
-            let new_record3 = TestRecord::since("A - Third records to be added", 0);
+            let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
+            let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();
+            let new_record3 = TestRecord::since("A - Third records to be added", 0).permanent();
             store.send(StoreMsg::Commit(new_record1.clone()));
             store.send(StoreMsg::Commit(new_record2.clone()));
             store.send(StoreMsg::Commit(new_record3.clone()));
@@ -248,9 +248,9 @@ mod empty {
 
             let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
             let store: Store<TestRecords, DefaultIdAllocator, DefaultIdAllocator> = Store::new(backend);
-            let new_record1 = TestRecord::since("B - First record to be added", 0);
-            let new_record2 = TestRecord::since("D - Second record to be added", 0);
-            let new_record3 = TestRecord::since("E - Third records to be added", 0);
+            let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
+            let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();
+            let new_record3 = TestRecord::since("E - Third records to be added", 0).permanent();
             store.send(StoreMsg::Commit(new_record1.clone()));
             store.send(StoreMsg::Commit(new_record2.clone()));
             
@@ -281,9 +281,9 @@ mod empty {
 
             let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
             let store: Store<TestRecords, DefaultIdAllocator, DefaultIdAllocator> = Store::new(backend);
-            let new_record1 = TestRecord::since("B - First record to be added", 0);
-            let new_record2 = TestRecord::since("D - Second record to be added", 0);
-            let new_record3 = TestRecord::since("C - Third records to be added", 0);
+            let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
+            let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();
+            let new_record3 = TestRecord::since("C - Third records to be added", 0).permanent();
             store.send(StoreMsg::Commit(new_record1.clone()));
             store.send(StoreMsg::Commit(new_record2.clone()));
             
@@ -314,9 +314,9 @@ mod empty {
 
             let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
             let store: Store<TestRecords, DefaultIdAllocator, DefaultIdAllocator> = Store::new(backend);
-            let new_record1 = TestRecord::since("B - First record to be added", 0);
-            let new_record2 = TestRecord::since("D - Second record to be added", 0);
-            let new_record3 = TestRecord::since("A - Third records to be added", 0);
+            let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
+            let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();
+            let new_record3 = TestRecord::since("A - Third records to be added", 0).permanent();
             store.send(StoreMsg::Commit(new_record1.clone()));
             store.send(StoreMsg::Commit(new_record2.clone()));
             

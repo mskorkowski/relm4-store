@@ -8,8 +8,8 @@
     - [x] Next
   - [ ] Component
     - [x] Make the page count visible
-    - [ ] Make pagination component update the values based on store view changes
-      - [ ] Page count
+    - [x] Make pagination component update the values based on store view changes
+      - [x] Page count
     - [ ] Disable navigation buttons based on current page
     - [ ] Make it stylish
       - [ ] Allow configuration of images for buttons
@@ -17,7 +17,4 @@
       - [ ] Add range view
       - [ ] Add custom components
       - [ ] Custom location elements in pagination component
-
-- [ ] Store
-  - [ ] Make a store into component?
   

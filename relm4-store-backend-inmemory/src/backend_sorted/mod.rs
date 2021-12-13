@@ -117,10 +117,15 @@ where
     fn inbox(&self, msg: StoreMsg<Config::Record, Allocator>) {
         log::info!("Received message: {:?}", &msg);
         match msg {
-            StoreMsg::Commit(record) => {
+            StoreMsg::Commit(mut record) => {
                 let id = record.get_id();
                 {
-                    if id.is_new() || !self.data.borrow().contains_key(&id) {
+                    if id.is_new() {
+                        record.set_permanent_id(Allocator::new_id()).expect(&format!("Unable to set the permanent id for record `{:#?}`", record));
+                        let position = self.insert(record);
+                        self.fire_handlers(StoreMsg::NewAt(position));
+                    }
+                    else if !self.data.borrow().contains_key(&id) {
                         let position = self.insert(record);
                         self.fire_handlers(StoreMsg::NewAt(position));
                     }
