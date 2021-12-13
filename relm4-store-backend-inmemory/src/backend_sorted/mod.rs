@@ -256,7 +256,7 @@ where
             let r = record.clone();
             order.binary_search_by(|other_id| {
                 let other = data.get(other_id).unwrap();
-                ordering.cmp(&r, other)
+                ordering.cmp(&r, other).reverse()
             })
         };
 
