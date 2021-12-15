@@ -38,19 +38,19 @@ where
     type Allocator = <Configuration::Store as DataStore>::Allocator;
 
     fn len(&self) -> usize {
-        self.store.borrow().len()
+        self.store.len()
     }
 
     fn is_empty(&self) -> bool {
-        self.store.borrow().is_empty()
+        self.store.is_empty()
     }
 
     fn get_range(&self, range: &Range) -> Vec<<Configuration::Store as DataStore>::Record> {
-        self.store.borrow().get_range(range)
+        self.store.get_range(range)
     }
 
     fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record> {
-        self.store.borrow().get(id)
+        self.store.get(id)
     }
 
     fn listen(&self, id: StoreId<Self>, sender: Sender<StoreMsg<Self::Record>>) {
@@ -120,7 +120,7 @@ where
             self.range.borrow().to_right(self.size)
         };
 
-        if *range.start() < self.store.borrow().len() {
+        if *range.start() < self.store.len() {
             self.range.replace(range);
             self.inbox(StoreMsg::Reload);
         }

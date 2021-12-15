@@ -2,6 +2,7 @@ mod model;
 mod store;
 mod view;
 
+use backend_inmemory::InMemoryBackend;
 use reexport::gtk;
 use reexport::relm4;
 
@@ -26,7 +27,7 @@ fn main() {
 
     println!("Seeding store");
     let model = MainWindowViewModel{
-        tasks: Tasks::new()
+        tasks: Tasks::new(InMemoryBackend::new())
     };
 
     println!("\tCreating relm4 app");

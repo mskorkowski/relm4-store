@@ -2,18 +2,18 @@ use reexport::glib;
 use reexport::gtk;
 use reexport::relm4;
 
-use std::cell::RefCell;
 use std::marker::PhantomData;
-use std::rc::Rc;
 
 use relm4::Sender;
 
 use backend_dummy::DummyBackend;
+use backend_dummy::StepByStepStore;
 use backend_dummy::test_cases::TestCase;
 use backend_dummy::test_cases::TestRecord;
 use store::DataStore;
 use store::FactoryConfiguration;
 use store::Position;
+use store::Store;
 use store::StoreSize;
 use store::math::Range;
 use store::redraw_messages::RedrawMessages;
@@ -31,7 +31,7 @@ pub struct TestConfig<Window: 'static + WindowBehavior> {
 }
 
 impl<Window: 'static + WindowBehavior> FactoryConfiguration for TestConfig<Window> {
-    type Store = DummyBackend<TestRecord>;
+    type Store = Store<DummyBackend<TestRecord>>;
     type StoreView = StoreViewImplementation<Self>;
     type RecordWidgets = TestWidgets;
     type Root = gtk::Box;
@@ -40,7 +40,7 @@ impl<Window: 'static + WindowBehavior> FactoryConfiguration for TestConfig<Windo
     type ViewModel = ();
     type ParentViewModel = ();
 
-    fn init_store_view(store: std::rc::Rc<std::cell::RefCell<Self::Store>>, size: store::StoreSize, redraw_sender: Sender<RedrawMessages>) -> Self::StoreView {
+    fn init_store_view(store: Self::Store, size: store::StoreSize, redraw_sender: Sender<RedrawMessages>) -> Self::StoreView {
         StoreViewImplementation::new(store, size.items(), redraw_sender)
     }
 
@@ -130,14 +130,14 @@ where
 
         let container = gtk::Box::default();
 
-        let data_store: DummyBackend<TestRecord> = DummyBackend::new(self.test_case.configuration.clone());
-        let shared_store = Rc::new(RefCell::new(data_store));
+        let mut data_store: Store<DummyBackend<TestRecord>> = Store::new(DummyBackend::new(self.test_case.configuration.clone()));
 
         let store_view: StoreViewImplementation<TestConfig<Window>> = StoreViewImplementation::new(
-            shared_store.clone(), 
+            data_store.clone(), 
             self.window_size.items(), 
             sender
         );
+
         // StoreView is using `Reload` event to populate itself
         context.iteration(true);
         store_view.view(&container, view_sender.clone());
@@ -149,20 +149,20 @@ where
         }
         
 
-        let data_store_len = shared_store.borrow().len();
+        let data_store_len = data_store.len();
         let ia = self.initial_assertion;
-        ia(&self.test_case.data.clone(), &store_view, &shared_store.borrow().get_range(&Range::new(0, data_store_len)));
+        ia(&self.test_case.data.clone(), &store_view, &data_store.get_range(&Range::new(0, data_store_len)));
 
 
 
         for assertion in &self.asserts {
             {
-                shared_store.borrow_mut().advance();
+                data_store.advance();
             }
             context.iteration(true);
             store_view.view(&container, view_sender.clone());
-            let data_store_len = shared_store.borrow().len();
-            assertion(&self.test_case.data, &store_view, &shared_store.borrow().get_range(&Range::new(0, data_store_len)));
+            let data_store_len = data_store.len();
+            assertion(&self.test_case.data, &store_view, &data_store.get_range(&Range::new(0, data_store_len)));
         }
 
         

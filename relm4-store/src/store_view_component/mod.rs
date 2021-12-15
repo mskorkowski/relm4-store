@@ -121,7 +121,7 @@ where
     pub fn new(
         parent_view_model: &Configuration::ParentViewModel,
         // parent_widgets: &<Configuration::ParentViewModel as ViewModel>::Widgets,
-        store: Rc<RefCell<Configuration::Store>>, 
+        store: Configuration::Store, 
         size: StoreSize
     ) -> Self {
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);

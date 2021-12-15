@@ -1,10 +1,8 @@
 use reexport::{gtk, relm4, relm4_macros};
-use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::{BoxExt, ButtonExt, OrientableExt, GtkWindowExt};
 use relm4::{AppUpdate, Components, Model as ViewModel, send, Sender, Widgets};
 use relm4_macros::widget;
-use store::{StoreSize, StoreViewComponent, window::PositionTrackingWindow};
-use backend_inmemory::OrderedStore;
+use store::{OrderedStore, StoreSize, StoreViewComponent, window::PositionTrackingWindow};
 
 use crate::{
     store::{Tasks, OrderTasksBy},
@@ -17,7 +15,7 @@ pub enum MainWindowMsg {
 }
 
 pub struct MainWindowViewModel {
-    pub tasks: Rc<RefCell<Tasks>>,
+    pub tasks: Tasks,
     pub page_size: usize,
 }
 
@@ -37,14 +35,12 @@ impl AppUpdate for MainWindowViewModel {
 
         match msg  {
             MainWindowMsg::ASC => {
-                let mut tasks = self.tasks.borrow_mut();
-                tasks.set_order(
+                self.tasks.set_order(
                     OrderTasksBy::Name{ascending: true}
                 )
             },
             MainWindowMsg::DESC => {
-                let mut tasks = self.tasks.borrow_mut();
-                tasks.set_order(
+                self.tasks.set_order(
                     OrderTasksBy::Name{ascending: false}
                 )
             }
@@ -75,7 +71,7 @@ struct TaskList1Configuration {}
 impl TasksListConfiguration for TaskList1Configuration {
     type ParentViewModel = MainWindowViewModel;
     type Window = PositionTrackingWindow;
-    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
+    fn get_tasks(parent_model: &Self::ParentViewModel) -> Tasks {
         parent_model.tasks.clone()
     }
 }

@@ -1,10 +1,11 @@
-use backend_inmemory::Sorter;
+use store::Sorter;
+use store::Store;
 use backend_inmemory::SortedInMemoryBackend;
 use backend_inmemory::SortedInMemoryBackendConfiguration;
-use record::DefaultIdAllocator;
+
 use crate::model::Task;
 
-pub type Tasks = SortedInMemoryBackend<TasksBuilder>;
+pub type Tasks = Store<SortedInMemoryBackend<TasksBuilder>>;
 
 #[derive(Clone, Copy, Debug)]
 pub enum OrderTasksBy {
@@ -28,7 +29,6 @@ impl SortedInMemoryBackendConfiguration for TasksBuilder
 {
     type Record = Task;
     type OrderBy = OrderTasksBy;
-    type Allocator = DefaultIdAllocator;
 
     fn initial_data() -> Vec<Self::Record> {
         vec![

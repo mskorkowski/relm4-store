@@ -1,5 +1,4 @@
 use reexport::{gtk, relm4, relm4_macros};
-use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::{BoxExt, OrientableExt, GtkWindowExt};
 use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets, WidgetPlus};
 use relm4_macros::widget;
@@ -13,7 +12,7 @@ use crate::{
 pub enum MainWindowMsg {}
 
 pub struct MainWindowViewModel {
-    pub tasks: Rc<RefCell<Tasks>>,
+    pub tasks: Tasks,
     pub page_size: usize,
 }
 
@@ -61,7 +60,7 @@ struct TaskList1Configuration {}
 impl TasksListConfiguration for TaskList1Configuration {
     type ParentViewModel = MainWindowViewModel;
     type Window = PositionTrackingWindow;
-    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
+    fn get_tasks(parent_model: &Self::ParentViewModel) -> Tasks {
         parent_model.tasks.clone()
     }
 }
@@ -70,7 +69,7 @@ struct TaskList2Configuration {}
 impl TasksListConfiguration for TaskList2Configuration {
     type ParentViewModel = MainWindowViewModel;
     type Window = ValueTrackingWindow;
-    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
+    fn get_tasks(parent_model: &Self::ParentViewModel) -> Tasks {
         parent_model.tasks.clone()
     }
 }
@@ -79,7 +78,7 @@ struct TaskList3Configuration {}
 impl TasksListConfiguration for TaskList3Configuration {
     type ParentViewModel = MainWindowViewModel;
     type Window = KeepOnTop;
-    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
+    fn get_tasks(parent_model: &Self::ParentViewModel) -> Tasks {
         parent_model.tasks.clone()
     }
 }
@@ -88,7 +87,7 @@ struct TaskList4Configuration {}
 impl TasksListConfiguration for TaskList4Configuration {
     type ParentViewModel = MainWindowViewModel;
     type Window = KeepOnBottom;
-    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
+    fn get_tasks(parent_model: &Self::ParentViewModel) -> Tasks {
         parent_model.tasks.clone()
     }
 }

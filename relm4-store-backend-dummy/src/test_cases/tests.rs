@@ -53,7 +53,7 @@ mod test_record {
 mod test_cases {
 
     mod basic {
-        use store::DataStore;
+        use store::Backend;
 
         use crate::DummyBackend;
         use crate::test_cases::TestCase;
@@ -61,7 +61,7 @@ mod test_cases {
         use crate::test_cases::TestRecord;
 
         mod empty {
-            use store::DataStore;
+            use store::Backend;
 
             use crate::DummyBackend;
             use crate::test_cases::TestCase;
@@ -186,7 +186,7 @@ mod test_cases {
 
 
     mod add_multistep {
-        use store::DataStore;
+        use store::Backend;
 
         use crate::DummyBackend;
         use crate::test_cases::TestCase;

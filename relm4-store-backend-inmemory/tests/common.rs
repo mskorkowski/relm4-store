@@ -1,9 +1,9 @@
 use dummy::test_cases::TestRecord;
-use record::DefaultIdAllocator;
 
 use relm4_store_backend_inmemory::SortedInMemoryBackend;
 use relm4_store_backend_inmemory::SortedInMemoryBackendConfiguration;
-use relm4_store_backend_inmemory::Sorter;
+use store::Sorter;
+
 
 pub type TestRecordsBase<Config> = SortedInMemoryBackend<Config>;
 
@@ -32,7 +32,6 @@ impl SortedInMemoryBackendConfiguration for TestRecordsConfigDescEmpty
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;
-    type Allocator = DefaultIdAllocator;
 
     fn initial_data() -> Vec<Self::Record> {
         vec![]
@@ -48,7 +47,6 @@ impl SortedInMemoryBackendConfiguration for TestRecordsConfigDesc8
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;
-    type Allocator = DefaultIdAllocator;
 
     fn initial_data() -> Vec<Self::Record> {
         vec![
@@ -73,7 +71,6 @@ impl SortedInMemoryBackendConfiguration for TestRecordsConfigAscEmpty
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;
-    type Allocator = DefaultIdAllocator;
 
     fn initial_data() -> Vec<Self::Record> {
         vec![]
@@ -89,7 +86,6 @@ impl SortedInMemoryBackendConfiguration for TestRecordsConfigAsc8
 {
     type Record = TestRecord;
     type OrderBy = OrderTestRecordsBy;
-    type Allocator = DefaultIdAllocator;
 
     fn initial_data() -> Vec<Self::Record> {
         vec![
@@ -118,8 +114,8 @@ mod tests {
             use std::cmp::Ordering;
 
             use dummy::test_cases::TestRecord;
+            use store::Sorter;
 
-            use relm4_store_backend_inmemory::Sorter;
             use super::super::super::OrderTestRecordsBy;
 
             #[test]

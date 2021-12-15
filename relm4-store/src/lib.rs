@@ -250,3 +250,83 @@ pub trait StoreView: DataStore
     /// Returns current size of unhandled messages in the view
     fn inbox_queue_size(&self) -> usize;
 }
+
+/// Structure used by backends to send back information about what should be sent to the views
+/// after updates are done on the backend side
+#[derive(Debug)]
+pub struct Replies<Record> 
+where Record: record::Record + Debug + Clone + 'static
+{
+    /// List of messages to be sent to the store views
+    pub replies: Vec<StoreMsg<Record>>,
+}
+
+/// This trait should be implemented for backends of the data stores
+/// 
+/// It's basically `DataStore - Sender`
+pub trait Backend {
+    /// Type of records kept in the data store
+    type Record: Record + Debug + Clone + 'static;
+
+    /// Registers message in the data store
+    /// 
+    /// Data store might handle it immediately or might do queue it for later. It's up to the store
+    /// implementation what to do with a message
+    // fn inbox(&self, m: StoreMsg<Self::Record>);
+
+    /// Total amount of available records in the store
+    fn len(&self) -> usize;
+
+    /// Returns true if store doesn't contain any records yet
+    fn is_empty(&self) -> bool;
+
+    /// Returns the record from the store
+    /// 
+    /// If returns [None] then it means there is no such record in the store
+    fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record>;
+
+    /// Returns records which are in the store at the given range
+    ///
+    /// Returned vector doesn't need to be ordered by position.
+    /// If range is out of bounds returned vector will be empty.
+    fn get_range(&self, range: &Range) -> Vec<Self::Record>;
+
+
+    /// Handles messages
+    fn inbox(&mut self, msg: StoreMsg<Self::Record>) -> Replies<Self::Record>;
+}
+
+/// Default trait describing how the records should be sorted by backend
+pub trait Sorter<Record: record::Record>: Copy + Debug {
+    /// Compares `lhs` with `rhs`
+    /// 
+    /// If sorter is being used implementation assumes that `cmp` constitutes a total order
+    fn cmp(&self, lhs: &Record, rhs: &Record) -> std::cmp::Ordering;
+}
+
+
+/// Trait implemented by the data store which supports switching of the natural order
+/// 
+/// If you use [`Store`] then it will use `OrderBy` defined by the backend
+pub trait OrderedStore<OrderBy>: DataStore {
+    /// sets natural order of the records
+    fn set_order(&self, order: OrderBy);
+}
+
+/// Trait implemented by the data store backends supporting switching of the natural order
+/// 
+/// When you define your own implementation of the [`Backend`] in most cases
+/// it will look like:
+/// 
+/// ```text
+/// trait MyBackend<OrderBy: Sorted<Record>>{
+///    ...
+/// }
+/// ```
+/// 
+/// This implementation doesn't limit what `OrderBy` is so you have as much of freedom as
+/// possible when you need to do something special
+pub trait OrderedBackend<OrderBy>: Backend {
+    /// sets natural order of the records
+    fn set_order(&mut self, order: OrderBy) -> Replies<Self::Record>;
+}

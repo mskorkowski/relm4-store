@@ -8,6 +8,8 @@ use reexport::relm4;
 
 use relm4::RelmApp;
 
+use backend_inmemory::SortedInMemoryBackend;
+
 use crate::store::Tasks;
 use crate::view::MainWindowViewModel;
 
@@ -33,7 +35,7 @@ fn main() {
 
     println!("Seeding store");
     let model = MainWindowViewModel{
-        tasks: Tasks::new(),
+        tasks: Tasks::new(SortedInMemoryBackend::new()),
         page_size: 10,
     };
 

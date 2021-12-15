@@ -53,7 +53,7 @@ where
     Configuration: ?Sized + FactoryConfiguration + 'static,
 {
     id: StoreId<Self>,
-    store: Rc<RefCell<Configuration::Store>>,
+    store: Configuration::Store,
     handlers: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreMsg<<Configuration::Store as DataStore>::Record>>>>>,
     #[allow(clippy::type_complexity)]
     view: Rc<RefCell<DataContainer<<Configuration::Store as DataStore>::Record>>>,
@@ -86,7 +86,7 @@ where
     /// 
     /// - **store** store which will provide a source data
     /// - **size** size of the page
-    pub fn new(store: Rc<RefCell<Configuration::Store>>, size: usize, redraw_sender: Sender<RedrawMessages>) -> Self {
+    pub fn new(store: Configuration::Store, size: usize, redraw_sender: Sender<RedrawMessages>) -> Self {
         let range = Rc::new(RefCell::new(Range::new(0, size)));
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
     
@@ -112,7 +112,7 @@ where
 
         let id: StoreId<Self> = StoreId::new();
         
-        store.borrow().listen(id.transfer(), sender.clone());
+        store.listen(id.transfer(), sender.clone());
         changes.borrow_mut().push(StoreMsg::Reload);
 
         Self{
@@ -161,18 +161,11 @@ where
     }
 
     fn reload(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>) {
-        println!("RELOAD");
-
-        let store = self.store.borrow();
         let range_of_changes = self.range.borrow().clone();
-        let new_records: Vec<<Self as DataStore>::Record> = store.get_range(&range_of_changes);
+        let new_records: Vec<<Self as DataStore>::Record> = self.store.get_range(&range_of_changes);
         let mut view = self.view.borrow_mut();
         
-        println!("[view][reload][before] {:#?}", view);
-
         view.reload(changeset, new_records);
-
-        println!("[view][reload][after] {:#?}", view);
     }
 
     /// Inserts `by` elements at the position `pos`
@@ -183,11 +176,10 @@ where
         // it's responsibility of the WindowBehavior to make this math valid and truncate `pos` and `by` to the acceptable range
         // and WindowBehavior logic was called before we reached here so we can assume we are safe here
         let mut view = self.view.borrow_mut();
-        let store = self.store.borrow();
         let range = self.range.borrow();
 
         let range_of_changes = Range::new(pos, pos+by);
-        let data = store.get_range(&range_of_changes);
+        let data = self.store.get_range(&range_of_changes);
         let position = pos - range.start();
 
         view.insert_right(changeset, position, data);
@@ -215,15 +207,13 @@ where
         // and WindowBehavior logic was called before we reached here so we can assume we are safe here
 
         let mut view = self.view.borrow_mut();
-        let store = self.store.borrow();
-
         
         let start = {
             let range = self.range.borrow();
             *range.start()
         };
         let range_of_changes = Range::new(pos, pos+by);
-        let data = store.get_range(&range_of_changes);
+        let data = self.store.get_range(&range_of_changes);
         
         let position = pos - start;
 
@@ -265,12 +255,10 @@ where
 
             match transition {
                 WindowTransition::Identity => {
-                    log::warn!("Identity");
                     match change {
                         StoreMsg::Update(id) => {
-                            let store = self.store.borrow();
                             let mut view = self.view.borrow_mut();
-                            if let Some(record) = store.get(id) {
+                            if let Some(record) = self.store.get(id) {
                                 changeset.ids_to_update.insert(*id);
                                 view.update(record);
                             }
@@ -283,21 +271,19 @@ where
                     }
                 },
                 WindowTransition::InsertLeft{pos, by } => {
-                    log::warn!("InsertLeft");
                     self.insert_left(&mut changeset, pos, by);
                 }
                 WindowTransition::InsertRight{pos, by} => {
-                    log::warn!("InsertRight");
                     self.insert_right(&mut changeset, pos, by);
                 }
                 WindowTransition::RemoveLeft{pos: _, by: _} => {
-                    log::warn!("RemoveLeft");
+                    log::error!("RemoveLeft - unimplemented yet");
                 }
                 WindowTransition::RemoveRight{pos: _, by: _} => {
-                    log::warn!("RemoveRight");
+                    log::error!("RemoveRight - unimplemented yet");
                 }
                 WindowTransition::SlideLeft(_by) => {
-                    log::warn!("SlideLeft");
+                    log::error!("SlideLeft - unimplemented yet");
                 }
                 WindowTransition::SlideRight(by) => {
                     //exceeds is true if we try to slide outside of available data
@@ -401,10 +387,9 @@ where
         let mut widgets = self.widgets.borrow_mut();
         let view_order = self.view.borrow();
 
-        log::warn!("before");
-        log::info!("[StoreViewImplementation::generate] view should have same length as data.\t\tview.len(): {}", view_order.len());
-        log::info!("[StoreViewImplementation::generate] widgets should have same length as view.\twidgets.len(): {}", widgets.len());
-        log::info!("[StoreViewImplementation::generate] Should be empty. Is it? {}", self.changes.borrow().is_empty());
+        log::trace!("[StoreViewImplementation::generate] view should have same length as data.\t\tview.len(): {}", view_order.len());
+        log::trace!("[StoreViewImplementation::generate] widgets should have same length as view.\twidgets.len(): {}", widgets.len());
+        log::trace!("[StoreViewImplementation::generate] Should be empty. Is it? {}", self.changes.borrow().is_empty());
 
         let mut position: Position = Position(*self.range.borrow().start());
         let range = self.range.borrow();
@@ -482,9 +467,9 @@ where
             }
         }
 
-        log::warn!("after");
-        log::info!("[StoreViewImplementation::generate] view should have same length as data.\t\tview.len(): {}", view_order.len());
-        log::info!("[StoreViewImplementation::generate] widgets should have same length as view.\twidgets.len(): {}", widgets.len());
-        log::info!("[StoreViewImplementation::generate] Should be empty. Is it? {}", self.changes.borrow().is_empty());
+        log::trace!("after");
+        log::trace!("[StoreViewImplementation::generate] view should have same length as data.\t\tview.len(): {}", view_order.len());
+        log::trace!("[StoreViewImplementation::generate] widgets should have same length as view.\twidgets.len(): {}", widgets.len());
+        log::trace!("[StoreViewImplementation::generate] Should be empty. Is it? {}", self.changes.borrow().is_empty());
     }
 }

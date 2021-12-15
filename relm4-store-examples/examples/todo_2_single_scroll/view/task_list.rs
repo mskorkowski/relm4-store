@@ -62,14 +62,14 @@ pub struct TaskWidgets {
 pub trait TasksListConfiguration {
     type ParentViewModel: ViewModel;
 
-    fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
+    fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Tasks;
     fn page_size(parent_view_model: &Self::ParentViewModel) -> usize;
 }
 
 pub struct TasksListViewModel<Config> 
 where Config: TasksListConfiguration + 'static,
 {
-    tasks: Rc<RefCell<Tasks>>,
+    tasks: Tasks,
     new_task_description: gtk::EntryBuffer,
     store_view: Rc<RefCell<StoreViewImplementation<Self>>>,
     scroll_adjustment: gtk::Adjustment,
@@ -95,7 +95,7 @@ where Config: TasksListConfiguration + 'static,
     type ViewModel = Self;
     type ParentViewModel = Config::ParentViewModel;
 
-    fn init_store_view(store: Rc<RefCell<Self::Store>>, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
+    fn init_store_view(store: Self::Store, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
         StoreViewImplementation::new(store, size.items(), redraw_sender)
     }
 
@@ -170,17 +170,15 @@ where Config: TasksListConfiguration + 'static,
     }
 
     fn update(view_model: &mut Self, msg: <Self as ViewModel>::Msg, _sender: Sender<<Self as ViewModel>::Msg>) {
-        println!("[TasksListViewModel::update] message received, updating data");
-
         match msg {
             TaskMsg::New => {
                 let description = view_model.new_task_description.text();
                 let task = Task::new(description, false);
                 view_model.new_task_description.set_text("");
-                view_model.tasks.borrow().send(StoreMsg::Commit(task));
+                view_model.tasks.send(StoreMsg::Commit(task));
             },
             TaskMsg::Toggle{ complete, id } => {
-                let tasks = view_model.tasks.borrow();
+                let tasks = &view_model.tasks;
                 if let Some(record) = tasks.get(&id) {
                     let mut updated = record.clone();
                     updated.completed = complete;

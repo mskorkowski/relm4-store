@@ -2,6 +2,7 @@ mod model;
 mod store;
 mod view;
 
+use backend_inmemory::SortedInMemoryBackend;
 use reexport::gtk;
 use reexport::log;
 use reexport::relm4;
@@ -33,7 +34,7 @@ fn main() {
 
     println!("Seeding store");
     let model = MainWindowViewModel{
-        tasks: Tasks::new(),
+        tasks: Tasks::new(SortedInMemoryBackend::new()),
         page_size: 10,
     };
 

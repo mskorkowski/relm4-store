@@ -1,15 +1,9 @@
 
 
 mod test_cases {
-    use std::cell::RefCell;
-    use std::rc::Rc;
-
-    use reexport::glib;
-
     use record::Id;
     use record::Record;
-    use store::DataStore;
-    use store::StoreId;
+    use store::Backend;
     use store::math::Range;
 
     use crate::DummyBackend;
@@ -214,78 +208,5 @@ mod test_cases {
         let result = be.get_range(&Range::new(10, 20));
 
         assert!(result.len() == 0);
-    }
-
-
-
-    #[test]
-    fn dummy_store_event_propagation() {
-        let counter = Rc::new(RefCell::new(0));
-        let shared_counter = counter.clone();
-        // Sender and receiver to a view
-        let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-        {
-            let context = glib::MainContext::default();
-            let _guard = context.acquire().unwrap();
-            receiver.attach(Some(&context), move |_msg| {
-                let ctr = {
-                    let borrowed = shared_counter.borrow();
-                    *borrowed
-                };
-                shared_counter.replace(1 + ctr);
-    
-                glib::Continue(true)
-            });
-        }
-    
-        let view_id =  StoreId::new();
-        let TestCase{configuration, data:_} = TestCases::add_first_record();
-    
-        let mut be = DummyBackend::<TestRecord>::new(configuration);
-        assert!(be.listeners_len() == 0);
-        be.listen(view_id, sender);
-        assert!(be.listeners_len() == 1);
-        be.advance();
-    
-        {
-            let context = glib::MainContext::default();
-            context.iteration(true);
-        }
-        assert!(be.listeners_len() == 1);
-        {
-            let ctr = counter.borrow();
-            assert!(*ctr == 1)
-        }
-
-    }
-
-    #[test]
-    fn dummy_store_event_propagation_in_case_of_dead_sender() {
-        // Sender and receiver to a view
-        let sender = {
-            let (sender, _receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-            
-            let context =glib::MainContext::default();
-            let _guard = context.acquire().unwrap();
-            sender
-        };
-    
-        {
-            let context = glib::MainContext::default();
-            context.iteration(false);
-        }    
-
-        let view_id =  StoreId::new();
-        let TestCase{configuration, data:_} = TestCases::add_first_record();
-    
-        let mut be = DummyBackend::<TestRecord>::new(configuration);
-        be.listen(view_id, sender);
-        assert!(be.listeners_len() == 1);
-        be.advance();
-        assert!(be.listeners_len() == 0);
-        {
-            let context = glib::MainContext::default();
-            context.iteration(false);
-        }    
     }
 }

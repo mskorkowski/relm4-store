@@ -7,10 +7,7 @@ mod empty {
     use reexport::gtk;
 
     use serial_test::serial;
-
-    use std::cell::RefCell;
-    use std::rc::Rc;
-
+    
     use dummy::test_cases::TestRecord;
     use store::DataStore;
     use store::Store;
@@ -29,7 +26,7 @@ mod empty {
         let context = glib::MainContext::default();
         let _guard = context.acquire().unwrap();
 
-        let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
+        let backend: TestRecords = TestRecords::new();
         let store: Store<TestRecords> = Store::new(backend);
         let new_record = TestRecord::since("First record to be added", 0).permanent();
         store.send(StoreMsg::Commit(new_record.clone()));
@@ -53,7 +50,7 @@ mod empty {
         let context = glib::MainContext::default();
         let _guard = context.acquire().unwrap();
 
-        let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
+        let backend: TestRecords = TestRecords::new();
         let store: Store<TestRecords> = Store::new(backend);
         let new_record1 = TestRecord::since("A - First record to be added", 0).permanent();
         let new_record2 = TestRecord::since("B - Second record to be added", 0).permanent();
@@ -81,7 +78,7 @@ mod empty {
         let context = glib::MainContext::default();
         let _guard = context.acquire().unwrap();
 
-        let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
+        let backend: TestRecords = TestRecords::new();
         let store: Store<TestRecords> = Store::new(backend);
         let new_record1 = TestRecord::since("A - First record to be added", 0).permanent();
         let new_record2 = TestRecord::since("B - Second record to be added", 0).permanent();
@@ -110,9 +107,6 @@ mod empty {
 
         use serial_test::serial;
 
-        use std::cell::RefCell;
-        use std::rc::Rc;
-
         use dummy::test_cases::TestRecord;
         use store::DataStore;
         use store::Store;
@@ -128,7 +122,7 @@ mod empty {
             let context = glib::MainContext::default();
             let _guard = context.acquire().unwrap();
 
-            let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
+            let backend: TestRecords = TestRecords::new();
             let store: Store<TestRecords> = Store::new(backend);
             let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
             let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();
@@ -160,7 +154,7 @@ mod empty {
             let context = glib::MainContext::default();
             let _guard = context.acquire().unwrap();
 
-            let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
+            let backend: TestRecords = TestRecords::new();
             let store: Store<TestRecords> = Store::new(backend);
             let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
             let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();
@@ -192,7 +186,7 @@ mod empty {
             let context = glib::MainContext::default();
             let _guard = context.acquire().unwrap();
 
-            let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
+            let backend: TestRecords = TestRecords::new();
             let store: Store<TestRecords> = Store::new(backend);
             let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
             let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();
@@ -226,9 +220,6 @@ mod empty {
 
         use serial_test::serial;
 
-        use std::cell::RefCell;
-        use std::rc::Rc;
-
         use dummy::test_cases::TestRecord;
         use store::DataStore;
         use store::Store;
@@ -244,7 +235,7 @@ mod empty {
             let context = glib::MainContext::default();
             let _guard = context.acquire().unwrap();
 
-            let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
+            let backend: TestRecords = TestRecords::new();
             let store: Store<TestRecords> = Store::new(backend);
             let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
             let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();
@@ -277,7 +268,7 @@ mod empty {
             let context = glib::MainContext::default();
             let _guard = context.acquire().unwrap();
 
-            let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
+            let backend: TestRecords = TestRecords::new();
             let store: Store<TestRecords> = Store::new(backend);
             let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
             let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();
@@ -310,7 +301,7 @@ mod empty {
             let context = glib::MainContext::default();
             let _guard = context.acquire().unwrap();
 
-            let backend: Rc<RefCell<TestRecords>> = TestRecords::new();
+            let backend: TestRecords = TestRecords::new();
             let store: Store<TestRecords> = Store::new(backend);
             let new_record1 = TestRecord::since("B - First record to be added", 0).permanent();
             let new_record2 = TestRecord::since("D - Second record to be added", 0).permanent();

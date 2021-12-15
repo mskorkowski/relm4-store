@@ -2,6 +2,7 @@ mod model;
 mod store;
 mod view;
 
+use backend_inmemory::InMemoryBackend;
 use reexport::log;
 use reexport::gtk;
 use reexport::relm4;
@@ -29,7 +30,9 @@ fn main() -> Result<()> {
         .build();
 
     let model = MainWindowViewModel{
-        tasks: Tasks::new()
+        tasks: Tasks::new(
+            InMemoryBackend::new()
+        )
     };
 
     log::info!("\tCreating relm4 app");

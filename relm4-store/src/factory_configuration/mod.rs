@@ -27,7 +27,7 @@ use crate::window::WindowBehavior;
 pub trait FactoryConfiguration
 {
     /// Store type which will be a backend for your data
-    type Store: DataStore;
+    type Store: DataStore + Clone;
     /// StoreView type
     type StoreView: StoreView<Record=<Self::Store as DataStore>::Record> + 
         Factory<Self::StoreView, Self::View> +
@@ -55,7 +55,7 @@ pub trait FactoryConfiguration
     type ParentViewModel: ViewModel;
 
     /// Initialize store view
-    fn init_store_view(store: Rc<RefCell<Self::Store>>, size: StoreSize, redraw_sender: Sender<RedrawMessages>) -> Self::StoreView;
+    fn init_store_view(store: Self::Store, size: StoreSize, redraw_sender: Sender<RedrawMessages>) -> Self::StoreView;
 
     /// Creates instance of the [Self::RecordWidgets] responsible for displaying `record`
     /// at the `position`

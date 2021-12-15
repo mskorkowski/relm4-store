@@ -15,20 +15,10 @@ pub mod test_cases;
 #[cfg(test)]
 mod tests;
 
-use record::DefaultIdAllocator;
-use reexport::gtk;
-use reexport::uuid::Uuid;
-
-use std::cell::RefCell;
-use std::collections::HashMap;
+use store::Backend;
+use store::Store;
+use store::Replies;
 use std::fmt::Debug;
-
-use gtk::glib;
-
-use record::Identifiable;
-use reexport::relm4::Sender;
-use store::DataStore;
-use store::StoreId;
 use store::StoreMsg;
 
 
@@ -52,9 +42,6 @@ where
     configuration: DummyBackendConfiguration<Record>,
     index: usize,
     initiated: bool,
-    id: StoreId<Self>,
-    senders: RefCell<HashMap<StoreId<Self>, Sender<StoreMsg<Record>>>>,
-    sender: Sender<StoreMsg<Record>>,
 }
 
 impl<Record> DummyBackend<Record> 
@@ -63,15 +50,10 @@ where
 {
     /// Creates new instance of this structure
     pub fn new(configuration: DummyBackendConfiguration<Record>) -> Self {
-        let (sender, _receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-
         Self{
             configuration,
             index: 0,
             initiated: false,
-            id: StoreId::new(),
-            senders: RefCell::new(HashMap::new()),
-            sender,
         }
     }
 
@@ -88,29 +70,6 @@ where
         if self.index >= self.configuration.len() {
             panic!("Trying to advance above the configuration");
         }
-
-        let mut ids_for_remove: Vec<StoreId<Self>> = Vec::new();
-
-        {
-            let senders = self.senders.borrow();
-
-            if senders.is_empty() {
-                return;
-            }
-
-
-            for message in &self.configuration[self.index].events {
-                for (key, sender) in senders.iter() {
-                    if let Err( _ ) = sender.send(message.clone()) {
-                        ids_for_remove.push(*key);
-                    }
-                }
-            }
-        } // end of senders borrow
-
-        for id in ids_for_remove {
-            self.unlisten(id);
-        }
     }
 
     /// returns information at which step this store is
@@ -122,31 +81,13 @@ where
             DummyStoreStep::Initial
         }
     }
-
-    /// Returns number of registered listeners
-    pub fn listeners_len(&self) -> usize {
-        self.senders.borrow().len()
-    }
 }
 
-impl<Record> Identifiable<Self, Uuid> for DummyBackend<Record> 
-where
-    Record: 'static + record::Record + Debug + Clone,
-{
-    type Id = StoreId<Self>;
-
-    #[cfg(not(tarpaulin_include))]
-    fn get_id(&self) -> Self::Id {
-        self.id.clone()
-    }
-}
-
-impl<Record> DataStore for DummyBackend<Record>
+impl<Record> Backend for DummyBackend<Record>
 where 
     Record: 'static + record::Record + Debug + Clone,
 {
     type Record = Record;
-    type Allocator = DefaultIdAllocator;
 
     fn len(&self) -> usize {
         if !self.initiated {
@@ -214,27 +155,32 @@ where
         result
     }
 
-    fn listen(&self, id: StoreId<Self>, sender: reexport::relm4::Sender<StoreMsg<Self::Record>>) {
-        self.senders.borrow_mut().insert(id, sender);
+    fn inbox(&mut self, _msg: StoreMsg<Self::Record>) -> store::Replies<Self::Record> {
+        Replies{
+            replies: vec!()
+        }
     }
 
-    fn unlisten(&self, id: StoreId<Self>) {
-        self.senders.borrow_mut().remove(&id);
-    }
-
-    /// Receiver of this sender is not attached to anything, sending messages via this sender is not going
-    /// to trigger any events
-    /// 
-    /// This makes the state of this store easier to predict, since you trigger advancement of the state by hand
-    fn sender(&self) -> Sender<StoreMsg<Self::Record>> {
-        // coverage of this code is meaningless, this sender is dumb
-        self.sender.clone()
-    }
-
-    /// This method is sending messages via sender whose receiver is not connected, so it won't do a lot
-    fn send(&self, msg: StoreMsg<Self::Record>) {
-        // coverage of this code is meaningless, this sender is dumb
-        self.sender.send(msg).expect("Message should be sent, since store exists");
-    }
 }
 
+/// Trait providing advance method
+/// 
+/// It makes using `DummyBackend` easier since you can implement this trait for store used
+/// in tests, in a way which will call the `advance` method for the [DummyBackend]
+pub trait StepByStepStore {
+    /// Advances dummy backend to the next step
+    fn advance(&mut self);
+}
+
+impl<Record> StepByStepStore for Store<DummyBackend<Record>> 
+where
+    Record: record::Record + std::fmt::Debug
+{
+    fn advance(&mut self) {
+        let be = self.backend();
+        let mut backend = be.borrow_mut();
+        backend.advance();
+
+        self.fire_handlers(&backend.configuration[backend.index].events);
+    }
+}
