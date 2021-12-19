@@ -28,7 +28,7 @@ use relm4_macros::widget;
 use record::Id;
 use record::Record;
 use store::DataStore;
-use store::FactoryConfiguration;
+use store::StoreViewPrototype;
 use store::FactoryContainerWidgets;
 use store::Position;
 use store::StoreView;
@@ -83,7 +83,7 @@ where Config: TasksListConfiguration + 'static,
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryConfiguration for TasksListViewModel<Config> 
+impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<Config> 
 where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
@@ -249,7 +249,7 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
 }
 
 impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets {
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration>::View {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as StoreViewPrototype>::View {
         &self.container
     }
 }

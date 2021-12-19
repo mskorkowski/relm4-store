@@ -2,13 +2,12 @@ mod model;
 mod store;
 mod view;
 
+use backend_inmemory::SortedInMemoryBackend;
 use reexport::gtk;
 use reexport::log;
 use reexport::relm4;
 
 use relm4::RelmApp;
-
-use backend_inmemory::SortedInMemoryBackend;
 
 use crate::store::Tasks;
 use crate::view::MainWindowViewModel;
@@ -28,7 +27,7 @@ fn main() {
     
     let app_id = "store.relm4.examples.todo-3";
     
-    gtk::init().expect("Couldn't initialize gtk");  
+    gtk::init().expect("Couldn't initialize gtk");
     let application = gtk::Application::builder()
         .application_id(app_id)
         .build();

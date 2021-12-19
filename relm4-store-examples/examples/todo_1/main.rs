@@ -2,7 +2,6 @@ mod model;
 mod store;
 mod view;
 
-use backend_inmemory::InMemoryBackend;
 use reexport::log;
 use reexport::gtk;
 use reexport::relm4;
@@ -11,7 +10,7 @@ use std::io::Result;
 
 use relm4::RelmApp;
 
-use crate::store::Tasks;
+use crate::store::TasksBuilder;
 use crate::view::MainWindowViewModel;
 
 fn main() -> Result<()> {
@@ -30,9 +29,7 @@ fn main() -> Result<()> {
         .build();
 
     let model = MainWindowViewModel{
-        tasks: Tasks::new(
-            InMemoryBackend::new()
-        )
+        tasks: TasksBuilder::build()
     };
 
     log::info!("\tCreating relm4 app");

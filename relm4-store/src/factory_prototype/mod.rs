@@ -24,7 +24,7 @@ use crate::redraw_messages::RedrawMessages;
 use crate::window::WindowBehavior;
 
 /// Configuration of the [StoreViewComponent]
-pub trait FactoryConfiguration
+pub trait StoreViewPrototype
 {
     /// Store type which will be a backend for your data
     type Store: DataStore + Clone;
@@ -36,7 +36,7 @@ pub trait FactoryConfiguration
 
     /// Structure with widgets used by this component
     type RecordWidgets: Debug;
-    /// Type of root widget in [FactoryConfiguration::RecordWidgets]
+    /// Type of root widget in [StoreViewPrototype::RecordWidgets]
     /// 
     /// Same as [relm4::factory::FactoryPrototype::Root]
     type Root: WidgetExt;
@@ -80,7 +80,7 @@ pub trait FactoryConfiguration
         sender: Sender<<Self::ViewModel as ViewModel>::Msg>,
     );
 
-    /// Creates new instance of [FactoryConfiguration]
+    /// Creates new instance of [StoreViewPrototype]
     /// 
     /// If you wish to use store view in widgets you must save it in your model
     fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<Self::StoreView>>) -> Self::ViewModel;
@@ -100,10 +100,10 @@ pub trait FactoryConfiguration
 /// Trait describing what do we need from widgets to be usable for the [StoreViewComponent]
 pub trait FactoryContainerWidgets<Configuration> 
 where
-    Configuration: ?Sized + FactoryConfiguration,
+    Configuration: ?Sized + StoreViewPrototype,
 {
     /// Returns reference to the widget containing the records from the store view
-    fn container_widget(&self) -> &<Configuration as FactoryConfiguration>::View;
+    fn container_widget(&self) -> &<Configuration as StoreViewPrototype>::View;
 }
 
 /// Extra methods required by components embedded in StoreViewComponent

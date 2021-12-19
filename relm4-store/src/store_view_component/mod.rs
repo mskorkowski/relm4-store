@@ -17,7 +17,7 @@ use relm4::Sender;
 use relm4::Widgets;
 use relm4::factory::Factory;
 
-use crate::FactoryConfiguration;
+use crate::StoreViewPrototype;
 use crate::FactoryContainerWidgets;
 use crate::StoreSize;
 use crate::StoreView;
@@ -86,7 +86,7 @@ impl Debug for StoreViewInterfaceError {
 /// Specialized kind of component to handle store view 
 pub struct StoreViewComponent<Configuration> 
 where
-    Configuration: ?Sized + FactoryConfiguration + 'static,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
 {
     view: Rc<RefCell<Configuration::StoreView>>,
@@ -100,7 +100,7 @@ where
 
 impl<Configuration> std::fmt::Debug for StoreViewComponent<Configuration> 
 where 
-    Configuration: ?Sized + FactoryConfiguration + 'static,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -113,7 +113,7 @@ where
 
 impl<Configuration> StoreViewComponent<Configuration> 
 where 
-    Configuration: ?Sized + FactoryConfiguration + 'static,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel> + FactoryContainerWidgets<Configuration>,
     <Configuration::ViewModel as ViewModel>::Components: relm4::Components<Configuration::ViewModel> + StoreViewInnerComponent<Configuration::ViewModel>,
 {

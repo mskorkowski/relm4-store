@@ -1,0 +1,13 @@
+[book]
+authors = ["mskorkowski"]
+language = "en"
+multilingual = false
+src = "book"
+title = "relm4-store"
+
+[rust]
+edition = "2021"
+
+[build]
+build-dir = "target/book"
+create-missing = false

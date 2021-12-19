@@ -7,7 +7,7 @@ use record::Identifiable;
 use record::TemporaryIdAllocator;
 
 use store::DataStore;
-use store::FactoryConfiguration;
+use store::StoreViewPrototype;
 use store::Pagination;
 use store::Position;
 use store::RecordWithLocation;
@@ -21,7 +21,7 @@ use super::StoreViewImplementation;
 
 impl<Configuration> Identifiable<Self, <<Configuration::Store as DataStore>::Allocator as TemporaryIdAllocator>::Type> for StoreViewImplementation<Configuration>
 where
-    Configuration: 'static + ?Sized + FactoryConfiguration,
+    Configuration: 'static + ?Sized + StoreViewPrototype,
 {
     type Id = StoreId<Self>;
 
@@ -32,7 +32,7 @@ where
 
 impl<Configuration> DataStore for StoreViewImplementation<Configuration> 
 where 
-    Configuration: 'static + ?Sized + FactoryConfiguration,
+    Configuration: 'static + ?Sized + StoreViewPrototype,
 {
     type Record = <Configuration::Store as DataStore>::Record;
     type Allocator = <Configuration::Store as DataStore>::Allocator;
@@ -72,7 +72,7 @@ where
 
 impl<Configuration> StoreView for StoreViewImplementation<Configuration> 
 where
-    Configuration: 'static + ?Sized + FactoryConfiguration,
+    Configuration: 'static + ?Sized + StoreViewPrototype,
 {
     type Configuration = Configuration;
 

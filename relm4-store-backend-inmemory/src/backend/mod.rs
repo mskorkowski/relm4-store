@@ -19,11 +19,8 @@ pub trait InMemoryBackendConfiguration {
     /// Type of data in the in memory store
     type Record: 'static + Record + Debug + Clone;
 
-
     /// Returns initial dataset for the store
     fn initial_data() -> Vec<Self::Record>;
-
-    // fn ordering() -> HashMap<Self::OrderBy, >;
 }
 
 /// In memory implementation of the data store

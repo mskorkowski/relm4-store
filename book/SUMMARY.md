@@ -1,0 +1,15 @@
+# Summary
+
+- [Introduction](./README.md)
+  - [How the data stores came to life](./01-birth.md)
+  - [Goals](./02-goals.md)
+  - [relm4 vs store](./03-relm4-vs-store.md)
+  - [Application architecture](./04-application_architecture.md)
+- [Examples](./examples/index.md)
+  - [Setup](./examples/01-setup.md)
+  - [Simple todo 1](./examples/01-todo/README.md)
+    - [Model](./examples/01-todo/01-model.md)
+    - [Store](./examples/01-todo/02-store.md)
+    - [View](./examples/01-todo/03-view.md)
+    - [main](./examples/01-todo/04-main.md)
+    - [configuration](./examples/01-todo/05-configuration.md)

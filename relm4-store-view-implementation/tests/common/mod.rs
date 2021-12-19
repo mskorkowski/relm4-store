@@ -11,7 +11,7 @@ use backend_dummy::StepByStepStore;
 use backend_dummy::test_cases::TestCase;
 use backend_dummy::test_cases::TestRecord;
 use store::DataStore;
-use store::FactoryConfiguration;
+use store::StoreViewPrototype;
 use store::Position;
 use store::Store;
 use store::StoreSize;
@@ -30,7 +30,7 @@ pub struct TestConfig<Window: 'static + WindowBehavior> {
     _window: PhantomData<*const Window>,
 }
 
-impl<Window: 'static + WindowBehavior> FactoryConfiguration for TestConfig<Window> {
+impl<Window: 'static + WindowBehavior> StoreViewPrototype for TestConfig<Window> {
     type Store = Store<DummyBackend<TestRecord>>;
     type StoreView = StoreViewImplementation<Self>;
     type RecordWidgets = TestWidgets;

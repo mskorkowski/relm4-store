@@ -13,14 +13,14 @@ use record::Record;
 
 use store::DataStore;
 use store::StoreView;
-use store::FactoryConfiguration;
+use store::StoreViewPrototype;
 
 use super::StoreViewImplementation;
 
 
 impl<Configuration> FactoryPrototype for StoreViewImplementation<Configuration>
 where
-    Configuration: ?Sized + FactoryConfiguration + 'static,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
 {
     type Factory = Self;
@@ -57,7 +57,7 @@ where
     ) {
         let model = self.get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
         let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
-        <Configuration as FactoryConfiguration>::update_record(model, position, widgets)
+        <Configuration as StoreViewPrototype>::update_record(model, position, widgets)
     }
 
     /// Get the outermost widget from the widgets.
@@ -68,7 +68,7 @@ where
 
 impl<Configuration> Factory<StoreViewImplementation<Configuration>, Configuration::View> for StoreViewImplementation<Configuration>
 where
-    Configuration: ?Sized + FactoryConfiguration + 'static,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
 {
     type Key = Id<<Configuration::Store as DataStore>::Record>;
@@ -81,7 +81,7 @@ where
 /// Required for `relm4::widget` factory macro to work
 impl<Configuration> Factory<StoreViewImplementation<Configuration>, Configuration::View> for Ref<'_, StoreViewImplementation<Configuration>>
 where
-    Configuration: ?Sized + FactoryConfiguration + 'static,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
 {
     type Key = Id<<Configuration::Store as DataStore>::Record>;

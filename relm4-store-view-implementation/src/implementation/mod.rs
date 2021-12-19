@@ -23,7 +23,7 @@ use relm4::factory::FactoryView;
 use record::Id;
 
 use store::DataStore;
-use store::FactoryConfiguration;
+use store::StoreViewPrototype;
 use store::Position;
 use store::StoreId;
 use store::StoreMsg;
@@ -50,7 +50,7 @@ use super::widgets;
 /// **Warning** This implementation of the store view doesn't work for multisets (aka data repetition).
 pub struct StoreViewImplementation<Configuration>
 where
-    Configuration: ?Sized + FactoryConfiguration + 'static,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
 {
     id: StoreId<Self>,
     store: Configuration::Store,
@@ -68,7 +68,7 @@ where
 
 impl<Configuration> Debug for StoreViewImplementation<Configuration>
 where
-    Configuration: ?Sized + FactoryConfiguration + 'static,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("StoreViewImplementation")
@@ -80,7 +80,7 @@ where
 
 impl<Configuration> StoreViewImplementation<Configuration> 
 where
-    Configuration: ?Sized + FactoryConfiguration + 'static,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
 {
     ///Creates  new instance of this struct
     /// 
@@ -426,7 +426,7 @@ where
                 
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
-                        <Configuration as FactoryConfiguration>::update_record(record, position, &widget.widgets);
+                        <Configuration as StoreViewPrototype>::update_record(record, position, &widget.widgets);
                         if old_order_len > position.0 {
                             if old_order[position.0] != *id {
                                 // things got reordered so we need to remove widget from old place and attach it to the new one

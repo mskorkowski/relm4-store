@@ -35,7 +35,7 @@ use record::Record;
 use store::StoreViewInnerComponent;
 use store::window::WindowBehavior;
 use store::DataStore;
-use store::FactoryConfiguration;
+use store::StoreViewPrototype;
 use store::FactoryContainerWidgets;
 use store::Position;
 use store_view::StoreViewImplementation;
@@ -86,7 +86,7 @@ where
     type Components = TasksListComponents<Config>;
 }
 
-impl<Config> FactoryConfiguration for TasksListViewModel<Config> 
+impl<Config> StoreViewPrototype for TasksListViewModel<Config> 
 where
     Config: TasksListConfiguration + 'static,
 {
@@ -229,9 +229,9 @@ impl<Config> PaginationConfiguration for TasksListComponents<Config>
 where
     Config: TasksListConfiguration + 'static,
 {
-    type FactoryConfiguration = TasksListViewModel<Config>;
+    type StoreViewPrototype = TasksListViewModel<Config>;
     
-    fn get_view(parent_view_model: &<Self::FactoryConfiguration as FactoryConfiguration>::ViewModel) -> Rc<RefCell<StoreViewImplementation<Self::FactoryConfiguration>>> {
+    fn get_view(parent_view_model: &<Self::StoreViewPrototype as StoreViewPrototype>::ViewModel) -> Rc<RefCell<StoreViewImplementation<Self::StoreViewPrototype>>> {
         parent_view_model.store_view.clone()
     }
 }
@@ -270,7 +270,7 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
 }
 
 impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets {
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration>::View {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as StoreViewPrototype>::View {
         &self.container
     }
 }

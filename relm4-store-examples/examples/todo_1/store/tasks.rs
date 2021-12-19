@@ -8,6 +8,14 @@ pub type Tasks = Store<InMemoryBackend<TasksBuilder>>;
 
 pub struct TasksBuilder {}
 
+impl TasksBuilder{
+    pub fn build() -> Tasks {
+        Tasks::new(
+            InMemoryBackend::new()
+        )
+    }
+}
+
 impl InMemoryBackendConfiguration for TasksBuilder
 {
     type Record = Task;

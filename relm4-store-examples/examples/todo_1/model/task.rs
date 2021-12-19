@@ -1,12 +1,8 @@
-use reexport::uuid;
-
 use std::fmt::{self, Debug, Display, Formatter};
 
-use uuid::Uuid;
+use record::{Id, Record, DefaultIdAllocator, TemporaryIdAllocator};
 
-use record::{Id, Record, DefaultIdAllocator};
-
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Task {
     id: Id<Task>,
     pub description: String,
@@ -29,19 +25,12 @@ impl Record for Task {
         self.id
     }
 
-    fn set_permanent_id(&mut self, value: Uuid) -> Result<(), record::IdentityError> {
+    fn set_permanent_id(
+        &mut self, 
+        value: <Self::Allocator as TemporaryIdAllocator>::Type
+    ) -> Result<(), record::IdentityError> {
         self.id = Id::from(value);
         Ok( () )
-    }
-}
-
-impl Debug for Task {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Task")
-            .field("id", &self.id)
-            .field("description", &self.description)
-            .field("completed", &self.completed)
-            .finish()
     }
 }
 

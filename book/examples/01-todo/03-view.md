@@ -1,139 +1,54 @@
 # View
 
-Our view will have a three parts.
+Our view will have a two parts. If you know `relm4` you will see lots of similarities here.
 
-1. Task widget
-2. Tasks list
-3. Main window
+1. Task widget and tasks list
+2. Main window
 
-I've decided to split the view this way so each part of implementation is easier to understand. Making it smallest amount of lines of code was not a goal here.
+I've decided to split the view this way so each part of implementation is easier to understand.
 
-## Task
+## List of tasks
+
+All snippets in this section should go to `view/task_list.rs`
+
+### List of imports
+
+There will be a lots of them here. I'm providing them here so they won't obstruct the examples later. We will cover all important parts later in this chapter.
+
+```rust,noplaypen
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:1:37}}
+```
+
+### Task widget and task list
+
+-------------------------------------------------------------
+
+To be reviewed
+
+-------------------------------------------------------------
 
 In previous section we've created a store which holds the list of tasks. Now we need the ability to show the task.
 
 Task should have a `checkbox` to be marked when completed. Label to show task description. If task is completed label should be styled with `strikethrough`.
 
-In here we will implement `store::FactoryBuilder` to provide a view for items in the store. You would use `FactoryBuilder` trait in all the places where using pure `relm4` you would use `relm4::factory::FactoryPrototype`.
+In here we will implement `store::StoreViewPrototype` to provide a view for items in the store. You would use `StoreViewPrototype` trait in all the places where using pure `relm4` you would use `relm4::factory::FactoryPrototype`.
 
-Differences between the `relm4::factory::FactoryPrototype` and `store::FactoryBuilder`
+Differences between the `relm4::factory::FactoryPrototype` and `store::StoreViewPrototype`
 
-|What|FactoryPrototype | FactoryBuilder |
+|What|FactoryPrototype | StoreViewPrototype |
 |:---|:----------------|:---------------|
 | **Target of implementation** | You implement it for the ViewModel. | You implement it for whatever you like. This makes this interface behave more like configuration. |
-| **Data container** | `type Factory` which points to data container in the ViewModel | `type Store` which points to data container outside of ViewModel. |
+| **Data container** | `type Factory` which points to data container in the ViewModel | `type Store` which points to data container type. There is no requirement of it being inside of `ViewModel`. |
 | **Data visibility** | All data in the factory are visible. | Only part of data in the Store is visible. `type Window` defines how the view window behaves (more in chapter 2 and 3). |
 | Method signature | Since you implemented the factory for the ViewModel, it takes `self` as an argument. You create a widgets to display `self`. Second is key under which factory is going to find it. Key is unstable and managed by the factory. | It's not bound to `self`. First is record for which widgets should be created. Second is position in the store. Position in the dataset at the time of widget generation. There is no guarantee to get the same widget in the future when asking store for record at the given position. Record is required to hold stable id by implementing `model::Identifialble`. |
 
 Let's create a file `view/task.rs`
 
-```rust
-use reexport::{gtk, relm4};
-use gtk::{Box, CheckButton, Label, Orientation, 
-    prelude::{BoxExt, CheckButtonExt}};
-use relm4::{send, Sender};
-use model::{Id, Identifiable};
-use store::{FactoryBuilder, Position, math::PositionTrackingWindow};
-use crate::model::Task;
-use crate::store::Tasks;
-
-pub enum TaskMsg {
-    Toggle{
-        complete: bool,
-        id: Id<Task>,
-    },
-    New,
-}
-
-#[derive(Debug)]
-#[allow(dead_code)]
-pub struct TaskWidgets {
-    checkbox: CheckButton,
-    label: Label,
-    root: Box,
-}
-
-pub struct TaskFactoryBuilder {}
-
-impl FactoryBuilder for TaskFactoryBuilder {
-    type Store = Tasks;
-    type Widgets = TaskWidgets;
-    type Root = gtk::Box;
-    type View = gtk::Box;
-    type Window = PositionTrackingWindow;
-    type Msg = TaskMsg;
-
-    fn generate(
-        record: &Task,
-        _position: Position,
-        sender: Sender<TaskMsg>,
-    ) -> Self::Widgets {
-        let root = Box::builder()
-            .orientation(Orientation::Horizontal)
-            .build();
-
-        let checkbox = CheckButton::builder()
-            .margin_top(12)
-            .margin_start(12)
-            .margin_end(12)
-            .margin_bottom(12)
-            .active(record.completed)
-            .build();
-
-        {
-            let sender = sender.clone();
-            let id = record.get_id();
-
-            checkbox.connect_toggled(move |btn| {
-                send!(sender, TaskMsg::Toggle{
-                    id,
-                    complete: btn.is_active()
-                });
-            });
-        }
-
-        let label = Label::builder()
-            .margin_top(12)
-            .margin_start(12)
-            .margin_end(12)
-            .margin_bottom(12)
-            .label(&record.description)
-            .build();
-
-        root.append(&checkbox);
-        root.append(&label);
-
-        TaskWidgets {
-            checkbox,
-            label,
-            root,
-        }
-    }
-
-    fn update(
-        record: Task,
-        _position: Position,
-        widgets: &Self::Widgets,
-    ) {
-        widgets.checkbox.set_active(record.completed);
-
-        let attrs = widgets.label.attributes().unwrap_or_default();
-        attrs.change(gtk::pango::Attribute::new_strikethrough(record.completed));
-        widgets.label.set_attributes(Some(&attrs));
-    }
-
-    fn position(
-        _model: Task, 
-        _position: Position,
-    ) {}
-
-    fn get_root(widgets: &Self::Widgets) -> &Self::Root {
-        &widgets.root
-    }
-}
+```rust,noplaypen
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:39:}}
 ```
 
-Let's look at the first part of `FactoryBuilder` implementation
+Let's look at the first part of `StoreViewPrototype` implementation
 
 ```rust
     type Store = Tasks;
@@ -155,8 +70,6 @@ Let's look at the first part of `FactoryBuilder` implementation
 
 Next we implemented `generate`, `update`, `position` and `get_root` methods. They do exactly the same stuff as in `relm4::factory::FactoryPrototype` so I'll skip talking about it.
 
-## Task list
-
 We know how to show a task. Now let's talk how to show the list of tasks. We will implement it as the relm4 component.
 
 view/task_list.rs
@@ -168,11 +81,11 @@ use gtk::prelude::{BoxExt, EntryExt, EntryBufferExtManual, OrientableExt, Widget
 use relm4::{ComponentUpdate, Model as ViewModel, send, Sender, Widgets, WidgetPlus};
 use relm4_macros::widget;
 use store::{DataStoreBase, Source, StoreViewInterface};
-use crate::{ model::Task, store::Tasks, view::task::{TaskFactoryBuilder, TaskMsg}};
+use crate::{ model::Task, store::Tasks, view::task::{TaskStoreViewPrototype, TaskMsg}};
 
 type StoreMsg = store::StoreMsg<Task>;
 
-pub trait TasksListConfiguration: Source<SV=StoreViewInterface<TaskFactoryBuilder>> {
+pub trait TasksListConfiguration: Source<SV=StoreViewInterface<TaskStoreViewPrototype>> {
     fn get_tasks(parent: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
 }
 
@@ -260,7 +173,7 @@ Now we will talk about interesting bits in the implementation.
 View model definition looks like
 
 ```rust
-pub trait TasksListConfiguration: Source<SV=StoreViewInterface<TaskFactoryBuilder>> {
+pub trait TasksListConfiguration: Source<SV=StoreViewInterface<TaskStoreViewPrototype>> {
     fn get_tasks(parent: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
 }
 
@@ -313,7 +226,7 @@ use store::{Source, StoreSize, StoreViewInterface};
 
 use crate::{
     store::Tasks,
-    view::{ task::TaskFactoryBuilder, task_list::TasksListConfiguration, task_list::TasksListViewModel}
+    view::{ task::TaskStoreViewPrototype, task_list::TasksListConfiguration, task_list::TasksListViewModel}
 };
 
 pub enum MainWindowMsg {}
@@ -357,7 +270,7 @@ impl Components<MainWindowViewModel> for MainWindowComponents {
 
 impl Source for MainWindowComponents {
     type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TaskFactoryBuilder>;
+    type SV = StoreViewInterface<TaskStoreViewPrototype>;
 
     fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
         StoreViewInterface::new(parent_model.tasks.clone(), 10)
@@ -385,7 +298,7 @@ Only interesting part is implementation of `Source` for MainWindowComponents.
 ```rust
 impl Source for MainWindowComponents {
     type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TaskFactoryBuilder>;
+    type SV = StoreViewInterface<TaskStoreViewPrototype>;
 
     fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
         StoreViewInterface::new(parent_model.tasks.clone(), StoreSize::Unlimited)

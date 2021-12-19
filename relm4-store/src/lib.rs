@@ -20,7 +20,7 @@
     unreachable_pub
 )]
 
-mod factory_configuration;
+mod factory_prototype;
 pub mod math;
 mod pagination;
 mod position;
@@ -47,9 +47,9 @@ use record::TemporaryIdAllocator;
 
 use crate::math::Range;
 
-pub use factory_configuration::FactoryConfiguration;
-pub use factory_configuration::FactoryContainerWidgets;
-pub use factory_configuration::StoreViewInnerComponent;
+pub use factory_prototype::StoreViewPrototype;
+pub use factory_prototype::FactoryContainerWidgets;
+pub use factory_prototype::StoreViewInnerComponent;
 pub use pagination::Pagination;
 pub use position::Position;
 pub use record_with_location::RecordWithLocation;
@@ -206,7 +206,7 @@ pub trait DataStore: Identifiable<Self, <Self::Allocator as TemporaryIdAllocator
 pub trait StoreView: DataStore
 {
     /// Type describing configuration parts of the store view behavior
-    type Configuration: ?Sized + FactoryConfiguration;
+    type Configuration: ?Sized + StoreViewPrototype;
 
     /// How many records should be visible at any point of time
     /// 

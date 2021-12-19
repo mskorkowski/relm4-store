@@ -16,7 +16,7 @@ use gtk::prelude::OrientableExt;
 use gtk::prelude::WidgetExt;
 
 use store::DataStore;
-use store::FactoryConfiguration;
+use store::StoreViewPrototype;
 use store::Pagination;
 use store::StoreMsg;
 use store::StoreView;
@@ -56,11 +56,11 @@ pub trait PaginationConfiguration
     /// Type of parent view model
     /// 
     /// Type of model used by component which holds pagination component
-    type FactoryConfiguration: FactoryConfiguration;
+    type StoreViewPrototype: StoreViewPrototype;
 
     /// Returns a view which will be used by the pagination component
-    fn get_view(parent_view_model: &<Self::FactoryConfiguration as FactoryConfiguration>::ViewModel) 
-        -> Rc<RefCell<StoreViewImplementation<Self::FactoryConfiguration>>>;
+    fn get_view(parent_view_model: &<Self::StoreViewPrototype as StoreViewPrototype>::ViewModel) 
+        -> Rc<RefCell<StoreViewImplementation<Self::StoreViewPrototype>>>;
 }
 
 /// View model of the pagination component
@@ -71,7 +71,7 @@ where
     Config: PaginationConfiguration + 'static,
 {
     #[do_not_track]
-    view: Rc<RefCell<StoreViewImplementation<Config::FactoryConfiguration>>>,
+    view: Rc<RefCell<StoreViewImplementation<Config::StoreViewPrototype>>>,
     #[do_not_track]
     page: gtk::EntryBuffer,
     total_pages: String,
@@ -86,11 +86,11 @@ where
     type Components = ();
 }
 
-impl<Config> ComponentUpdate<<Config::FactoryConfiguration as FactoryConfiguration>::ViewModel> for PaginationViewModel<Config>
+impl<Config> ComponentUpdate<<Config::StoreViewPrototype as StoreViewPrototype>::ViewModel> for PaginationViewModel<Config>
 where 
     Config: PaginationConfiguration,
 {
-    fn init_model(parent_model: &<Config::FactoryConfiguration as FactoryConfiguration>::ViewModel) -> Self {
+    fn init_model(parent_model: &<Config::StoreViewPrototype as StoreViewPrototype>::ViewModel) -> Self {
         let view = Config::get_view(parent_model); 
 
         let total_pages = format!("{}", view.borrow().total_pages());
@@ -109,7 +109,7 @@ where
         msg: Self::Msg, 
         _components: &Self::Components, 
         _sender: relm4::Sender<Self::Msg>, 
-        _parent_sender: relm4::Sender<<<Config::FactoryConfiguration as FactoryConfiguration>::ViewModel as ViewModel>::Msg>
+        _parent_sender: relm4::Sender<<<Config::StoreViewPrototype as StoreViewPrototype>::ViewModel as ViewModel>::Msg>
     ) {
         match msg {
             PaginationMsg::First => 
@@ -134,7 +134,7 @@ where
 
 /// Widgets for pagination component
 #[widget(visibility=pub, relm4=relm4)]
-impl<Config> Widgets<PaginationViewModel<Config>, <Config::FactoryConfiguration as FactoryConfiguration>::ViewModel> for PaginationWidgets 
+impl<Config> Widgets<PaginationViewModel<Config>, <Config::StoreViewPrototype as StoreViewPrototype>::ViewModel> for PaginationWidgets 
 where 
     Config: PaginationConfiguration,
 {
