@@ -11,6 +11,7 @@ use std::rc::Rc;
 
 use gtk::glib;
 
+use relm4::Components;
 use relm4::Model as ViewModel;
 use relm4::send;
 use relm4::Sender;
@@ -137,7 +138,7 @@ where
 
 
         let view_model = Configuration::init_view_model(parent_view_model, shared_view.clone());
-        let components = <<Configuration::ViewModel as ViewModel>::Components as relm4::Components<Configuration::ViewModel>>::init_components(&view_model, sender.clone());
+        let mut components = <<Configuration::ViewModel as ViewModel>::Components as relm4::Components<Configuration::ViewModel>>::init_components(&view_model, sender.clone());
         let container = {
             <Configuration::ViewModel as ViewModel>::Widgets::init_view(
                 &view_model,
@@ -145,6 +146,7 @@ where
                 sender.clone(),
             )
         };
+        components.connect_parent(&container);
 
         // container.connect_components(&view_model, &components);
         let shared_components = Rc::new(RefCell::new(components));
