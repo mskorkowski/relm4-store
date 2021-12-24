@@ -2,6 +2,7 @@ use reexport::glib;
 use reexport::gtk;
 use reexport::relm4;
 
+use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use relm4::Sender;
@@ -20,19 +21,21 @@ use store::redraw_messages::RedrawMessages;
 use store::window::WindowBehavior;
 
 use relm4_store_view_implementation::StoreViewImplementation;
+use relm4_store_view_implementation::View;
 
 #[derive(Debug)]
 pub struct TestWidgets {
     root: gtk::Box,
 }
 
+#[derive(Debug)]
 pub struct TestConfig<Window: 'static + WindowBehavior> {
     _window: PhantomData<*const Window>,
 }
 
-impl<Window: 'static + WindowBehavior> StoreViewPrototype for TestConfig<Window> {
+impl<Window: 'static + WindowBehavior + Debug> StoreViewPrototype for TestConfig<Window> {
     type Store = Store<DummyBackend<TestRecord>>;
-    type StoreView = StoreViewImplementation<Self>;
+    type StoreView = View<Self>;
     type RecordWidgets = TestWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
@@ -41,7 +44,7 @@ impl<Window: 'static + WindowBehavior> StoreViewPrototype for TestConfig<Window>
     type ParentViewModel = ();
 
     fn init_store_view(store: Self::Store, size: store::StoreSize, redraw_sender: Sender<RedrawMessages>) -> Self::StoreView {
-        StoreViewImplementation::new(store, size.items(), redraw_sender)
+        View::new(store, size, redraw_sender)
     }
 
     fn generate(_record: &<Self::Store as store::DataStore>::Record, _position: Position, _sender: Sender<()>) -> Self::RecordWidgets {
@@ -68,7 +71,7 @@ pub type Prepare<Window> = &'static dyn Fn(&StoreViewImplementation<TestConfig<W
 
 pub struct StoreViewTest<Window>
 where
-    Window: 'static + WindowBehavior
+    Window: 'static + WindowBehavior + Debug
 {
     asserts: Vec<Assertion<Window>>,
     initial_assertion: Assertion<Window>,
@@ -80,7 +83,7 @@ where
 
 impl<Window> StoreViewTest<Window>
 where
-    Window: 'static + WindowBehavior,
+    Window: 'static + WindowBehavior + Debug,
 {
     pub fn from(config: TestCase) -> StoreViewTest<Window> {
         StoreViewTest{
@@ -125,7 +128,6 @@ where
         let context = glib::MainContext::default();
         let _guard = context.acquire().unwrap();
 
-        let (sender, _receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let (view_sender, _view_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
         let container = gtk::Box::default();
@@ -134,8 +136,7 @@ where
 
         let store_view: StoreViewImplementation<TestConfig<Window>> = StoreViewImplementation::new(
             data_store.clone(), 
-            self.window_size.items(), 
-            sender
+            self.window_size.items(),
         );
 
         // StoreView is using `Reload` event to populate itself

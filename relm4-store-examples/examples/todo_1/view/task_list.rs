@@ -1,10 +1,7 @@
 use reexport::gtk;
-use reexport::log;
 use reexport::relm4;
 use reexport::relm4_macros;
-
-use std::cell::RefCell;
-use std::rc::Rc;
+use store_view::View;
 
 use gtk::Box;
 use gtk::CheckButton;
@@ -31,7 +28,6 @@ use store::FactoryContainerWidgets;
 use store::DataStore;
 use store::Position;
 use store::window::PositionTrackingWindow;
-use store_view::StoreViewImplementation;
 
 use crate::model::Task;
 use crate::store::Tasks;
@@ -61,8 +57,8 @@ pub trait TasksListConfiguration {
 
 pub struct TasksListViewModel<Config: TasksListConfiguration + 'static> {
     tasks: Tasks,
+    store_view: View<Self>,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<Self>>>,
 }
 
 impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
@@ -73,7 +69,7 @@ impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
 
 impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<Config> {
     type Store = Tasks;
-    type StoreView = StoreViewImplementation<Self>;
+    type StoreView = View<Self>;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
@@ -82,7 +78,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<C
     type ParentViewModel = Config::ParentViewModel;
 
     fn init_store_view(store: Self::Store, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
-        StoreViewImplementation::new(store, size.items(), redraw_sender)
+        View::new(store, size, redraw_sender)
     }
 
     fn generate(
@@ -156,8 +152,6 @@ impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<C
     }
 
     fn update(view_model: &mut Self::ViewModel, msg: <Self as ViewModel>::Msg, _sender: Sender<<Self as ViewModel>::Msg>) {
-        log::info!("[TasksListViewModel::update] message received, updating data");
-
         match msg {
             TaskMsg::New => {
                 let description = view_model.new_task_description.text();
@@ -176,11 +170,11 @@ impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<C
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: &Self::StoreView) -> Self {
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
-            store_view,
+            store_view: store_view.clone(),
         }
     }
 }
@@ -201,7 +195,7 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
                 set_vexpand: true,
                 set_child: container = Some(&gtk::Box) {
                     set_orientation: gtk::Orientation::Vertical,
-                    factory!(model.store_view.borrow())
+                    factory!(model.store_view)
                 }
             }
         }

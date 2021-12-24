@@ -1,6 +1,7 @@
 use reexport::gtk;
 use reexport::log;
 use reexport::relm4;
+use reexport::relm4::factory::Factory;
 
 use std::cell::BorrowError;
 use std::cell::BorrowMutError;
@@ -16,12 +17,11 @@ use relm4::Model as ViewModel;
 use relm4::send;
 use relm4::Sender;
 use relm4::Widgets;
-use relm4::factory::Factory;
 
+use crate::StoreView;
 use crate::StoreViewPrototype;
 use crate::FactoryContainerWidgets;
 use crate::StoreSize;
-use crate::StoreView;
 use crate::StoreViewInnerComponent;
 use crate::redraw_messages::RedrawMessages;
 
@@ -90,7 +90,7 @@ where
     Configuration: ?Sized + StoreViewPrototype + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
 {
-    view: Rc<RefCell<Configuration::StoreView>>,
+    view: Configuration::StoreView,
     _components: Rc<RefCell<<Configuration::ViewModel as ViewModel>::Components>>,
     _container: Rc<RefCell<<Configuration::ViewModel as ViewModel>::Widgets>>,
     _view_model: Rc<RefCell<Configuration::ViewModel>>,
@@ -132,12 +132,9 @@ where
         let handler_redraw_sender = redraw_sender.clone();
 
         let view = Configuration::init_store_view(store.clone(), size, redraw_sender.clone());
+        let redraw_handler_view = view.clone();
 
-        let shared_view = Rc::new(RefCell::new(view));
-        let redraw_handler_view = shared_view.clone();
-
-
-        let view_model = Configuration::init_view_model(parent_view_model, shared_view.clone());
+        let view_model = Configuration::init_view_model(parent_view_model, &view);
         let mut components = <<Configuration::ViewModel as ViewModel>::Components as relm4::Components<Configuration::ViewModel>>::init_components(&view_model, sender.clone());
         let container = {
             <Configuration::ViewModel as ViewModel>::Widgets::init_view(
@@ -187,31 +184,27 @@ where
             let context = glib::MainContext::default();
             redraw_receiver.attach(Some(&context), move |_| {
                 log::info!("Received redraw message!");
-                if let Ok(store_view) = redraw_handler_view.try_borrow() {
-                    if let Ok(view_model) = redraw_handler_view_model.try_borrow() {
-                        if let Ok(mut container) = redraw_handler_container.try_borrow_mut() {
-                            log::info!("Store view queue size: {}", store_view.inbox_queue_size());
-                            if store_view.inbox_queue_size() > 0 { //only redraw if there is an update awaiting
-                                store_view.generate(container.container_widget(), redraw_handler_sender.clone());
-                            }
-                            container.view(&view_model, redraw_handler_sender.clone());
-                            if let Ok(mut handler_components) = redraw_handler_components.try_borrow_mut() {
-                                handler_components.on_store_update();
-                            }
-                            else {
-                                log::warn!(target: "relm4-store", "Could not borrow the components. Make sure you dropped all references to components after user");    
-                            }
+                if let Ok(view_model) = redraw_handler_view_model.try_borrow() {
+                    if let Ok(mut container) = redraw_handler_container.try_borrow_mut() {
+                        log::info!("Store view queue size: {}", redraw_handler_view.inbox_queue_size());
+                        if redraw_handler_view.inbox_queue_size() > 0 { //only redraw if there is an update awaiting
+                            println!("Updating the store view");
+                            redraw_handler_view.generate(container.container_widget(), redraw_handler_sender.clone());
+                        }
+                        container.view(&view_model, redraw_handler_sender.clone());
+                        if let Ok(mut handler_components) = redraw_handler_components.try_borrow_mut() {
+                            handler_components.on_store_update();
                         }
                         else {
-                            log::warn!(target: "relm4-store", "Could not borrow the container. Make sure you dropped all references to container after user");
+                            log::warn!(target: "relm4-store", "Could not borrow the components. Make sure you dropped all references to components after user");    
                         }
                     }
                     else {
-                        log::warn!(target: "relm4-store", "Could not borrow the view model. Make sure you dropped all references to view model after use");
+                        log::warn!(target: "relm4-store", "Could not borrow the container. Make sure you dropped all references to container after user");
                     }
                 }
                 else {
-                    log::warn!(target: "relm4-store", "Could not borrow the store view. Make sure you dropped all references to store view after use");
+                    log::warn!(target: "relm4-store", "Could not borrow the view model. Make sure you dropped all references to view model after use");
                 }
 
                 glib::Continue(true)
@@ -219,7 +212,7 @@ where
         }
 
         Self {
-            view: shared_view,
+            view,
             _components: shared_components,
             _container: shared_container,
             _view_model: shared_view_model,

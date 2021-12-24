@@ -21,13 +21,27 @@ There will be a lots of them here. I'm providing them here so they won't obstruc
 
 ### Task widget and task list
 
+Firstly we need to define structures which will keep our widgets around.
+
+```rust,noplaypen
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:39:66}}
+```
+
+Let's discuss it one by one.
+
+The first thing is definition of the `StoreMsg` type. In your code you will interact with store. Main goal of this type alias is to reduce amount of typing. All stores and store views are using `store::StoreMsg` to communicate between each other and using it is only way to affect state of the data store. `store::StoreMsg` is parametrized by the type of Record so you won't be able to send a message of the wrong type to the store.
+
+The second one is `TaskWidgets`. Exactly same structure you would be defining if you would use `relm4` factories. Bunch of widgets.
+
+The third one is `TasksListConfiguration`. It's part of the component pattern to allow more then one instance of the component to be shown at the same time. It contains a method `get_tasks` which will return instance of the `store::Store`.
+
+Finally `TasksListViewModel`. First really interesting things happens here. First attribute is `tasks` it's the data store which keeps all the data. We will need it to notify the store about status changes of the tasks. Second attribute is store_view. It's wrapped in `Rc<RefCell<>>>` since we need to share it between list of tasks (as a factory) and redraw logic.
+
 -------------------------------------------------------------
 
 To be reviewed
 
 -------------------------------------------------------------
-
-In previous section we've created a store which holds the list of tasks. Now we need the ability to show the task.
 
 Task should have a `checkbox` to be marked when completed. Label to show task description. If task is completed label should be styled with `strikethrough`.
 

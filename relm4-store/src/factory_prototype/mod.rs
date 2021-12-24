@@ -3,9 +3,7 @@ mod impls;
 use reexport::gtk;
 use reexport::relm4;
 
-use std::cell::RefCell;
 use std::fmt::Debug;
-use std::rc::Rc;
 
 use gtk::glib::Sender;
 use gtk::prelude::WidgetExt;
@@ -29,10 +27,18 @@ pub trait StoreViewPrototype
     /// Store type which will be a backend for your data
     type Store: DataStore + Clone;
     /// StoreView type
+    /// 
+    /// Must implement all required parts related to interaction with `relm4`
+    /// 
+    /// - Factory
+    /// - FactoryPrototype
+    /// 
+    /// Must provide shallow copy using `Clone` (like Sender or Rc)
     type StoreView: StoreView<Record=<Self::Store as DataStore>::Record> + 
         Factory<Self::StoreView, Self::View> +
         FactoryPrototype<Factory=Self::StoreView, Msg=<Self::ViewModel as ViewModel>::Msg, Widgets=Self::RecordWidgets, Root=Self::Root, View=Self::View> + 
-        Debug;
+        Debug +
+        Clone;
 
     /// Structure with widgets used by this component
     type RecordWidgets: Debug;
@@ -83,7 +89,7 @@ pub trait StoreViewPrototype
     /// Creates new instance of [StoreViewPrototype]
     /// 
     /// If you wish to use store view in widgets you must save it in your model
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<Self::StoreView>>) -> Self::ViewModel;
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: &Self::StoreView) -> Self::ViewModel;
 
     /// Returns position of record inside the widget
     /// 

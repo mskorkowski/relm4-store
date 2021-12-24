@@ -1,7 +1,6 @@
 use serial_test::serial;
 use backend_dummy::test_cases::TestCases;
 use store::Position;
-use store::StoreView;
 use store::window::ValueTrackingWindow;
 use crate::common::StoreViewTest;
 
@@ -126,7 +125,6 @@ mod window_size_2 {
     use backend_dummy::test_cases::TestCases;
     use store::Position;
     use store::StoreSize;
-    use store::StoreView;
     use store::math::Range;
 
     use super::ST;
@@ -637,7 +635,6 @@ mod window_size_4 {
     use backend_dummy::test_cases::TestCases;
     use store::Position;
     use store::StoreSize;
-    use store::StoreView;
 
     use super::ST;
 

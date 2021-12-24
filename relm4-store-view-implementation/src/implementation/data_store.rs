@@ -1,86 +1,53 @@
-use reexport::relm4;
-
-use relm4::Sender;
-
 use record::Id;
-use record::Identifiable;
-use record::TemporaryIdAllocator;
 
 use store::DataStore;
 use store::StoreViewPrototype;
-use store::Pagination;
 use store::Position;
 use store::RecordWithLocation;
-use store::StoreId;
 use store::StoreMsg;
-use store::StoreView;
 
 use store::math::Range;
 
 use super::StoreViewImplementation;
 
-impl<Configuration> Identifiable<Self, <<Configuration::Store as DataStore>::Allocator as TemporaryIdAllocator>::Type> for StoreViewImplementation<Configuration>
-where
-    Configuration: 'static + ?Sized + StoreViewPrototype,
-{
-    type Id = StoreId<Self>;
-
-    fn get_id(&self) -> Self::Id {
-        self.id
-    }
-}
-
-impl<Configuration> DataStore for StoreViewImplementation<Configuration> 
+/// DataStore methods implementation
+impl<Configuration> StoreViewImplementation<Configuration> 
 where 
     Configuration: 'static + ?Sized + StoreViewPrototype,
 {
-    type Record = <Configuration::Store as DataStore>::Record;
-    type Allocator = <Configuration::Store as DataStore>::Allocator;
-
-    fn len(&self) -> usize {
+    /// [store::DataStore::len()]
+    pub fn len(&self) -> usize {
         self.store.len()
     }
 
-    fn is_empty(&self) -> bool {
+    /// [store::DataStore::is_empty()]
+    pub fn is_empty(&self) -> bool {
         self.store.is_empty()
     }
 
-    fn get_range(&self, range: &Range) -> Vec<<Configuration::Store as DataStore>::Record> {
+    /// [store::DataStore::get_range()]
+    pub fn get_range(&self, range: &Range) -> Vec<<Configuration::Store as DataStore>::Record> {
         self.store.get_range(range)
     }
 
-    fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record> {
+    /// [store::DataStore::get()]
+    pub fn get(&self, id: &Id<<Configuration::Store as DataStore>::Record>) -> Option<<Configuration::Store as DataStore>::Record> {
         self.store.get(id)
-    }
-
-    fn listen(&self, id: StoreId<Self>, sender: Sender<StoreMsg<Self::Record>>) {
-        self.handlers.borrow_mut().insert(id, sender);
-    }
-
-    fn unlisten(&self, handler_ref: StoreId<Self>) {
-        self.handlers.borrow_mut().remove(&handler_ref);
-    }
-
-    fn sender(&self) -> Sender<StoreMsg<Self::Record>> {
-        self.sender.clone()
-    }
-
-    fn send(&self, msg: StoreMsg<Self::Record>) {
-        self.sender.send(msg).expect("WTF? Since store view is here why it failed?");
     }
 }
 
-impl<Configuration> StoreView for StoreViewImplementation<Configuration> 
+/// StoreView methods implementation
+impl<Configuration> StoreViewImplementation<Configuration> 
 where
     Configuration: 'static + ?Sized + StoreViewPrototype,
 {
-    type Configuration = Configuration;
-
-    fn window_size(&self) -> usize {
+    /// [store::StoreView::window_size()]
+    pub fn window_size(&self) -> usize {
         self.range.borrow().len()
     }
 
-    fn get_view_data(&self) -> Vec<RecordWithLocation<<Configuration::Store as DataStore>::Record>> {
+    /// [store::StoreView::get_view_data()]
+    pub fn get_view_data(&self) -> Vec<RecordWithLocation<<Configuration::Store as DataStore>::Record>> {
         let view = self.view.borrow();
         let mut result = Vec::with_capacity(view.len());
 
@@ -95,53 +62,18 @@ where
         result
     }
 
-    fn current_len(&self) -> usize {
+    /// [store::StoreView::current_len()]
+    pub fn current_len(&self) -> usize {
         self.view.borrow().len()
     }
 
-    fn first_page(&self) {
-        let range = {
-            self.range.borrow().slide(0)
-        };
-        self.range.replace(range);
-        self.inbox(StoreMsg::Reload);
-    }
-
-    fn prev_page(&self) {
-        let range = {
-            self.range.borrow().to_left(self.size)
-        };
-        self.range.replace(range);
-        self.inbox(StoreMsg::Reload);
-    }
-
-    fn next_page(&self) {
-        let range = {
-            self.range.borrow().to_right(self.size)
-        };
-
-        if *range.start() < self.store.len() {
-            self.range.replace(range);
-            self.inbox(StoreMsg::Reload);
-        }
-    }
-
-    fn last_page(&self) {
-        let range = {
-            let last_page = self.total_pages();
-            let start = (last_page-1)*self.size;
-
-            Range::new(start, start+self.size)
-        };
-        self.range.replace(range);
-        self.inbox(StoreMsg::Reload);
-    }
-
-    fn get_window(&self) -> Range {
+    /// [store::StoreView::get_window()]
+    pub fn get_window(&self) -> Range {
         self.range.borrow().clone()
     }
 
-    fn get_position(&self, id: &Id<Self::Record>) -> Option<Position> {
+    /// [store::StoreView::get_position()]
+    pub fn get_position(&self, id: &Id<<Configuration::Store as DataStore>::Record>) -> Option<Position> {
         let view = self.view.borrow();
         for (pos, view_id) in view.record_ids().enumerate() {
             if view_id == id {
@@ -152,12 +84,14 @@ where
         None
     }
 
-    fn set_window(&self, range: Range) {
+    /// [store::StoreView::set_window()]
+    pub fn set_window(&self, range: Range) {
         self.range.replace(range);
         self.inbox(StoreMsg::Reload);
     }
 
-    fn inbox_queue_size(&self) -> usize {
+    /// [store::StoreView::inbox_queue_size()]
+    pub fn inbox_queue_size(&self) -> usize {
         self.changes.borrow().len()
     }
 }

@@ -28,8 +28,9 @@
     - [ ] Make it configurable and generally awesome
 - [x] Pagination
 - [x] View should care about records which are visible only
-- [x] Generic view for the store
+- [ ] Generic view for the store
   - [x] Replaces relm4 factory
+  - [ ] Event propagation to the listeners of the view
 
 ## User friendliness
 

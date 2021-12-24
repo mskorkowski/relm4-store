@@ -1,19 +1,13 @@
 mod data_container;
 mod data_store;
-mod factory;
 
-use reexport::gtk;
 use reexport::log;
 use reexport::relm4;
 
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fmt;
-use std::fmt::Debug;
 use std::rc::Rc;
-
-use gtk::glib;
 
 use relm4::Model as ViewModel;
 use relm4::Sender;
@@ -25,10 +19,8 @@ use record::Id;
 use store::DataStore;
 use store::StoreViewPrototype;
 use store::Position;
-use store::StoreId;
 use store::StoreMsg;
 use store::math::Range;
-use store::redraw_messages::RedrawMessages;
 use store::window::StoreState;
 use store::window::WindowBehavior;
 use store::window::WindowTransition;
@@ -52,9 +44,7 @@ pub struct StoreViewImplementation<Configuration>
 where
     Configuration: ?Sized + StoreViewPrototype + 'static,
 {
-    id: StoreId<Self>,
     store: Configuration::Store,
-    handlers: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreMsg<<Configuration::Store as DataStore>::Record>>>>>,
     #[allow(clippy::type_complexity)]
     view: Rc<RefCell<DataContainer<<Configuration::Store as DataStore>::Record>>>,
     #[allow(clippy::type_complexity)]
@@ -62,18 +52,16 @@ where
     changes: Rc<RefCell<Vec<StoreMsg<<Configuration::Store as DataStore>::Record>>>>,
     range: Rc<RefCell<Range>>,
     size: usize,
-    redraw_sender: Sender<RedrawMessages>,
-    sender: Sender<StoreMsg<<Configuration::Store as DataStore>::Record>>,
 }
 
-impl<Configuration> Debug for StoreViewImplementation<Configuration>
+impl<Configuration> std::fmt::Debug for StoreViewImplementation<Configuration> 
 where
     Configuration: ?Sized + StoreViewPrototype + 'static,
 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StoreViewImplementation")
-            .field("id", &self.id)
             .field("size", &self.size)
+            .field("range", &self.range)
             .finish_non_exhaustive()
     }
 }
@@ -86,52 +74,28 @@ where
     /// 
     /// - **store** store which will provide a source data
     /// - **size** size of the page
-    pub fn new(store: Configuration::Store, size: usize, redraw_sender: Sender<RedrawMessages>) -> Self {
+    pub fn new(store: Configuration::Store, size: usize) -> Self {
         let range = Rc::new(RefCell::new(Range::new(0, size)));
-        let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-    
+
         let changes = Rc::new(RefCell::new(Vec::new()));
-        let handler_changes = changes.clone();
-        let handler_redraw_sender = redraw_sender.clone();
-        {
-            let context = glib::MainContext::default();
-            receiver.attach(Some(&context), move |msg| {
-                log::info!("Received message in store view: {:?}", &msg);
-                if let Ok(mut changes) = handler_changes.try_borrow_mut() {
-                    changes.push(msg);
-                    log::info!("Now changes has {} messages", changes.len());
-                    handler_redraw_sender.send(RedrawMessages::Redraw).expect("Unexpected failure while sending message via redraw_sender");
-                }
-                else {
-                    log::warn!("Unable to borrow mutably the changes. Please drop all the references to changes!");
-                }
-
-                glib::Continue(true)
-            });
-        }
-
-        let id: StoreId<Self> = StoreId::new();
         
-        store.listen(id.transfer(), sender.clone());
         changes.borrow_mut().push(StoreMsg::Reload);
 
         Self{
-            id,
             store,
-            handlers: Rc::new(RefCell::new(HashMap::new())),
             view: Rc::new(RefCell::new(DataContainer::new(size))),
             widgets: Rc::new(RefCell::new(HashMap::new())),
             changes,
             range,
             size,
-            redraw_sender,
-            sender,
         }
     }
 
-    fn inbox(&self, message: StoreMsg<<Configuration::Store as DataStore>::Record>) {
+    /// Adds message to the inbox
+    /// 
+    /// Messages are handled at the render time in batch
+    pub fn inbox(&self, message: StoreMsg<<Configuration::Store as DataStore>::Record>) {
         self.changes.borrow_mut().push(message);
-        self.redraw_sender.send(RedrawMessages::Redraw).expect("Unexpected failure while sending message via redraw_sender");
     }
 
     fn convert_to_transition(&self, state: &StoreState<'_>, message: &StoreMsg<<Configuration::Store as DataStore>::Record>) -> WindowTransition {
@@ -162,7 +126,7 @@ where
 
     fn reload(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>) {
         let range_of_changes = self.range.borrow().clone();
-        let new_records: Vec<<Self as DataStore>::Record> = self.store.get_range(&range_of_changes);
+        let new_records: Vec<<Configuration::Store as DataStore>::Record> = self.store.get_range(&range_of_changes);
         let mut view = self.view.borrow_mut();
         
         view.reload(changeset, new_records);
@@ -238,9 +202,7 @@ where
     fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore>::Record> {
         let mut changeset = WindowChangeset::default();
 
-        let mut changes = self.changes.borrow_mut();
-
-        for change in changes.iter() {
+        for change in self.changes.borrow_mut().iter() {
             let transition = {
                 let state = StoreState{
                     page: {
@@ -337,7 +299,7 @@ where
             }
         }
 
-        changes.clear();
+        self.changes.replace(vec![]);
 
         for id in &changeset.ids_to_update {
             changeset.ids_to_add.remove(id);
@@ -387,9 +349,9 @@ where
         let mut widgets = self.widgets.borrow_mut();
         let view_order = self.view.borrow();
 
-        log::trace!("[StoreViewImplementation::generate] view should have same length as data.\t\tview.len(): {}", view_order.len());
-        log::trace!("[StoreViewImplementation::generate] widgets should have same length as view.\twidgets.len(): {}", widgets.len());
-        log::trace!("[StoreViewImplementation::generate] Should be empty. Is it? {}", self.changes.borrow().is_empty());
+        println!("[StoreViewImplementation::generate] view should have same length as data.\t\tview.len(): {}", view_order.len());
+        println!("[StoreViewImplementation::generate] widgets should have same length as view.\twidgets.len(): {}", widgets.len());
+        println!("[StoreViewImplementation::generate] Should be empty. Is it? {}", self.changes.borrow().is_empty());
 
         let mut position: Position = Position(*self.range.borrow().start());
         let range = self.range.borrow();

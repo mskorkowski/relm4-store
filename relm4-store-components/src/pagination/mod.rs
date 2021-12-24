@@ -5,22 +5,12 @@ use reexport::relm4;
 use reexport::relm4_macros;
 use reexport::tracker;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use gtk::prelude::BoxExt;
 use gtk::prelude::EntryExt;
 use gtk::prelude::EntryBufferExtManual;
 use gtk::prelude::ButtonExt;
 use gtk::prelude::OrientableExt;
 use gtk::prelude::WidgetExt;
-
-use store::DataStore;
-use store::StoreViewPrototype;
-use store::Pagination;
-use store::StoreMsg;
-use store::StoreView;
-use store_view::StoreViewImplementation;
 
 
 use relm4::ComponentUpdate;
@@ -30,6 +20,13 @@ use relm4::Widgets;
 use relm4::WidgetPlus;
 
 use relm4_macros::widget;
+
+use store::StoreView;
+use store::DataStore;
+use store::StoreViewPrototype;
+use store::Pagination;
+use store::StoreMsg;
+use store_view::View;
 
 /// Messages sent to pagination component
 #[derive(Debug)]
@@ -60,7 +57,7 @@ pub trait PaginationConfiguration
 
     /// Returns a view which will be used by the pagination component
     fn get_view(parent_view_model: &<Self::StoreViewPrototype as StoreViewPrototype>::ViewModel) 
-        -> Rc<RefCell<StoreViewImplementation<Self::StoreViewPrototype>>>;
+        -> View<Self::StoreViewPrototype>;
 }
 
 /// View model of the pagination component
@@ -71,7 +68,7 @@ where
     Config: PaginationConfiguration + 'static,
 {
     #[do_not_track]
-    view: Rc<RefCell<StoreViewImplementation<Config::StoreViewPrototype>>>,
+    view: View<Config::StoreViewPrototype>,
     #[do_not_track]
     page: gtk::EntryBuffer,
     total_pages: String,
@@ -93,8 +90,8 @@ where
     fn init_model(parent_model: &<Config::StoreViewPrototype as StoreViewPrototype>::ViewModel) -> Self {
         let view = Config::get_view(parent_model); 
 
-        let total_pages = format!("{}", view.borrow().total_pages());
-        let current_page: &str = &format!("{}", view.borrow().current_page());
+        let total_pages = format!("{}", view.total_pages());
+        let current_page: &str = &format!("{}", view.current_page());
 
         Self{
             view: view.clone(),
@@ -113,22 +110,22 @@ where
     ) {
         match msg {
             PaginationMsg::First => 
-                self.view.borrow().first_page(),
+                self.view.first_page(),
             PaginationMsg::Prev =>
-                self.view.borrow().prev_page(),
+                self.view.prev_page(),
             PaginationMsg::Next => 
-                self.view.borrow().next_page(),
+                self.view.next_page(),
             PaginationMsg::Last => 
-                self.view.borrow().last_page(),
+                self.view.last_page(),
             PaginationMsg::ToPage => (),
             PaginationMsg::Reload =>
-                self.view.borrow().send(StoreMsg::Reload),
+                self.view.send(StoreMsg::Reload),
             PaginationMsg::StoreUpdated => (),
         }
 
-        let new_total_pages = self.view.borrow().total_pages().to_string(); 
+        let new_total_pages = self.view.total_pages().to_string(); 
         self.set_total_pages(new_total_pages);
-        self.page.set_text(&self.view.borrow().current_page().to_string());
+        self.page.set_text(&self.view.current_page().to_string());
     }
 }
 
