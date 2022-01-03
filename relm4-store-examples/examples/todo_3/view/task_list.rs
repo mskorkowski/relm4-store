@@ -1,10 +1,9 @@
 use reexport::gtk;
 use reexport::relm4;
 use reexport::relm4_macros;
+use store_view::View;
 
-use std::cell::RefCell;
 use std::marker::PhantomData;
-use std::rc::Rc;
 
 use gtk::Box;
 use gtk::CheckButton;
@@ -38,7 +37,6 @@ use store::DataStore;
 use store::StoreViewPrototype;
 use store::FactoryContainerWidgets;
 use store::Position;
-use store_view::StoreViewImplementation;
 
 use crate::model::Task;
 use crate::store::Tasks;
@@ -73,7 +71,7 @@ where
 {
     tasks: Tasks,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<Self>>>,
+    store_view: View<Self>,
     _config: PhantomData<*const Config>,
 }
 
@@ -91,7 +89,7 @@ where
     Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
-    type StoreView = StoreViewImplementation<Self>;
+    type StoreView = View<Self>;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
@@ -100,7 +98,7 @@ where
     type ParentViewModel = Config::ParentViewModel;
 
     fn init_store_view(store: Self::Store, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
-        StoreViewImplementation::new(store, size.items(), redraw_sender)
+        View::new(store, size, redraw_sender)
     }
 
     fn generate(
@@ -192,11 +190,11 @@ where
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: &View<Self>) -> Self {
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
-            store_view,
+            store_view: store_view.clone(),
             _config: PhantomData,
         }
     }
@@ -231,7 +229,7 @@ where
 {
     type StoreViewPrototype = TasksListViewModel<Config>;
     
-    fn get_view(parent_view_model: &<Self::StoreViewPrototype as StoreViewPrototype>::ViewModel) -> Rc<RefCell<StoreViewImplementation<Self::StoreViewPrototype>>> {
+    fn get_view(parent_view_model: &<Self::StoreViewPrototype as StoreViewPrototype>::ViewModel) -> View<Self::StoreViewPrototype> {
         parent_view_model.store_view.clone()
     }
 }
@@ -261,7 +259,7 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
                 set_vexpand: true,
                 set_child: container = Some(&gtk::Box) {
                     set_orientation: gtk::Orientation::Vertical,
-                    factory!(model.store_view.borrow())
+                    factory!(model.store_view)
                 }
             },
             append: components.pagination.root_widget(),

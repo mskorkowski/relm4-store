@@ -126,7 +126,9 @@ where
 
     fn reload(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>) {
         let range_of_changes = self.range.borrow().clone();
+        println!("Range of changes {:?}", range_of_changes);
         let new_records: Vec<<Configuration::Store as DataStore>::Record> = self.store.get_range(&range_of_changes);
+        println!("New records length: {}", new_records.len());
         let mut view = self.view.borrow_mut();
         
         view.reload(changeset, new_records);
@@ -226,6 +228,7 @@ where
                             }
                         },
                         StoreMsg::Reload => {
+                            println!("Reload");
                             changeset.reload = true;
                             self.reload(&mut changeset);
                         },
@@ -233,9 +236,11 @@ where
                     }
                 },
                 WindowTransition::InsertLeft{pos, by } => {
+                    println!("Insert left");
                     self.insert_left(&mut changeset, pos, by);
                 }
                 WindowTransition::InsertRight{pos, by} => {
+                    println!("Insert right");
                     self.insert_right(&mut changeset, pos, by);
                 }
                 WindowTransition::RemoveLeft{pos: _, by: _} => {
@@ -301,8 +306,11 @@ where
 
         self.changes.replace(vec![]);
 
-        for id in &changeset.ids_to_update {
-            changeset.ids_to_add.remove(id);
+        // if we need to add record since it was not present we can remove it from updates
+        //
+        // TODO: Is it still worthy to run this loop? Might be since rendering is separate if statements over changeset
+        for id in &changeset.ids_to_add {
+            changeset.ids_to_update.remove(id);
         }
 
         changeset
@@ -351,27 +359,33 @@ where
 
         println!("[StoreViewImplementation::generate] view should have same length as data.\t\tview.len(): {}", view_order.len());
         println!("[StoreViewImplementation::generate] widgets should have same length as view.\twidgets.len(): {}", widgets.len());
-        println!("[StoreViewImplementation::generate] Should be empty. Is it? {}", self.changes.borrow().is_empty());
+        println!("[StoreViewImplementation::generate] Ordered record ids should have same length as view. \tview_order.ordered_record_ids(): {}", view_order.ordered_record_ids().len());
+        println!("[StoreViewImplementation::generate] Changes should be empty. Is it? {}", self.changes.borrow().is_empty());
+        println!("[StoreViewImplementation::generate]");
+        println!("[StoreViewImplementation::generate] ids_to_add.len(): {}", ids_to_add.len());
+        println!("[StoreViewImplementation::generate] ids_to_update.len(): {}", ids_to_update.len());
 
         let mut position: Position = Position(*self.range.borrow().start());
         let range = self.range.borrow();
         for id in view_order.ordered_record_ids() {
             if ids_to_add.contains(id) {
+                println!("[StoreViewImplementation::generate] Id to add: {:?}", id);
                 if let Some(record) = self.get(id) {
+                    println!("[StoreViewImplementation::generate] Got record {:?}", record);
                     let new_widgets = Configuration::generate(&record, position, sender.clone());
-                    let root = Configuration::get_root(&new_widgets);
-
-
+                    let widgets_root = Configuration::get_root(&new_widgets);
 
                     let root = if widgets.is_empty() || position.0 == *range.start() {
-                        view.push_front(root)
+                        println!("[StoreViewImplementation::generate] Adding first element");
+                        view.push_front(widgets_root)
                     }
                     else {
+                        println!("[StoreViewImplementation::generate] Adding non first element");
                         let prev_idx = (position - 1 - *range.start()).0;
                         log::info!("Index of previous elements: {}", prev_idx);
                         let prev_id = view_order.get_order_idx((position - 1 - *range.start()).0);
                         let prev = widgets.get(&prev_id).unwrap();
-                        view.insert_after(root, &prev.root)
+                        view.insert_after(widgets_root, &prev.root)
                     };
     
                     widgets.insert(

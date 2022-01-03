@@ -1,9 +1,7 @@
 use reexport::gtk;
 use reexport::relm4;
 use reexport::relm4_macros;
-
-use std::cell::RefCell;
-use std::rc::Rc;
+use store_view::View;
 
 use gtk::Box;
 use gtk::CheckButton;
@@ -34,7 +32,6 @@ use store::Position;
 use store::StoreView;
 use store::math::Range;
 use store::window::PositionTrackingWindow;
-use store_view::StoreViewImplementation;
 
 use crate::model::Task;
 use crate::store::Tasks;
@@ -71,7 +68,7 @@ where Config: TasksListConfiguration + 'static,
 {
     tasks: Tasks,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<Self>>>,
+    store_view: View<Self>,
     scroll_adjustment: gtk::Adjustment,
 }
 
@@ -87,7 +84,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<C
 where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
-    type StoreView = StoreViewImplementation<Self>;
+    type StoreView = View<Self>;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
@@ -96,7 +93,7 @@ where Config: TasksListConfiguration + 'static,
     type ParentViewModel = Config::ParentViewModel;
 
     fn init_store_view(store: Self::Store, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
-        StoreViewImplementation::new(store, size.items(), redraw_sender)
+        View::new(store, size, redraw_sender)
     }
 
     fn generate(
@@ -189,7 +186,7 @@ where Config: TasksListConfiguration + 'static,
                 let value = view_model.scroll_adjustment.value();
                 let page_size = view_model.scroll_adjustment.page_size(); 
 
-                view_model.store_view.borrow().set_window(
+                view_model.store_view.set_window(
                     Range::new(
                         value.floor() as usize,
                         (value+page_size).floor() as usize,
@@ -199,13 +196,13 @@ where Config: TasksListConfiguration + 'static,
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self>>>) -> Self {
-        let view_length = store_view.borrow().len();
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: &View<Self>) -> Self {
+        let view_length = store_view.len();
 
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
-            store_view,
+            store_view: store_view.clone(),
             scroll_adjustment: gtk::Adjustment::new(0.0, 0.0, view_length as f64, 1.0, 1.0, Config::page_size(parent_view_model) as f64),
         }
     }
@@ -232,7 +229,7 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
                 },
                 append: container = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
-                    factory!(model.store_view.borrow())
+                    factory!(model.store_view)
                 }
             },
         }

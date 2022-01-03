@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 /// Store/store-view decides how to respect those limits. It's up to the
 /// implementation to decide which limits are hard and which are soft
 /// and wherever it's acceptable to go beyond what's set.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum StoreSize {
     /// Keep unlimited amounts of data
     /// 

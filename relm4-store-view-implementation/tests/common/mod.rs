@@ -1,6 +1,7 @@
 use reexport::glib;
 use reexport::gtk;
 use reexport::relm4;
+use reexport::relm4::factory::Factory;
 
 use std::fmt::Debug;
 use std::marker::PhantomData;
@@ -20,7 +21,6 @@ use store::math::Range;
 use store::redraw_messages::RedrawMessages;
 use store::window::WindowBehavior;
 
-use relm4_store_view_implementation::StoreViewImplementation;
 use relm4_store_view_implementation::View;
 
 #[derive(Debug)]
@@ -57,7 +57,7 @@ impl<Window: 'static + WindowBehavior + Debug> StoreViewPrototype for TestConfig
 
     fn update(_view_model: &mut Self::ViewModel, _msg: (), _sender: Sender<()>) {}
     
-    fn init_view_model(_parent_view_model: &Self::ParentViewModel, _store_view: std::rc::Rc<std::cell::RefCell<Self::StoreView>>) -> Self::ViewModel {}
+    fn init_view_model(_parent_view_model: &Self::ParentViewModel, _store_view: &Self::StoreView) -> Self::ViewModel {}
 
     fn position(_model: <Self::Store as store::DataStore>::Record, _position: Position) {}
 
@@ -66,8 +66,8 @@ impl<Window: 'static + WindowBehavior + Debug> StoreViewPrototype for TestConfig
     }
 }
 
-pub type Assertion<Window> = &'static dyn Fn(&Vec<TestRecord>, &StoreViewImplementation<TestConfig<Window>>, &Vec<TestRecord>) -> ();
-pub type Prepare<Window> = &'static dyn Fn(&StoreViewImplementation<TestConfig<Window>>) -> bool;
+pub type Assertion<Window> = &'static dyn Fn(&Vec<TestRecord>, &View<TestConfig<Window>>, &Vec<TestRecord>) -> ();
+pub type Prepare<Window> = &'static dyn Fn(&View<TestConfig<Window>>) -> bool;
 
 pub struct StoreViewTest<Window>
 where
@@ -129,24 +129,26 @@ where
         let _guard = context.acquire().unwrap();
 
         let (view_sender, _view_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+        let (redraw_sender, _redraw_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
         let container = gtk::Box::default();
 
         let mut data_store: Store<DummyBackend<TestRecord>> = Store::new(DummyBackend::new(self.test_case.configuration.clone()));
 
-        let store_view: StoreViewImplementation<TestConfig<Window>> = StoreViewImplementation::new(
+        let store_view: View<TestConfig<Window>> = View::new(
             data_store.clone(), 
-            self.window_size.items(),
+            self.window_size,
+            redraw_sender,
         );
 
         // StoreView is using `Reload` event to populate itself
         context.iteration(true);
-        store_view.view(&container, view_sender.clone());
+        store_view.generate(&container, view_sender.clone());
 
         if let Some(p) = self.prepare {
             let block = p(&store_view);
             context.iteration(block);
-            store_view.view(&container, view_sender.clone());
+            store_view.generate(&container, view_sender.clone());
         }
         
 
@@ -160,12 +162,10 @@ where
             {
                 data_store.advance();
             }
-            context.iteration(true);
-            store_view.view(&container, view_sender.clone());
+            context.iteration(false);
+            store_view.generate(&container, view_sender.clone());
             let data_store_len = data_store.len();
             assertion(&self.test_case.data, &store_view, &data_store.get_range(&Range::new(0, data_store_len)));
         }
-
-        
     }
 }
