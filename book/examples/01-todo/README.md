@@ -14,5 +14,3 @@ In this section we will introduce basics of stores and implement example `todo_1
 This chapter is an introduction to the Store concept. You will find here how to define simple store and how you can use it in relm4 application.
 
 The application is too simple to be good showcase for the capabilities of the Store. In later chapters we will write a more complex applications which would show real benefits of Stores.
-
-So let's start our journey! [Crate a model](./01-model.md)

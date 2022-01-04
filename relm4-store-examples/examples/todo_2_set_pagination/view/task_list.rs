@@ -14,24 +14,18 @@ use gtk::prelude::EntryBufferExtManual;
 use gtk::prelude::OrientableExt;
 use gtk::prelude::WidgetExt;
 
-use relm4::Components;
 use relm4::Model as ViewModel;
-use relm4::RelmComponent;
 use relm4::send;
 use relm4::Sender;
 use relm4::Widgets;
 use relm4::WidgetPlus;
 use relm4_macros::widget;
 
-use components::pagination::PaginationMsg;
-use components::pagination::PaginationConfiguration;
-use components::pagination::PaginationViewModel;
 use record::Id;
 use record::Record;
 use store::DataStore;
 use store::FactoryContainerWidgets;
 use store::Position;
-use store::StoreViewInnerComponent;
 use store::StoreViewPrototype;
 use store::window::PositionTrackingWindow;
 
@@ -62,25 +56,19 @@ pub trait TasksListConfiguration {
     fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Tasks;
 }
 
-pub struct TasksListViewModel<Config> 
-where Config: TasksListConfiguration + 'static,
-{
+pub struct TasksListViewModel<Config: TasksListConfiguration + 'static> {
     tasks: Tasks,
     store_view: View<Self>,
     new_task_description: gtk::EntryBuffer,
 }
 
-impl<Config> ViewModel for TasksListViewModel<Config> 
-where Config: TasksListConfiguration + 'static,
-{
+impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
     type Msg = TaskMsg;
     type Widgets = TasksListViewWidgets;
-    type Components = TasksListComponents<Config>;
+    type Components = ();
 }
 
-impl<Config> StoreViewPrototype for TasksListViewModel<Config> 
-where Config: TasksListConfiguration + 'static,
-{
+impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<Config> {
     type Store = Tasks;
     type StoreView = View<Self>;
     type RecordWidgets = TaskWidgets;
@@ -192,42 +180,6 @@ where Config: TasksListConfiguration + 'static,
     }
 }
 
-pub struct TasksListComponents<Config>
-where Config: TasksListConfiguration + 'static {
-    pagination: RelmComponent<PaginationViewModel<Self>, TasksListViewModel<Config>>
-}
-
-impl<Config> Components<TasksListViewModel<Config>> for TasksListComponents<Config> 
-where Config: TasksListConfiguration,
-{
-    fn init_components(
-        parent_model: &TasksListViewModel<Config>, 
-        parent_sender: Sender<<TasksListViewModel<Config> as ViewModel>::Msg>
-    ) -> Self {
-        Self {
-            pagination: RelmComponent::new(parent_model, parent_sender.clone()),
-        }
-    }
-
-    fn connect_parent(&mut self, _parent_widgets: &TasksListViewWidgets) {}
-}
-
-impl<Config> PaginationConfiguration for TasksListComponents<Config>
-where Config: TasksListConfiguration + 'static {
-    type StoreViewPrototype = TasksListViewModel<Config>;
-
-    fn get_view(parent_view_model: &<Self::StoreViewPrototype as StoreViewPrototype>::ViewModel) -> View<Self::StoreViewPrototype> {
-        parent_view_model.store_view.clone()
-    }
-}
-
-impl<Config> StoreViewInnerComponent<TasksListViewModel<Config>> for TasksListComponents<Config>
-where Config: TasksListConfiguration + 'static {
-    fn on_store_update(&mut self) {
-        self.pagination.send(PaginationMsg::StoreUpdated).unwrap();
-    }
-}
-
 #[widget(visibility=pub, relm4=reexport::relm4)]
 impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config::ParentViewModel> for TasksListViewWidgets {
     view!{
@@ -246,13 +198,12 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
                     set_orientation: gtk::Orientation::Vertical,
                     factory!(model.store_view)
                 }
-            },
-            append: components.pagination.root_widget()
+            }
         }
     }
 }
 
-impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets {
+impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets {
     fn container_widget(&self) -> &<TasksListViewModel<Config> as StoreViewPrototype>::View {
         &self.container
     }

@@ -6,7 +6,7 @@ use store::{StoreSize, StoreViewComponent};
 
 use crate::{
     store::Tasks,
-    view::{task_list::TasksListConfiguration, task_list::TasksListViewModel}
+    view::{ task_list::TasksListConfiguration, task_list::TasksListViewModel}
 };
 
 pub enum MainWindowMsg {}
@@ -43,10 +43,10 @@ impl Components<MainWindowViewModel> for MainWindowComponents {
     ) -> Self {
         Self {
             tasks_list: StoreViewComponent::new(
-                parent_model,
-                parent_model.tasks.clone(),
+                parent_model, 
+                parent_model.tasks.clone(), 
                 StoreSize::Items(50)
-            ),
+            )
         }
     }
 

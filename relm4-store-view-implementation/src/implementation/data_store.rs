@@ -87,7 +87,6 @@ where
     /// [store::StoreView::set_window()]
     pub fn set_window(&self, range: Range) {
         self.range.replace(range);
-        self.inbox(StoreMsg::Reload);
     }
 
     /// [store::StoreView::inbox_queue_size()]

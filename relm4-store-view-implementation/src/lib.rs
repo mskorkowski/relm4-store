@@ -162,6 +162,7 @@ where
 
     fn set_window(&self, range: store::math::Range) {
         self.implementation.borrow().set_window(range);
+        self.send(StoreMsg::Reload);
     }
 
     fn get_view_data(&self) -> Vec<store::RecordWithLocation<Self::Record>> {

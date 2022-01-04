@@ -16,3 +16,5 @@
     - [configuration](./examples/01-todo/06-configuration.md)
   - [Simple todo 2](./examples/02-todo/README.md)
     - [Generating tasks](./examples/02-todo/01-generate-tasks.md)
+    - [Updating store view](./examples/02-todo/02-updating-store-view.md)
+    - [Updating task list](./examples/02-todo/03-updating_taks_list.md)

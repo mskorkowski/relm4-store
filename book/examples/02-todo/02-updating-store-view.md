@@ -28,18 +28,16 @@ Other example could be accounting system. Let's assume you have a store with inv
 
 In the `view/main_window.rs` we change `StoreSize::Unlimited` into `StoreSize::Items(50)`
 
-```rust
-impl Source for MainWindowComponents {
-    type ParentViewModel = MainWindowViewModel;
-    type SV = StoreViewInterface<TaskFactoryBuilder>;
-
-    fn store(parent_model: &Self::ParentViewModel) -> Self::SV {
-        StoreViewInterface::new(parent_model.tasks.clone(), StoreSize::Items(50))
-    }
-}
+```rust,noplaypen
+{{#include ../../../relm4-store-examples/examples/todo_2/view/main_window.rs:39:54}}
 ```
 
-If you start an application now you will find that only first 50 records were shown and there is no way for you to go past that. New tasks added are not shown either.
+If you start an application now you will find that
 
-You can't see more then 50 records since we've limited our view to 50 records. New tasks are added at the end of the store so at the positions 10000+. This is definitely way above range [0, 50) which is being shown.
+- only first 50 records were shown and there is no way for you to go past that
+- new tasks added are not shown
+- it starts much faster then earlier version
 
+You can't see more then 50 records since we've limited our view to 50 records. New tasks are added at the end of the store so at the positions 20000+. This is definitely way above range [0, 50) which is being shown.
+
+Code at this stage can be found in the `todo_2_set_pagination`

@@ -36,8 +36,8 @@
 
 These goals are making usage of the library easier
 
-- [x] Book
-  - [ ] Todo 1
+- [ ] Book
+  - [x] Todo 1
   - [ ] Todo 2
   - [ ] Todo 3
   - [ ] Todo 4
@@ -47,12 +47,12 @@ These goals are making usage of the library easier
   - [x] Todo 4 - todo 2 with sorting
   - [x] Window behavior - todo 4 many times over
   
-- [ ] rustdoc
+- [x] rustdoc
 
 ## Missing things
 
-- [ ] Remove records
-- [ ] Reorder records
+- [ ] Remove records, for now you can reload the view after remove
+- [ ] Reorder records, for now you can reload the view after move
 - [x] Add records
   - [x] At the beginning
   - [x] At the end

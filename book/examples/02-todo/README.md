@@ -12,5 +12,3 @@ Whole source code can be found as example `todo_2`
 
 - Describe StoreView in details
 - Implement pagination for the list of tasks
-
-[Let's have many tasks](./01-generate-tasks.html)
