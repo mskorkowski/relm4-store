@@ -4,7 +4,6 @@ use store::DataStore;
 use store::StoreViewPrototype;
 use store::Position;
 use store::RecordWithLocation;
-use store::StoreMsg;
 
 use store::math::Range;
 
