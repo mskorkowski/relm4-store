@@ -108,5 +108,3 @@ struct User {
 Your code still compiles. But now anytime you invoke the `new_user_from` you produce a value which breaks your business model a little bit. If you are not really careful with your tests this error might live in your code base for very long time.
 
 I've seen bugs similar to this one living in the production systems for years. Fixing them afterwards is at least problematic and more often impossible.
-
-[Let's start working on the store!](./02-store.md)

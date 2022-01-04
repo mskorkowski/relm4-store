@@ -27,5 +27,3 @@ Here we define the convenient label for our store type. If we decide to change a
 ```
 
 In here we define the builder structure which will provide us the new instance of the store with tasks and provides configuration of your backend. In most of the cases having one structure for both tasks is totally fine. In case you need some fancier builder you will probably split the configuration and keep it private in the module and have builder do just building.
-
-[Now let's implement the view](./03-view.md)

@@ -67,9 +67,7 @@ impl<Config: TasksListConfiguration> ViewModel for TasksListViewModel<Config> {
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> StoreViewPrototype 
-    for TasksListViewModel<Config> 
-{
+impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<Config> {
     type Store = Tasks;
     type StoreView = View<Self>;
     type RecordWidgets = TaskWidgets;
@@ -79,11 +77,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype
     type ViewModel = Self;
     type ParentViewModel = Config::ParentViewModel;
 
-    fn init_store_view(
-        store: Self::Store, 
-        size: store::StoreSize, 
-        redraw_sender: Sender<store::redraw_messages::RedrawMessages>
-    ) -> Self::StoreView {
+    fn init_store_view(store: Self::Store, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
         View::new(store, size, redraw_sender)
     }
 
@@ -157,11 +151,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype
         &widgets.root
     }
 
-    fn update(
-        view_model: &mut Self::ViewModel, 
-        msg: <Self as ViewModel>::Msg, 
-        _sender: Sender<<Self as ViewModel>::Msg>
-    ) {
+    fn update(view_model: &mut Self::ViewModel, msg: <Self as ViewModel>::Msg, _sender: Sender<<Self as ViewModel>::Msg>) {
         match msg {
             TaskMsg::New => {
                 let description = view_model.new_task_description.text();
@@ -180,10 +170,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype
         }
     }
 
-    fn init_view_model(
-        parent_view_model: &Self::ParentViewModel, 
-        store_view: &Self::StoreView
-    ) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: &Self::StoreView) -> Self {
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
@@ -193,10 +180,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype
 }
 
 #[widget(visibility=pub, relm4=reexport::relm4)]
-impl<Config: TasksListConfiguration> 
-    Widgets<TasksListViewModel<Config>, Config::ParentViewModel> 
-    for TasksListViewWidgets 
-{
+impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config::ParentViewModel> for TasksListViewWidgets {
     view!{
         root = gtk::Box {
             set_margin_all: 12,
@@ -218,13 +202,8 @@ impl<Config: TasksListConfiguration>
     }
 }
 
-impl<Config: TasksListConfiguration> 
-    FactoryContainerWidgets<TasksListViewModel<Config>> 
-    for TasksListViewWidgets 
-{
-    fn container_widget(&self) 
-        -> &<TasksListViewModel<Config> as StoreViewPrototype>::View 
-    {
+impl<Config: TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as StoreViewPrototype>::View {
         &self.container
     }
 }

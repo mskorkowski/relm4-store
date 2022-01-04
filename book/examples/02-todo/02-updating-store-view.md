@@ -2,7 +2,7 @@
 
 ## Preface
 
-Now our application needs to deal with exorbitant amount of records to display. In the real world there are three basic strategies to deal with big number of records and make ui reasonable to users.
+Now our application needs to deal with quite a few records to display. In the real world there are three basic strategies to deal with big number of records and make ui reasonable to users.
 
 1. Pagination
 2. Filtering
@@ -10,7 +10,7 @@ Now our application needs to deal with exorbitant amount of records to display. 
 
 ### Pagination
 
-When you use pagination you reduce visible amount of data to value which are known to the store view. This way you we don't need to render all of the widgets from which most of them are not visible. Proper size of page, makes it human understandable and makes the application fast. You should use pagination when the amount of data in the store is much more then you can show on the screen (in most of the cases it means always).
+When you use pagination you reduce visible amount of data to value which are known to the store view. This way you we don't need to render all of the widgets from which most of them are not visible. Proper size of page, makes it human understandable and makes the application fast. You should use pagination when the amount of data in the store is much more then you can show on the screen (in most of the cases it means always). In this chapter we will focus on pagination.
 
 ### Filtering
 
@@ -23,8 +23,6 @@ Grouping provides better conceptual view for data in the store by splitting them
 For example you have a store of files in transactions. Single file belongs to one transaction but transaction can have multiple files. This gives natural grouping of files by transactions to which they belong to.
 
 Other example could be accounting system. Let's assume you have a store with invoices. Now you might group them by the accounting month to which they belong to.
-
-In chapter 5 we will implement grouping for our tasks.
 
 ## Let's implement pagination
 

@@ -2,36 +2,41 @@ mod model;
 mod store;
 mod view;
 
+use reexport::log;
 use reexport::gtk;
 use reexport::relm4;
+
+use std::io::Result;
 
 use relm4::RelmApp;
 
 use crate::store::TasksBuilder;
 use crate::view::MainWindowViewModel;
 
+fn main() -> Result<()> {
+    log4rs::init_file("relm4-store-examples/examples/todo_1/etc/log4rs.yaml", Default::default()).unwrap();
 
-fn main() {
-    println!();
-    println!("Todo 2 example!");
-    println!();
+    log::info!("");
+    log::info!("Todo 1 example!");
+    log::info!("");
 
     
-    let app_id = "store.relm4.example.todo-2";
+    let app_id = "store.relm4.example.todo-1";
     
     gtk::init().expect("Couldn't initialize gtk");
     let application = gtk::Application::builder()
         .application_id(app_id)
         .build();
 
-    println!("Seeding store");
     let model = MainWindowViewModel{
         tasks: TasksBuilder::build()
     };
 
-    println!("\tCreating relm4 app");
+    log::info!("\tCreating relm4 app");
     let app = RelmApp::with_app(model, application);
 
-    println!("\tStarting app");
+    log::info!("\tStarting app");
     app.run();
+
+    Ok(())
 }

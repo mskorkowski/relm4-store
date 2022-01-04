@@ -42,10 +42,7 @@ impl Components<MainWindowViewModel> for MainWindowComponents {
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            tasks_list: StoreViewComponent::new(
-                parent_model,
-                parent_model.tasks.clone(),
-                StoreSize::Unlimited)
+            tasks_list: StoreViewComponent::new(parent_model, parent_model.tasks.clone(), StoreSize::Unlimited)
         }
     }
 
