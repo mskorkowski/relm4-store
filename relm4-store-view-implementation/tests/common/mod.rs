@@ -142,7 +142,7 @@ where
         );
 
         // StoreView is using `Reload` event to populate itself
-        context.iteration(true);
+        context.iteration(false);
         store_view.generate(&container, view_sender.clone());
 
         if let Some(p) = self.prepare {
