@@ -5,23 +5,12 @@ use reexport::relm4;
 use reexport::relm4_macros;
 use reexport::tracker;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use gtk::prelude::BoxExt;
 use gtk::prelude::EntryExt;
 use gtk::prelude::EntryBufferExtManual;
 use gtk::prelude::ButtonExt;
 use gtk::prelude::OrientableExt;
 use gtk::prelude::WidgetExt;
-
-use record::TemporaryIdAllocator;
-use store::DataStore;
-use store::FactoryConfiguration;
-use store::Pagination;
-use store::StoreMsg;
-use store::StoreView;
-use store_view::StoreViewImplementation;
 
 
 use relm4::ComponentUpdate;
@@ -31,6 +20,13 @@ use relm4::Widgets;
 use relm4::WidgetPlus;
 
 use relm4_macros::widget;
+
+use store::StoreView;
+use store::DataStore;
+use store::StoreViewPrototype;
+use store::Pagination;
+use store::StoreMsg;
+use store_view::View;
 
 /// Messages sent to pagination component
 #[derive(Debug)]
@@ -52,59 +48,50 @@ pub enum PaginationMsg {
 }
 
 /// Configuration of the pagination component
-pub trait PaginationConfiguration<Allocator, StoreIdAllocator> 
-where 
-    Allocator: TemporaryIdAllocator,
-    StoreIdAllocator: TemporaryIdAllocator,
+pub trait PaginationConfiguration
 {
     /// Type of parent view model
     /// 
     /// Type of model used by component which holds pagination component
-    type FactoryConfiguration: FactoryConfiguration<Allocator, StoreIdAllocator>;
+    type StoreViewPrototype: StoreViewPrototype;
 
     /// Returns a view which will be used by the pagination component
-    fn get_view(parent_view_model: &<Self::FactoryConfiguration as FactoryConfiguration<Allocator, StoreIdAllocator>>::ViewModel) 
-        -> Rc<RefCell<StoreViewImplementation<Self::FactoryConfiguration, Allocator, StoreIdAllocator>>>;
+    fn get_view(parent_view_model: &<Self::StoreViewPrototype as StoreViewPrototype>::ViewModel) 
+        -> View<Self::StoreViewPrototype>;
 }
 
 /// View model of the pagination component
 #[tracker::track]
 #[derive(Debug)]
-pub struct PaginationViewModel<Config, Allocator, StoreIdAllocator>
+pub struct PaginationViewModel<Config>
 where
-    Config: PaginationConfiguration<Allocator, StoreIdAllocator> + 'static, 
-    Allocator: TemporaryIdAllocator + 'static,
-    StoreIdAllocator: TemporaryIdAllocator + 'static,
+    Config: PaginationConfiguration + 'static,
 {
     #[do_not_track]
-    view: Rc<RefCell<StoreViewImplementation<Config::FactoryConfiguration, Allocator, StoreIdAllocator>>>,
+    view: View<Config::StoreViewPrototype>,
     #[do_not_track]
     page: gtk::EntryBuffer,
     total_pages: String,
 }
 
-impl<Config, Allocator, StoreIdAllocator> ViewModel for PaginationViewModel<Config, Allocator, StoreIdAllocator>
+impl<Config> ViewModel for PaginationViewModel<Config>
 where 
-    Config: PaginationConfiguration<Allocator, StoreIdAllocator>,
-    Allocator: TemporaryIdAllocator,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Config: PaginationConfiguration,
 {
     type Msg = PaginationMsg;
     type Widgets = PaginationWidgets;
     type Components = ();
 }
 
-impl<Config, Allocator, StoreIdAllocator> ComponentUpdate<<Config::FactoryConfiguration as FactoryConfiguration<Allocator, StoreIdAllocator>>::ViewModel> for PaginationViewModel<Config, Allocator, StoreIdAllocator>
+impl<Config> ComponentUpdate<<Config::StoreViewPrototype as StoreViewPrototype>::ViewModel> for PaginationViewModel<Config>
 where 
-    Config: PaginationConfiguration<Allocator, StoreIdAllocator>,
-    Allocator: TemporaryIdAllocator,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Config: PaginationConfiguration,
 {
-    fn init_model(parent_model: &<Config::FactoryConfiguration as FactoryConfiguration<Allocator, StoreIdAllocator>>::ViewModel) -> Self {
+    fn init_model(parent_model: &<Config::StoreViewPrototype as StoreViewPrototype>::ViewModel) -> Self {
         let view = Config::get_view(parent_model); 
 
-        let total_pages = format!("{}", view.borrow().total_pages());
-        let current_page: &str = &format!("{}", view.borrow().current_page());
+        let total_pages = format!("{}", view.total_pages());
+        let current_page: &str = &format!("{}", view.current_page());
 
         Self{
             view: view.clone(),
@@ -119,36 +106,34 @@ where
         msg: Self::Msg, 
         _components: &Self::Components, 
         _sender: relm4::Sender<Self::Msg>, 
-        _parent_sender: relm4::Sender<<<Config::FactoryConfiguration as FactoryConfiguration<Allocator, StoreIdAllocator>>::ViewModel as ViewModel>::Msg>
+        _parent_sender: relm4::Sender<<<Config::StoreViewPrototype as StoreViewPrototype>::ViewModel as ViewModel>::Msg>
     ) {
         match msg {
             PaginationMsg::First => 
-                self.view.borrow().first_page(),
+                self.view.first_page(),
             PaginationMsg::Prev =>
-                self.view.borrow().prev_page(),
+                self.view.prev_page(),
             PaginationMsg::Next => 
-                self.view.borrow().next_page(),
+                self.view.next_page(),
             PaginationMsg::Last => 
-                self.view.borrow().last_page(),
+                self.view.last_page(),
             PaginationMsg::ToPage => (),
             PaginationMsg::Reload =>
-                self.view.borrow().send(StoreMsg::Reload),
+                self.view.send(StoreMsg::Reload),
             PaginationMsg::StoreUpdated => (),
         }
 
-        let new_total_pages = self.view.borrow().total_pages().to_string(); 
+        let new_total_pages = self.view.total_pages().to_string(); 
         self.set_total_pages(new_total_pages);
-        self.page.set_text(&self.view.borrow().current_page().to_string());
+        self.page.set_text(&self.view.current_page().to_string());
     }
 }
 
 /// Widgets for pagination component
 #[widget(visibility=pub, relm4=relm4)]
-impl<Config, Allocator, StoreIdAllocator> Widgets<PaginationViewModel<Config, Allocator, StoreIdAllocator>, <Config::FactoryConfiguration as FactoryConfiguration<Allocator, StoreIdAllocator>>::ViewModel> for PaginationWidgets 
+impl<Config> Widgets<PaginationViewModel<Config>, <Config::StoreViewPrototype as StoreViewPrototype>::ViewModel> for PaginationWidgets 
 where 
-    Config: PaginationConfiguration<Allocator, StoreIdAllocator>,
-    Allocator: TemporaryIdAllocator,
-    StoreIdAllocator: TemporaryIdAllocator,
+    Config: PaginationConfiguration,
 {
     view! {
         root = &gtk::Box {
@@ -174,7 +159,7 @@ where
             append = &gtk::Label::with_mnemonic("/") {},
             append: max_page = &gtk::Label {
                 set_text: track!(
-                    model.changed(PaginationViewModel::<Config, Allocator, StoreIdAllocator>::total_pages()),
+                    model.changed(PaginationViewModel::<Config>::total_pages()),
                     &model.total_pages
                 ),
             },

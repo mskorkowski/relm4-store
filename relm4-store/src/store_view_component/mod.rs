@@ -1,6 +1,7 @@
 use reexport::gtk;
 use reexport::log;
 use reexport::relm4;
+use reexport::relm4::factory::Factory;
 
 use std::cell::BorrowError;
 use std::cell::BorrowMutError;
@@ -11,18 +12,16 @@ use std::rc::Rc;
 
 use gtk::glib;
 
+use relm4::Components;
 use relm4::Model as ViewModel;
 use relm4::send;
 use relm4::Sender;
 use relm4::Widgets;
-use relm4::factory::Factory;
 
-use record::TemporaryIdAllocator;
-
-use crate::FactoryConfiguration;
+use crate::StoreView;
+use crate::StoreViewPrototype;
 use crate::FactoryContainerWidgets;
 use crate::StoreSize;
-use crate::StoreView;
 use crate::StoreViewInnerComponent;
 use crate::redraw_messages::RedrawMessages;
 
@@ -86,14 +85,12 @@ impl Debug for StoreViewInterfaceError {
 }
 
 /// Specialized kind of component to handle store view 
-pub struct StoreViewComponent<Configuration, Allocator, StoreIdAllocator> 
+pub struct StoreViewComponent<Configuration> 
 where
-    Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator> + 'static,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
-    Allocator: TemporaryIdAllocator,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
-    view: Rc<RefCell<Configuration::StoreView>>,
+    view: Configuration::StoreView,
     _components: Rc<RefCell<<Configuration::ViewModel as ViewModel>::Components>>,
     _container: Rc<RefCell<<Configuration::ViewModel as ViewModel>::Widgets>>,
     _view_model: Rc<RefCell<Configuration::ViewModel>>,
@@ -102,12 +99,10 @@ where
     _redraw_sender: Sender<RedrawMessages>,
 }
 
-impl<Configuration, Allocator, StoreIdAllocator> std::fmt::Debug for StoreViewComponent<Configuration, Allocator, StoreIdAllocator> 
+impl<Configuration> std::fmt::Debug for StoreViewComponent<Configuration> 
 where 
-    Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator> + 'static,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
     <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel>,
-    Allocator: TemporaryIdAllocator + 'static,
-    StoreIdAllocator: TemporaryIdAllocator,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StoreViewComponent")
@@ -117,19 +112,17 @@ where
 }
 
 
-impl<Configuration, Allocator, StoreIdAllocator> StoreViewComponent<Configuration, Allocator, StoreIdAllocator> 
+impl<Configuration> StoreViewComponent<Configuration> 
 where 
-    Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator> + 'static,
-    <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel> + FactoryContainerWidgets<Configuration, Allocator, StoreIdAllocator>,
+    Configuration: ?Sized + StoreViewPrototype + 'static,
+    <Configuration::ViewModel as ViewModel>::Widgets: relm4::Widgets<Configuration::ViewModel, Configuration::ParentViewModel> + FactoryContainerWidgets<Configuration>,
     <Configuration::ViewModel as ViewModel>::Components: relm4::Components<Configuration::ViewModel> + StoreViewInnerComponent<Configuration::ViewModel>,
-    Allocator: TemporaryIdAllocator + 'static,
-    StoreIdAllocator: TemporaryIdAllocator + 'static,
 {
     /// Creates new instance of the [StoreViewInterface]
     pub fn new(
         parent_view_model: &Configuration::ParentViewModel,
         // parent_widgets: &<Configuration::ParentViewModel as ViewModel>::Widgets,
-        store: Rc<RefCell<Configuration::Store>>, 
+        store: Configuration::Store, 
         size: StoreSize
     ) -> Self {
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
@@ -139,13 +132,10 @@ where
         let handler_redraw_sender = redraw_sender.clone();
 
         let view = Configuration::init_store_view(store.clone(), size, redraw_sender.clone());
+        let redraw_handler_view = view.clone();
 
-        let shared_view = Rc::new(RefCell::new(view));
-        let redraw_handler_view = shared_view.clone();
-
-
-        let view_model = Configuration::init_view_model(parent_view_model, shared_view.clone());
-        let components = <<Configuration::ViewModel as ViewModel>::Components as relm4::Components<Configuration::ViewModel>>::init_components(&view_model, sender.clone());
+        let view_model = Configuration::init_view_model(parent_view_model, &view);
+        let mut components = <<Configuration::ViewModel as ViewModel>::Components as relm4::Components<Configuration::ViewModel>>::init_components(&view_model, sender.clone());
         let container = {
             <Configuration::ViewModel as ViewModel>::Widgets::init_view(
                 &view_model,
@@ -153,6 +143,7 @@ where
                 sender.clone(),
             )
         };
+        components.connect_parent(&container);
 
         // container.connect_components(&view_model, &components);
         let shared_components = Rc::new(RefCell::new(components));
@@ -192,32 +183,28 @@ where
         {
             let context = glib::MainContext::default();
             redraw_receiver.attach(Some(&context), move |_| {
-                log::info!("Received redraw message!");
-                if let Ok(store_view) = redraw_handler_view.try_borrow() {
-                    if let Ok(view_model) = redraw_handler_view_model.try_borrow() {
-                        if let Ok(mut container) = redraw_handler_container.try_borrow_mut() {
-                            log::info!("Store view queue size: {}", store_view.inbox_queue_size());
-                            if store_view.inbox_queue_size() > 0 { //only redraw if there is an update awaiting
-                                store_view.generate(container.container_widget(), redraw_handler_sender.clone());
-                            }
-                            container.view(&view_model, redraw_handler_sender.clone());
-                            if let Ok(mut handler_components) = redraw_handler_components.try_borrow_mut() {
-                                handler_components.on_store_update();
-                            }
-                            else {
-                                log::warn!(target: "relm4-store", "Could not borrow the components. Make sure you dropped all references to components after user");    
-                            }
+                log::trace!("Received redraw message!");
+                if let Ok(view_model) = redraw_handler_view_model.try_borrow() {
+                    if let Ok(mut container) = redraw_handler_container.try_borrow_mut() {
+                        log::trace!("Store view queue size: {}", redraw_handler_view.inbox_queue_size());
+                        if redraw_handler_view.inbox_queue_size() > 0 { //only redraw if there is an update awaiting
+                            log::trace!("Updating the store view");
+                            redraw_handler_view.generate(container.container_widget(), redraw_handler_sender.clone());
+                        }
+                        container.view(&view_model, redraw_handler_sender.clone());
+                        if let Ok(mut handler_components) = redraw_handler_components.try_borrow_mut() {
+                            handler_components.on_store_update();
                         }
                         else {
-                            log::warn!(target: "relm4-store", "Could not borrow the container. Make sure you dropped all references to container after user");
+                            log::warn!(target: "relm4-store", "Could not borrow the components. Make sure you dropped all references to components after user");    
                         }
                     }
                     else {
-                        log::warn!(target: "relm4-store", "Could not borrow the view model. Make sure you dropped all references to view model after use");
+                        log::warn!(target: "relm4-store", "Could not borrow the container. Make sure you dropped all references to container after user");
                     }
                 }
                 else {
-                    log::warn!(target: "relm4-store", "Could not borrow the store view. Make sure you dropped all references to store view after use");
+                    log::warn!(target: "relm4-store", "Could not borrow the view model. Make sure you dropped all references to view model after use");
                 }
 
                 glib::Continue(true)
@@ -225,7 +212,7 @@ where
         }
 
         Self {
-            view: shared_view,
+            view,
             _components: shared_components,
             _container: shared_container,
             _view_model: shared_view_model,

@@ -10,11 +10,14 @@ use std::io::Result;
 
 use relm4::RelmApp;
 
-use crate::store::Tasks;
+use crate::store::TasksBuilder;
 use crate::view::MainWindowViewModel;
 
 fn main() -> Result<()> {
-    log4rs::init_file("relm4-store-examples/examples/todo_1/etc/log4rs.yaml", Default::default()).unwrap();
+    log4rs::init_file(
+        "relm4-store-examples/examples/todo_1/etc/log4rs.yaml",
+        Default::default()
+    ).unwrap();
 
     log::info!("");
     log::info!("Todo 1 example!");
@@ -29,7 +32,7 @@ fn main() -> Result<()> {
         .build();
 
     let model = MainWindowViewModel{
-        tasks: Tasks::new()
+        tasks: TasksBuilder::build()
     };
 
     log::info!("\tCreating relm4 app");

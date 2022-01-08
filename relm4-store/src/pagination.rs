@@ -1,13 +1,9 @@
-use record::TemporaryIdAllocator;
-
 use crate::StoreView;
 
 /// Generic pagination methods which could be carpet implemented for any store-view
-pub trait Pagination<SV, Allocator, StoreIdAllocator> 
+pub trait Pagination<SV> 
 where
-    SV: StoreView<Allocator, StoreIdAllocator>, 
-    Allocator: TemporaryIdAllocator,
-    StoreIdAllocator: TemporaryIdAllocator,
+    SV: StoreView,
 {
     /// Total amount of pages in store view
     fn total_pages(&self) -> usize;
@@ -15,11 +11,9 @@ where
     fn current_page(&self) -> usize;
 }
 
-impl<SV, Allocator, StoreIdAllocator> Pagination<SV, Allocator, StoreIdAllocator> for SV 
+impl<SV> Pagination<SV> for SV 
 where
-    SV: StoreView<Allocator, StoreIdAllocator>,
-    Allocator: TemporaryIdAllocator,
-    StoreIdAllocator: TemporaryIdAllocator,
+    SV: StoreView,
 {
     fn total_pages(&self) -> usize {
         let len = self.len();

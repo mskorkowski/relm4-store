@@ -1,6 +1,4 @@
-use record::DefaultIdAllocator;
 use reexport::{gtk, relm4, relm4_macros};
-use std::{ cell::RefCell, rc::Rc};
 use gtk::prelude::GtkWindowExt;
 use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets};
 use relm4_macros::widget;
@@ -14,7 +12,7 @@ use crate::{
 pub enum MainWindowMsg {}
 
 pub struct MainWindowViewModel {
-    pub tasks: Rc<RefCell<Tasks>>
+    pub tasks: Tasks
 }
 
 impl ViewModel for MainWindowViewModel {
@@ -35,7 +33,7 @@ impl AppUpdate for MainWindowViewModel {
 }
 
 pub struct MainWindowComponents {
-    tasks_list: StoreViewComponent<TasksListViewModel<Self>, DefaultIdAllocator, DefaultIdAllocator>
+    tasks_list: StoreViewComponent<TasksListViewModel<Self>>
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
@@ -44,7 +42,10 @@ impl Components<MainWindowViewModel> for MainWindowComponents {
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            tasks_list: StoreViewComponent::new(parent_model, parent_model.tasks.clone(), StoreSize::Unlimited)
+            tasks_list: StoreViewComponent::new(
+                parent_model,
+                parent_model.tasks.clone(),
+                StoreSize::Unlimited)
         }
     }
 
@@ -54,7 +55,7 @@ impl Components<MainWindowViewModel> for MainWindowComponents {
 impl TasksListConfiguration for MainWindowComponents {
     type ParentViewModel = MainWindowViewModel;
 
-    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
+    fn get_tasks(parent_model: &Self::ParentViewModel) -> Tasks {
         parent_model.tasks.clone()
     }
 }

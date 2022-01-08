@@ -20,7 +20,7 @@
     unreachable_pub
 )]
 
-mod factory_configuration;
+mod factory_prototype;
 pub mod math;
 mod pagination;
 mod position;
@@ -47,9 +47,9 @@ use record::TemporaryIdAllocator;
 
 use crate::math::Range;
 
-pub use factory_configuration::FactoryConfiguration;
-pub use factory_configuration::FactoryContainerWidgets;
-pub use factory_configuration::StoreViewInnerComponent;
+pub use factory_prototype::StoreViewPrototype;
+pub use factory_prototype::FactoryContainerWidgets;
+pub use factory_prototype::StoreViewInnerComponent;
 pub use pagination::Pagination;
 pub use position::Position;
 pub use record_with_location::RecordWithLocation;
@@ -126,12 +126,31 @@ pub use store_view_component::StoreViewInterfaceError;
 /// 
 /// If there are limitation on that please somewhere at the beginning of the docs note what limitations
 /// are around this values. It can easily become a deal breaker for users of your library.
-pub trait DataStore<Allocator, StoreIdAllocator>: Identifiable<Self, StoreIdAllocator::Type, Id=StoreId<Self, Allocator, StoreIdAllocator>> 
-where Allocator: TemporaryIdAllocator,
-      StoreIdAllocator: TemporaryIdAllocator,
+pub trait DataStore: Identifiable<Self, <Self::Allocator as TemporaryIdAllocator>::Type, Id=StoreId<Self>> 
 {
     /// Type of records kept in the data store
-    type Record: Record<Allocator> + Debug + Clone + 'static;
+    type Record: Record + Debug + Clone + 'static;
+
+    /// Id allocator for this data store
+    /// 
+    /// ## TL;DR;
+    /// 
+    /// You should keep it as
+    /// 
+    /// ```text
+    /// type Allocator = DefaultIdAllocator;
+    /// ```
+    /// 
+    /// ## Longer version
+    /// 
+    /// As long as possible (and little bit longer) you should use `[DefaultIdAllocator]` Overriding it
+    /// might be necessary in some super rare cases where you have more then one data store for the same
+    /// kind of data or you have dynamic number of data stores of given kind. Both of the cases are in the
+    /// "please don't do that" area from design perspective. 
+    /// 
+    /// If you are reading this section in 99% of cases creating a custom DataStore which will be backed by
+    /// more then one backend is the proper solution for your issues.
+    type Allocator: TemporaryIdAllocator;
 
     /// Registers message in the data store
     /// 
@@ -148,7 +167,7 @@ where Allocator: TemporaryIdAllocator,
     /// Returns the record from the store
     /// 
     /// If returns [None] then it means there is no such record in the store
-    fn get(&self, id: &Id<Self::Record, Allocator>) -> Option<Self::Record>;
+    fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record>;
 
     /// Returns records which are in the store at the given range
     ///
@@ -159,18 +178,18 @@ where Allocator: TemporaryIdAllocator,
     /// Attaches sender to the store
     /// 
     /// Sender is used to send a message whenever there are changes in the store
-    fn listen(&self, id: StoreId<Self, Allocator, StoreIdAllocator>, sender: Sender<StoreMsg<Self::Record, Allocator>>);
+    fn listen(&self, id: StoreId<Self>, sender: Sender<StoreMsg<Self::Record>>);
 
     /// Removes handler from the store
     /// 
     /// Changes to the store will not be delivered after this handler is removed
-    fn unlisten(&self, handler_ref: StoreId<Self, Allocator, StoreIdAllocator>);
+    fn unlisten(&self, handler_ref: StoreId<Self>);
 
     /// Returns sender for this store
-    fn sender(&self) -> Sender<StoreMsg<Self::Record, Allocator>>;
+    fn sender(&self) -> Sender<StoreMsg<Self::Record>>;
 
     /// Sends a message to this store
-    fn send(&self, msg: StoreMsg<Self::Record, Allocator>);
+    fn send(&self, msg: StoreMsg<Self::Record>);
 }
 
 /// StoreView allows you to access part of the data in the data store
@@ -184,13 +203,10 @@ where Allocator: TemporaryIdAllocator,
 ///   Your business model has two data sets `A` and `B` and there is `1-*` relationship between the data.
 ///   There are valid scenarios when you would like to edit item in `A` and give the ability to modify
 ///   related items in `B` at the same time. 
-pub trait StoreView<Allocator, StoreIdAllocator>: DataStore<Allocator, StoreIdAllocator>
-where
-    Allocator: TemporaryIdAllocator,
-    StoreIdAllocator: TemporaryIdAllocator,
+pub trait StoreView: DataStore
 {
     /// Type describing configuration parts of the store view behavior
-    type Configuration: ?Sized + FactoryConfiguration<Allocator, StoreIdAllocator>;
+    type Configuration: ?Sized + StoreViewPrototype;
 
     /// How many records should be visible at any point of time
     /// 
@@ -207,7 +223,7 @@ where
     /// Returns vector with list of records in the current view
     /// 
     /// Returned records are **clones** of the actual records
-    fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record, Allocator>>;
+    fn get_view_data(&self) -> Vec<RecordWithLocation<Self::Record>>;
 
     /// Returns current number of elements visible via the store view
     /// 
@@ -217,7 +233,7 @@ where
     /// Returns the position of the record in the view
     /// 
     /// If returns `None` that means record is not in the view
-    fn get_position(&self, id: &Id<Self::Record, Allocator>) -> Option<Position>;
+    fn get_position(&self, id: &Id<Self::Record>) -> Option<Position>;
 
     /// Advance the store view to the next page (if it exists) of underlying store
     fn next_page(&self);
@@ -233,4 +249,84 @@ where
 
     /// Returns current size of unhandled messages in the view
     fn inbox_queue_size(&self) -> usize;
+}
+
+/// Structure used by backends to send back information about what should be sent to the views
+/// after updates are done on the backend side
+#[derive(Debug)]
+pub struct Replies<Record> 
+where Record: record::Record + Debug + Clone + 'static
+{
+    /// List of messages to be sent to the store views
+    pub replies: Vec<StoreMsg<Record>>,
+}
+
+/// This trait should be implemented for backends of the data stores
+/// 
+/// It's basically `DataStore - Sender`
+pub trait Backend {
+    /// Type of records kept in the data store
+    type Record: Record + Debug + Clone + 'static;
+
+    /// Registers message in the data store
+    /// 
+    /// Data store might handle it immediately or might do queue it for later. It's up to the store
+    /// implementation what to do with a message
+    // fn inbox(&self, m: StoreMsg<Self::Record>);
+
+    /// Total amount of available records in the store
+    fn len(&self) -> usize;
+
+    /// Returns true if store doesn't contain any records yet
+    fn is_empty(&self) -> bool;
+
+    /// Returns the record from the store
+    /// 
+    /// If returns [None] then it means there is no such record in the store
+    fn get(&self, id: &Id<Self::Record>) -> Option<Self::Record>;
+
+    /// Returns records which are in the store at the given range
+    ///
+    /// Returned vector doesn't need to be ordered by position.
+    /// If range is out of bounds returned vector will be empty.
+    fn get_range(&self, range: &Range) -> Vec<Self::Record>;
+
+
+    /// Handles messages
+    fn inbox(&mut self, msg: StoreMsg<Self::Record>) -> Replies<Self::Record>;
+}
+
+/// Default trait describing how the records should be sorted by backend
+pub trait Sorter<Record: record::Record>: Copy + Debug {
+    /// Compares `lhs` with `rhs`
+    /// 
+    /// If sorter is being used implementation assumes that `cmp` constitutes a total order
+    fn cmp(&self, lhs: &Record, rhs: &Record) -> std::cmp::Ordering;
+}
+
+
+/// Trait implemented by the data store which supports switching of the natural order
+/// 
+/// If you use [`Store`] then it will use `OrderBy` defined by the backend
+pub trait OrderedStore<OrderBy>: DataStore {
+    /// sets natural order of the records
+    fn set_order(&self, order: OrderBy);
+}
+
+/// Trait implemented by the data store backends supporting switching of the natural order
+/// 
+/// When you define your own implementation of the [`Backend`] in most cases
+/// it will look like:
+/// 
+/// ```text
+/// trait MyBackend<OrderBy: Sorted<Record>>{
+///    ...
+/// }
+/// ```
+/// 
+/// This implementation doesn't limit what `OrderBy` is so you have as much of freedom as
+/// possible when you need to do something special
+pub trait OrderedBackend<OrderBy>: Backend {
+    /// sets natural order of the records
+    fn set_order(&mut self, order: OrderBy) -> Replies<Self::Record>;
 }

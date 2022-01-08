@@ -1,10 +1,7 @@
-use record::DefaultIdAllocator;
 use reexport::gtk;
 use reexport::relm4;
 use reexport::relm4_macros;
-
-use std::cell::RefCell;
-use std::rc::Rc;
+use store_view::View;
 
 use gtk::Box;
 use gtk::CheckButton;
@@ -29,24 +26,23 @@ use relm4_macros::widget;
 use record::Id;
 use record::Record;
 use store::DataStore;
-use store::FactoryConfiguration;
+use store::StoreViewPrototype;
 use store::FactoryContainerWidgets;
 use store::Position;
 use store::StoreView;
 use store::math::Range;
 use store::window::PositionTrackingWindow;
-use store_view::StoreViewImplementation;
 
 use crate::model::Task;
 use crate::store::Tasks;
 
 
-type StoreMsg = store::StoreMsg<Task, DefaultIdAllocator>;
+type StoreMsg = store::StoreMsg<Task>;
 
 pub enum TaskMsg {
     Toggle{
         complete: bool,
-        id: Id<Task, DefaultIdAllocator>,
+        id: Id<Task>,
     },
     New,
     Scrolled,
@@ -63,16 +59,16 @@ pub struct TaskWidgets {
 pub trait TasksListConfiguration {
     type ParentViewModel: ViewModel;
 
-    fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
+    fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Tasks;
     fn page_size(parent_view_model: &Self::ParentViewModel) -> usize;
 }
 
 pub struct TasksListViewModel<Config> 
 where Config: TasksListConfiguration + 'static,
 {
-    tasks: Rc<RefCell<Tasks>>,
+    tasks: Tasks,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>>>,
+    store_view: View<Self>,
     scroll_adjustment: gtk::Adjustment,
 }
 
@@ -84,11 +80,11 @@ where Config: TasksListConfiguration + 'static,
     type Components = ();
 }
 
-impl<Config: TasksListConfiguration> FactoryConfiguration<DefaultIdAllocator, DefaultIdAllocator> for TasksListViewModel<Config> 
+impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<Config> 
 where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
-    type StoreView = StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>;
+    type StoreView = View<Self>;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
@@ -96,8 +92,8 @@ where Config: TasksListConfiguration + 'static,
     type ViewModel = Self;
     type ParentViewModel = Config::ParentViewModel;
 
-    fn init_store_view(store: Rc<RefCell<Self::Store>>, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
-        StoreViewImplementation::new(store, size.items(), redraw_sender)
+    fn init_store_view(store: Self::Store, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
+        View::new(store, size, redraw_sender)
     }
 
     fn generate(
@@ -171,17 +167,15 @@ where Config: TasksListConfiguration + 'static,
     }
 
     fn update(view_model: &mut Self, msg: <Self as ViewModel>::Msg, _sender: Sender<<Self as ViewModel>::Msg>) {
-        println!("[TasksListViewModel::update] message received, updating data");
-
         match msg {
             TaskMsg::New => {
                 let description = view_model.new_task_description.text();
                 let task = Task::new(description, false);
                 view_model.new_task_description.set_text("");
-                view_model.tasks.borrow().send(StoreMsg::Commit(task));
+                view_model.tasks.send(StoreMsg::Commit(task));
             },
             TaskMsg::Toggle{ complete, id } => {
-                let tasks = view_model.tasks.borrow();
+                let tasks = &view_model.tasks;
                 if let Some(record) = tasks.get(&id) {
                     let mut updated = record.clone();
                     updated.completed = complete;
@@ -192,7 +186,7 @@ where Config: TasksListConfiguration + 'static,
                 let value = view_model.scroll_adjustment.value();
                 let page_size = view_model.scroll_adjustment.page_size(); 
 
-                view_model.store_view.borrow().set_window(
+                view_model.store_view.set_window(
                     Range::new(
                         value.floor() as usize,
                         (value+page_size).floor() as usize,
@@ -202,13 +196,13 @@ where Config: TasksListConfiguration + 'static,
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>>>) -> Self {
-        let view_length = store_view.borrow().len();
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: &View<Self>) -> Self {
+        let view_length = store_view.len();
 
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
-            store_view,
+            store_view: store_view.clone(),
             scroll_adjustment: gtk::Adjustment::new(0.0, 0.0, view_length as f64, 1.0, 1.0, Config::page_size(parent_view_model) as f64),
         }
     }
@@ -235,7 +229,7 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
                 },
                 append: container = &gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
-                    factory!(model.store_view.borrow())
+                    factory!(model.store_view)
                 }
             },
         }
@@ -251,8 +245,8 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
     }
 }
 
-impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>, DefaultIdAllocator, DefaultIdAllocator> for TasksListViewWidgets {
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<DefaultIdAllocator, DefaultIdAllocator>>::View {
+impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as StoreViewPrototype>::View {
         &self.container
     }
 }

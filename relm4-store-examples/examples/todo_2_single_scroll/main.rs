@@ -2,6 +2,7 @@ mod model;
 mod store;
 mod view;
 
+use backend_inmemory::InMemoryBackend;
 use reexport::gtk;
 use reexport::relm4;
 
@@ -29,7 +30,7 @@ fn main() {
     println!("Building model");
     std::io::stdout().flush().unwrap();
     let model = MainWindowViewModel{
-        tasks: Tasks::new()
+        tasks: Tasks::new(InMemoryBackend::new())
     };
     println!("\tDone");
     std::io::stdout().flush().unwrap();

@@ -5,7 +5,6 @@ use std::fmt;
 use std::hash::Hash;
 use std::hash::Hasher;
 use std::iter::FromIterator;
-use std::marker::PhantomData;
 
 use super::Identity;
 use super::Record;
@@ -49,34 +48,28 @@ use super::TemporaryIdAllocator;
 /// ## Something different then uuid
 /// 
 /// If you would like to have an id with values which differ from uuid you should
-/// implement your own [TemporaryIdAllocator] and pass it as a second type.
-pub enum Id<T, Allocator> 
+/// implement your own [TemporaryIdAllocator] and set it as the `[Record::Allocator]`
+pub enum Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    T: ?Sized + Record<Allocator>,
+    T: ?Sized + Record,
 {
     /// Id for records which were not committed yet to store
     New{
         /// Value of the id
-        value: Allocator::Type,
-        #[allow(missing_docs)]
-        _t: PhantomData<*const T>,
+        value: <T::Allocator as TemporaryIdAllocator>::Type,
     },
     /// Id for records which are persisted already
     /// 
     /// What persisted means depends on the store.
     Permanent {
         /// Value of the id
-        value: Allocator::Type,
-        #[allow(missing_docs)]
-        _t: PhantomData<*const T>,
+        value: <T::Allocator as TemporaryIdAllocator>::Type,
     }
 }
 
-impl<T, Allocator> Id<T, Allocator> 
+impl<T> Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    T: ?Sized + Record<Allocator>,
+    T: ?Sized + Record,
 {
     /// Returns `true` if id has not been committed to store yet
     pub fn is_new(&self) -> bool {
@@ -87,12 +80,11 @@ where
     }
 }
 
-impl<T, Allocator> Identity<T, Allocator::Type> for Id<T, Allocator> 
+impl<T> Identity<T, <T::Allocator as TemporaryIdAllocator>::Type> for Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    T: ?Sized + Record<Allocator>,
+    T: ?Sized + Record,
 {
-    fn get_value(&self) -> Allocator::Type {
+    fn get_value(&self) -> <T::Allocator as TemporaryIdAllocator>::Type {
         match self {
             Id::New{value, ..} => *value,
             Id::Permanent{value, ..} => *value,
@@ -100,36 +92,32 @@ where
     }
 }
 
-impl<T, Allocator> Clone for Id<T, Allocator> 
+impl<T> Clone for Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    T: ?Sized + Record<Allocator>,
+    T: ?Sized + Record,
 {
     fn clone(&self) -> Self {
         match self {
             Id::New{value, ..} => Id::New{
                 value: *value,
-                _t: PhantomData,
+                // _t: PhantomData,
             },
             Id::Permanent{value, ..} => Id::Permanent{
                 value: *value,
-                _t: PhantomData,
             }
         }
     }
 }
 
-impl<T, Allocator> Copy for Id<T, Allocator> 
+impl<T> Copy for Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    T: ?Sized + Record<Allocator>,
+    T: ?Sized + Record,
 {}
 
-impl<T, Allocator> fmt::Display for Id<T, Allocator> 
+impl<T> fmt::Display for Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    Allocator::Type: fmt::Display,
-    T: ?Sized + Record<Allocator>,
+    <T::Allocator as TemporaryIdAllocator>::Type: fmt::Display,
+    T: ?Sized + Record,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -140,10 +128,9 @@ where
     }
 }
 
-impl<T, Allocator> Id<T, Allocator> 
+impl<T> Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    T: ?Sized + Record<Allocator>,
+    T: ?Sized + Record,
 {
     /// Creates new instance of the Id
     /// 
@@ -151,36 +138,32 @@ where
     #[must_use]
     pub fn new() -> Self {
         Id::New {
-            value: Allocator::new_id(),
-            _t: PhantomData,
+            value: T::Allocator::new_id(),
         }
     }
 
     /// Creates new instance of the Id
     ///
     /// Returns permanent id
-    pub fn from(value: Allocator::Type) -> Self {
+    pub fn from(value: <T::Allocator as TemporaryIdAllocator>::Type) -> Self {
         Id::Permanent {
             value,
-            _t: PhantomData,
         }
     }
 }
 
-impl<T, Allocator> Default for Id<T, Allocator> 
+impl<T> Default for Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    T: ?Sized + Record<Allocator>,
+    T: ?Sized + Record,
 {
     fn default() -> Self {
         Id::new()
     }
 }
 
-impl<T, Allocator> PartialEq for Id<T, Allocator> 
+impl<T> PartialEq for Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    T: ?Sized + Record<Allocator>,
+    T: ?Sized + Record,
 {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -191,16 +174,14 @@ where
     }
 }
 
-impl<T, Allocator> Eq for Id<T, Allocator> 
+impl<T> Eq for Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    T: ?Sized + Record<Allocator>,
+    T: ?Sized + Record,
 {}
 
-impl<T, Allocator>Hash for Id<T, Allocator> 
+impl<T>Hash for Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    T: ?Sized + Record<Allocator>,
+    T: ?Sized + Record,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
@@ -210,11 +191,10 @@ where
     }
 }
 
-impl<T, Allocator> fmt::Debug for Id<T, Allocator> 
+impl<T> fmt::Debug for Id<T> 
 where
-    Allocator: TemporaryIdAllocator,
-    Allocator::Type: fmt::Debug,
-    T: ?Sized + Record<Allocator>,
+    <T::Allocator as TemporaryIdAllocator>::Type: fmt::Debug,
+    T: ?Sized + Record,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -227,12 +207,11 @@ where
     }
 }
 
-impl<T, Allocator> FromIterator<&'static Id<T, Allocator>> for HashSet<Id<T, Allocator>> 
+impl<T> FromIterator<&'static Id<T>> for HashSet<Id<T>> 
 where
-    Allocator: TemporaryIdAllocator,
-    T: 'static + ?Sized + Record<Allocator>,
+    T: 'static + ?Sized + Record,
 {
-    fn from_iter<II: IntoIterator<Item = &'static Id<T, Allocator>>>(iter: II) -> Self {
+    fn from_iter<II: IntoIterator<Item = &'static Id<T>>>(iter: II) -> Self {
         iter.into_iter().map(|v| v.clone()).collect()
     }
 }

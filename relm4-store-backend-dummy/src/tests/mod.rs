@@ -1,16 +1,9 @@
 
 
 mod test_cases {
-    use std::cell::RefCell;
-    use std::rc::Rc;
-
-    use record::DefaultIdAllocator;
-    use reexport::glib;
-
     use record::Id;
     use record::Record;
-    use store::DataStore;
-    use store::StoreId;
+    use store::Backend;
     use store::math::Range;
 
     use crate::DummyBackend;
@@ -24,18 +17,18 @@ mod test_cases {
     #[test]
     #[should_panic]
     fn advancing_over_configuration_capacity_should_panic() {
-        let c: DummyBackendConfiguration<TestRecord, DefaultIdAllocator> = DummyBackendConfiguration{
+        let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration{
             initial_data: vec![],
             steps: vec![],
         };
-        let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(c);
+        let mut be = DummyBackend::<TestRecord>::new(c);
 
         be.advance();
     }
 
     #[test]
     fn more_then_one_step_in_store() {
-        let c: DummyBackendConfiguration<TestRecord, DefaultIdAllocator> = DummyBackendConfiguration{
+        let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration{
             initial_data: vec![],
             steps: vec![
                 Step{
@@ -49,7 +42,7 @@ mod test_cases {
             ],
         };
 
-        let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(c);
+        let mut be = DummyBackend::<TestRecord>::new(c);
 
         assert!(be.step() == DummyStoreStep::Initial);
         be.advance();
@@ -62,12 +55,12 @@ mod test_cases {
     fn get_record_by_id_from_empty_initial_state() {
         let id = Id::new();
 
-        let c: DummyBackendConfiguration<TestRecord, DefaultIdAllocator> = DummyBackendConfiguration { 
+        let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration { 
             initial_data: vec![],
             steps: vec![], 
         };
 
-        let be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(c);
+        let be = DummyBackend::<TestRecord>::new(c);
 
         let result = be.get(&id);
         assert!(result.is_none());
@@ -78,14 +71,14 @@ mod test_cases {
         let record = TestRecord::constant("Sample record");
         let id = record.get_id();
 
-        let c: DummyBackendConfiguration<TestRecord, DefaultIdAllocator> = DummyBackendConfiguration { 
+        let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration { 
             initial_data: vec![
                 record.clone()
             ],
             steps: vec![], 
         };
 
-        let be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(c);
+        let be = DummyBackend::<TestRecord>::new(c);
 
         let result = be.get(&id).expect("Record must be present");
         assert!(id == result.get_id());
@@ -97,7 +90,7 @@ mod test_cases {
         let record = TestRecord::constant("Sample record");
         let id = record.get_id();
 
-        let c: DummyBackendConfiguration<TestRecord, DefaultIdAllocator> = DummyBackendConfiguration { 
+        let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration { 
             initial_data: vec![
                 first_record,
                 record.clone()
@@ -105,7 +98,7 @@ mod test_cases {
             steps: vec![], 
         };
 
-        let be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(c);
+        let be = DummyBackend::<TestRecord>::new(c);
 
         let result = be.get(&id).expect("Record must be present");
         assert!(id == result.get_id());
@@ -114,7 +107,7 @@ mod test_cases {
     #[test]
     fn get_record_by_id_from_an_empty_step() {
         let id = Id::new();
-        let c: DummyBackendConfiguration<TestRecord, DefaultIdAllocator> = DummyBackendConfiguration { 
+        let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration { 
             initial_data: vec![],
             steps: vec![
                 Step{
@@ -124,7 +117,7 @@ mod test_cases {
             ], 
         };
 
-        let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(c);
+        let mut be = DummyBackend::<TestRecord>::new(c);
         be.advance();
 
         let result = be.get(&id);
@@ -136,7 +129,7 @@ mod test_cases {
         let record = TestRecord::constant("record to be found");
         let id = record.get_id();
 
-        let c: DummyBackendConfiguration<TestRecord, DefaultIdAllocator> = DummyBackendConfiguration { 
+        let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration { 
             initial_data: vec![],
             steps: vec![
                 Step{
@@ -146,7 +139,7 @@ mod test_cases {
             ], 
         };
 
-        let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(c);
+        let mut be = DummyBackend::<TestRecord>::new(c);
         be.advance();
 
         let result = be.get(&id).expect("Record should exist");
@@ -159,7 +152,7 @@ mod test_cases {
         let record = TestRecord::constant("record to be found");
         let id = record.get_id();
 
-        let c: DummyBackendConfiguration<TestRecord, DefaultIdAllocator> = DummyBackendConfiguration { 
+        let c: DummyBackendConfiguration<TestRecord> = DummyBackendConfiguration { 
             initial_data: vec![],
             steps: vec![
                 Step{
@@ -169,7 +162,7 @@ mod test_cases {
             ], 
         };
 
-        let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(c);
+        let mut be = DummyBackend::<TestRecord>::new(c);
         be.advance();
 
         let result = be.get(&id).expect("Record should exist");
@@ -179,7 +172,7 @@ mod test_cases {
     #[test]
     fn get_range_from_empty_data_store_in_an_initial_state() {
         let TestCase{configuration, data: _} = TestCases::empty(0);
-        let be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+        let be = DummyBackend::<TestRecord>::new(configuration);
 
         let result = be.get_range(&Range::new(10, 20));
 
@@ -189,7 +182,7 @@ mod test_cases {
     #[test]
     fn get_range_in_the_content_range_of_an_initial_state() {
         let TestCase{configuration, data:_} = TestCases::with_initial_size(15);
-        let be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+        let be = DummyBackend::<TestRecord>::new(configuration);
 
         let range = Range::new(5, 10);
         let result = be.get_range(&range);
@@ -200,7 +193,7 @@ mod test_cases {
     fn get_range_partially_in_the_content_range_of_an_initial_state() {
         let size = 15;
         let TestCase{configuration, data:_} = TestCases::with_initial_size(size);
-        let be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+        let be = DummyBackend::<TestRecord>::new(configuration);
 
         let range = Range::new(10, 22);
         let result = be.get_range(&range);
@@ -210,83 +203,10 @@ mod test_cases {
     #[test]
     fn get_range_from_empty_data_store_in_not_an_initial_state() {
         let TestCase{configuration, data:_} = TestCases::empty(1);
-        let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
+        let mut be = DummyBackend::<TestRecord>::new(configuration);
         be.advance();
         let result = be.get_range(&Range::new(10, 20));
 
         assert!(result.len() == 0);
-    }
-
-
-
-    #[test]
-    fn dummy_store_event_propagation() {
-        let counter = Rc::new(RefCell::new(0));
-        let shared_counter = counter.clone();
-        // Sender and receiver to a view
-        let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-        {
-            let context = glib::MainContext::default();
-            let _guard = context.acquire().unwrap();
-            receiver.attach(Some(&context), move |_msg| {
-                let ctr = {
-                    let borrowed = shared_counter.borrow();
-                    *borrowed
-                };
-                shared_counter.replace(1 + ctr);
-    
-                glib::Continue(true)
-            });
-        }
-    
-        let view_id =  StoreId::new();
-        let TestCase{configuration, data:_} = TestCases::add_first_record();
-    
-        let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
-        assert!(be.listeners_len() == 0);
-        be.listen(view_id, sender);
-        assert!(be.listeners_len() == 1);
-        be.advance();
-    
-        {
-            let context = glib::MainContext::default();
-            context.iteration(true);
-        }
-        assert!(be.listeners_len() == 1);
-        {
-            let ctr = counter.borrow();
-            assert!(*ctr == 1)
-        }
-
-    }
-
-    #[test]
-    fn dummy_store_event_propagation_in_case_of_dead_sender() {
-        // Sender and receiver to a view
-        let sender = {
-            let (sender, _receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-            
-            let context =glib::MainContext::default();
-            let _guard = context.acquire().unwrap();
-            sender
-        };
-    
-        {
-            let context = glib::MainContext::default();
-            context.iteration(false);
-        }    
-
-        let view_id =  StoreId::new();
-        let TestCase{configuration, data:_} = TestCases::add_first_record();
-    
-        let mut be = DummyBackend::<TestRecord, DefaultIdAllocator, DefaultIdAllocator>::new(configuration);
-        be.listen(view_id, sender);
-        assert!(be.listeners_len() == 1);
-        be.advance();
-        assert!(be.listeners_len() == 0);
-        {
-            let context = glib::MainContext::default();
-            context.iteration(false);
-        }    
     }
 }

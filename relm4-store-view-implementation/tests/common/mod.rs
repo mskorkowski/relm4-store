@@ -1,39 +1,41 @@
-use record::DefaultIdAllocator;
 use reexport::glib;
 use reexport::gtk;
 use reexport::relm4;
+use reexport::relm4::factory::Factory;
 
-use std::cell::RefCell;
+use std::fmt::Debug;
 use std::marker::PhantomData;
-use std::rc::Rc;
 
 use relm4::Sender;
 
 use backend_dummy::DummyBackend;
+use backend_dummy::StepByStepStore;
 use backend_dummy::test_cases::TestCase;
 use backend_dummy::test_cases::TestRecord;
 use store::DataStore;
-use store::FactoryConfiguration;
+use store::StoreViewPrototype;
 use store::Position;
+use store::Store;
 use store::StoreSize;
 use store::math::Range;
 use store::redraw_messages::RedrawMessages;
 use store::window::WindowBehavior;
 
-use relm4_store_view_implementation::StoreViewImplementation;
+use relm4_store_view_implementation::View;
 
 #[derive(Debug)]
 pub struct TestWidgets {
     root: gtk::Box,
 }
 
+#[derive(Debug)]
 pub struct TestConfig<Window: 'static + WindowBehavior> {
     _window: PhantomData<*const Window>,
 }
 
-impl<Window: 'static + WindowBehavior> FactoryConfiguration<DefaultIdAllocator, DefaultIdAllocator> for TestConfig<Window> {
-    type Store = DummyBackend<TestRecord, DefaultIdAllocator, DefaultIdAllocator>;
-    type StoreView = StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>;
+impl<Window: 'static + WindowBehavior + Debug> StoreViewPrototype for TestConfig<Window> {
+    type Store = Store<DummyBackend<TestRecord>>;
+    type StoreView = View<Self>;
     type RecordWidgets = TestWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
@@ -41,35 +43,35 @@ impl<Window: 'static + WindowBehavior> FactoryConfiguration<DefaultIdAllocator, 
     type ViewModel = ();
     type ParentViewModel = ();
 
-    fn init_store_view(store: std::rc::Rc<std::cell::RefCell<Self::Store>>, size: store::StoreSize, redraw_sender: Sender<RedrawMessages>) -> Self::StoreView {
-        StoreViewImplementation::new(store, size.items(), redraw_sender)
+    fn init_store_view(store: Self::Store, size: store::StoreSize, redraw_sender: Sender<RedrawMessages>) -> Self::StoreView {
+        View::new(store, size, redraw_sender)
     }
 
-    fn generate(_record: &<Self::Store as store::DataStore<DefaultIdAllocator, DefaultIdAllocator>>::Record, _position: Position, _sender: Sender<()>) -> Self::RecordWidgets {
+    fn generate(_record: &<Self::Store as store::DataStore>::Record, _position: Position, _sender: Sender<()>) -> Self::RecordWidgets {
         TestWidgets{
             root: gtk::Box::default()
         }
     }
 
-    fn update_record(_model: <Self::Store as store::DataStore<DefaultIdAllocator, DefaultIdAllocator>>::Record, _position: Position, _widgets: &Self::RecordWidgets) {}
+    fn update_record(_model: <Self::Store as store::DataStore>::Record, _position: Position, _widgets: &Self::RecordWidgets) {}
 
     fn update(_view_model: &mut Self::ViewModel, _msg: (), _sender: Sender<()>) {}
     
-    fn init_view_model(_parent_view_model: &Self::ParentViewModel, _store_view: std::rc::Rc<std::cell::RefCell<Self::StoreView>>) -> Self::ViewModel {}
+    fn init_view_model(_parent_view_model: &Self::ParentViewModel, _store_view: &Self::StoreView) -> Self::ViewModel {}
 
-    fn position(_model: <Self::Store as store::DataStore<DefaultIdAllocator, DefaultIdAllocator>>::Record, _position: Position) {}
+    fn position(_model: <Self::Store as store::DataStore>::Record, _position: Position) {}
 
     fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root {
         &widgets.root
     }
 }
 
-pub type Assertion<Window> = &'static dyn Fn(&Vec<TestRecord>, &StoreViewImplementation<TestConfig<Window>, DefaultIdAllocator, DefaultIdAllocator>, &Vec<TestRecord>) -> ();
-pub type Prepare<Window> = &'static dyn Fn(&StoreViewImplementation<TestConfig<Window>, DefaultIdAllocator, DefaultIdAllocator>) -> bool;
+pub type Assertion<Window> = &'static dyn Fn(&Vec<TestRecord>, &View<TestConfig<Window>>, &Vec<TestRecord>) -> ();
+pub type Prepare<Window> = &'static dyn Fn(&View<TestConfig<Window>>) -> bool;
 
 pub struct StoreViewTest<Window>
 where
-    Window: 'static + WindowBehavior
+    Window: 'static + WindowBehavior + Debug
 {
     asserts: Vec<Assertion<Window>>,
     initial_assertion: Assertion<Window>,
@@ -81,7 +83,7 @@ where
 
 impl<Window> StoreViewTest<Window>
 where
-    Window: 'static + WindowBehavior,
+    Window: 'static + WindowBehavior + Debug,
 {
     pub fn from(config: TestCase) -> StoreViewTest<Window> {
         StoreViewTest{
@@ -126,46 +128,44 @@ where
         let context = glib::MainContext::default();
         let _guard = context.acquire().unwrap();
 
-        let (sender, _receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let (view_sender, _view_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+        let (redraw_sender, _redraw_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
 
         let container = gtk::Box::default();
 
-        let data_store: DummyBackend<TestRecord, DefaultIdAllocator, DefaultIdAllocator> = DummyBackend::new(self.test_case.configuration.clone());
-        let shared_store = Rc::new(RefCell::new(data_store));
+        let mut data_store: Store<DummyBackend<TestRecord>> = Store::new(DummyBackend::new(self.test_case.configuration.clone()));
 
-        let store_view: StoreViewImplementation<TestConfig<Window>, DefaultIdAllocator, DefaultIdAllocator> = StoreViewImplementation::new(
-            shared_store.clone(), 
-            self.window_size.items(), 
-            sender
+        let store_view: View<TestConfig<Window>> = View::new(
+            data_store.clone(), 
+            self.window_size,
+            redraw_sender,
         );
+
         // StoreView is using `Reload` event to populate itself
-        context.iteration(true);
-        store_view.view(&container, view_sender.clone());
+        context.iteration(false);
+        store_view.generate(&container, view_sender.clone());
 
         if let Some(p) = self.prepare {
             let block = p(&store_view);
             context.iteration(block);
-            store_view.view(&container, view_sender.clone());
+            store_view.generate(&container, view_sender.clone());
         }
         
 
-        let data_store_len = shared_store.borrow().len();
+        let data_store_len = data_store.len();
         let ia = self.initial_assertion;
-        ia(&self.test_case.data.clone(), &store_view, &shared_store.borrow().get_range(&Range::new(0, data_store_len)));
+        ia(&self.test_case.data.clone(), &store_view, &data_store.get_range(&Range::new(0, data_store_len)));
 
 
 
         for assertion in &self.asserts {
             {
-                shared_store.borrow_mut().advance();
+                data_store.advance();
             }
-            context.iteration(true);
-            store_view.view(&container, view_sender.clone());
-            let data_store_len = shared_store.borrow().len();
-            assertion(&self.test_case.data, &store_view, &shared_store.borrow().get_range(&Range::new(0, data_store_len)));
+            context.iteration(false);
+            store_view.generate(&container, view_sender.clone());
+            let data_store_len = data_store.len();
+            assertion(&self.test_case.data, &store_view, &data_store.get_range(&Range::new(0, data_store_len)));
         }
-
-        
     }
 }

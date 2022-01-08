@@ -1,11 +1,7 @@
-use record::DefaultIdAllocator;
 use reexport::gtk;
 use reexport::relm4;
 use reexport::relm4_macros;
-
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::rc::Rc;
+use store_view::View;
 
 use gtk::Box;
 use gtk::CheckButton;
@@ -25,31 +21,29 @@ use relm4::send;
 use relm4::Sender;
 use relm4::Widgets;
 use relm4::WidgetPlus;
-
 use relm4_macros::widget;
 
+use components::pagination::PaginationMsg;
 use components::pagination::PaginationConfiguration;
 use components::pagination::PaginationViewModel;
-use components::pagination::PaginationMsg;
 use record::Id;
 use record::Record;
-use store::StoreViewInnerComponent;
-use store::window::WindowBehavior;
 use store::DataStore;
-use store::FactoryConfiguration;
 use store::FactoryContainerWidgets;
 use store::Position;
-use store_view::StoreViewImplementation;
+use store::StoreViewInnerComponent;
+use store::StoreViewPrototype;
+use store::window::PositionTrackingWindow;
 
 use crate::model::Task;
 use crate::store::Tasks;
 
-type StoreMsg = store::StoreMsg<Task, DefaultIdAllocator>;
+type StoreMsg = store::StoreMsg<Task>;
 
 pub enum TaskMsg {
     Toggle{
         complete: bool,
-        id: Id<Task, DefaultIdAllocator>,
+        id: Id<Task>,
     },
     New,
 }
@@ -64,44 +58,40 @@ pub struct TaskWidgets {
 
 pub trait TasksListConfiguration {
     type ParentViewModel: ViewModel;
-    type Window: WindowBehavior;
-    fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>>;
+
+    fn get_tasks(parent_view_model: &Self::ParentViewModel) -> Tasks;
 }
 
 pub struct TasksListViewModel<Config> 
-where
-    Config: TasksListConfiguration + 'static,
+where Config: TasksListConfiguration + 'static,
 {
-    tasks: Rc<RefCell<Tasks>>,
+    tasks: Tasks,
+    store_view: View<Self>,
     new_task_description: gtk::EntryBuffer,
-    store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>>>,
-    _config: PhantomData<*const Config>,
 }
 
 impl<Config> ViewModel for TasksListViewModel<Config> 
-where
-    Config: TasksListConfiguration + 'static,
+where Config: TasksListConfiguration + 'static,
 {
     type Msg = TaskMsg;
     type Widgets = TasksListViewWidgets;
     type Components = TasksListComponents<Config>;
 }
 
-impl<Config> FactoryConfiguration<DefaultIdAllocator, DefaultIdAllocator> for TasksListViewModel<Config> 
-where
-    Config: TasksListConfiguration + 'static,
+impl<Config> StoreViewPrototype for TasksListViewModel<Config> 
+where Config: TasksListConfiguration + 'static,
 {
     type Store = Tasks;
-    type StoreView = StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>;
+    type StoreView = View<Self>;
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
-    type Window = Config::Window;
+    type Window = PositionTrackingWindow;
     type ViewModel = Self;
     type ParentViewModel = Config::ParentViewModel;
 
-    fn init_store_view(store: Rc<RefCell<Self::Store>>, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
-        StoreViewImplementation::new(store, size.items(), redraw_sender)
+    fn init_store_view(store: Self::Store, size: store::StoreSize, redraw_sender: Sender<store::redraw_messages::RedrawMessages>) -> Self::StoreView {
+        View::new(store, size, redraw_sender)
     }
 
     fn generate(
@@ -174,18 +164,16 @@ where
         &widgets.root
     }
 
-    fn update(view_model: &mut Self, msg: <Self as ViewModel>::Msg, _sender: Sender<<Self as ViewModel>::Msg>) {
-        println!("[TasksListViewModel::update] message received, updating data");
-
+    fn update(view_model: &mut Self::ViewModel, msg: <Self as ViewModel>::Msg, _sender: Sender<<Self as ViewModel>::Msg>) {
         match msg {
             TaskMsg::New => {
                 let description = view_model.new_task_description.text();
                 let task = Task::new(description, false);
                 view_model.new_task_description.set_text("");
-                view_model.tasks.borrow().send(StoreMsg::Commit(task));
+                view_model.tasks.send(StoreMsg::Commit(task));
             },
             TaskMsg::Toggle{ complete, id } => {
-                let tasks = view_model.tasks.borrow();
+                let tasks = &view_model.tasks;
                 if let Some(record) = tasks.get(&id) {
                     let mut updated = record.clone();
                     updated.completed = complete;
@@ -195,26 +183,22 @@ where
         }
     }
 
-    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: Rc<RefCell<StoreViewImplementation<Self, DefaultIdAllocator, DefaultIdAllocator>>>) -> Self {
+    fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: &Self::StoreView) -> Self {
         TasksListViewModel{
             tasks: Config::get_tasks(parent_view_model),
             new_task_description: gtk::EntryBuffer::new(None),
-            store_view,
-            _config: PhantomData,
+            store_view: store_view.clone(),
         }
     }
 }
 
 pub struct TasksListComponents<Config>
-where
-    Config: TasksListConfiguration + 'static,
-{
-    pagination: RelmComponent<PaginationViewModel<Self, DefaultIdAllocator, DefaultIdAllocator>, TasksListViewModel<Config>>
+where Config: TasksListConfiguration + 'static {
+    pagination: RelmComponent<PaginationViewModel<Self>, TasksListViewModel<Config>>
 }
 
 impl<Config> Components<TasksListViewModel<Config>> for TasksListComponents<Config> 
-where
-    Config: TasksListConfiguration + 'static,
+where Config: TasksListConfiguration,
 {
     fn init_components(
         parent_model: &TasksListViewModel<Config>, 
@@ -228,21 +212,17 @@ where
     fn connect_parent(&mut self, _parent_widgets: &TasksListViewWidgets) {}
 }
 
-impl<Config> PaginationConfiguration<DefaultIdAllocator, DefaultIdAllocator> for TasksListComponents<Config>
-where
-    Config: TasksListConfiguration + 'static,
-{
-    type FactoryConfiguration = TasksListViewModel<Config>;
-    
-    fn get_view(parent_view_model: &<Self::FactoryConfiguration as FactoryConfiguration<DefaultIdAllocator, DefaultIdAllocator>>::ViewModel) -> Rc<RefCell<StoreViewImplementation<Self::FactoryConfiguration, DefaultIdAllocator, DefaultIdAllocator>>> {
+impl<Config> PaginationConfiguration for TasksListComponents<Config>
+where Config: TasksListConfiguration + 'static {
+    type StoreViewPrototype = TasksListViewModel<Config>;
+
+    fn get_view(parent_view_model: &<Self::StoreViewPrototype as StoreViewPrototype>::ViewModel) -> View<Self::StoreViewPrototype> {
         parent_view_model.store_view.clone()
     }
 }
 
 impl<Config> StoreViewInnerComponent<TasksListViewModel<Config>> for TasksListComponents<Config>
-where
-    Config: TasksListConfiguration + 'static,
-{
+where Config: TasksListConfiguration + 'static {
     fn on_store_update(&mut self) {
         self.pagination.send(PaginationMsg::StoreUpdated).unwrap();
     }
@@ -264,16 +244,16 @@ impl<Config: TasksListConfiguration> Widgets<TasksListViewModel<Config>, Config:
                 set_vexpand: true,
                 set_child: container = Some(&gtk::Box) {
                     set_orientation: gtk::Orientation::Vertical,
-                    factory!(model.store_view.borrow())
+                    factory!(model.store_view)
                 }
             },
-            append: components.pagination.root_widget(),
+            append: components.pagination.root_widget()
         }
     }
 }
 
-impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>, DefaultIdAllocator, DefaultIdAllocator> for TasksListViewWidgets {
-    fn container_widget(&self) -> &<TasksListViewModel<Config> as FactoryConfiguration<DefaultIdAllocator, DefaultIdAllocator>>::View {
+impl<Config: 'static + TasksListConfiguration> FactoryContainerWidgets<TasksListViewModel<Config>> for TasksListViewWidgets {
+    fn container_widget(&self) -> &<TasksListViewModel<Config> as StoreViewPrototype>::View {
         &self.container
     }
 }

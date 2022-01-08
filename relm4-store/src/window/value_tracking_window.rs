@@ -1,5 +1,3 @@
-use reexport::log;
-
 use std::cmp::min;
 
 use crate::Range;
@@ -42,24 +40,20 @@ impl WindowBehavior for ValueTrackingWindow {
     /// ```
     fn insert(state: &StoreState<'_>, p: &Point) -> WindowTransition {
         if p >= state.page.end() {
-            log::error!("Insert after");
             WindowTransition::Identity
         }
         else if p <= state.page.start() && state.page.len() == state.view {
-            log::error!("Insert before");
             WindowTransition::SlideRight(1)
         }
         else {
             let half: usize = (state.page.start() + state.page.end())/2;
             if p < &half {
-                log::error!("Insert first half");
                 WindowTransition::InsertLeft{
                     pos: p.value(),
                     by: 1,
                 }
             }
             else {
-                log::error!("Insert second half");
                 WindowTransition::InsertRight{
                     pos: p.value(),
                     by: 1,

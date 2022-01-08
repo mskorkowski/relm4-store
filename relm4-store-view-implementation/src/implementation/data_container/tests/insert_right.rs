@@ -2,7 +2,6 @@
 
 use backend_dummy::test_cases::TestRecord;
 use record::Record;
-use record::DefaultIdAllocator;
 
 use crate::WindowChangeset;
 use crate::implementation::data_container::DataContainer;
@@ -10,8 +9,8 @@ use super::test_data::TestData;
 
 #[test]
 fn insert_right_first_record() {
-    let mut dc: DataContainer<TestRecord, DefaultIdAllocator> = DataContainer::new(10);
-    let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
+    let mut dc: DataContainer<TestRecord> = DataContainer::new(10);
+    let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
     let record: TestRecord = TestRecord::constant("First record to add");
     let records: Vec<TestRecord> = vec![record.clone()];
     let position: usize = 0;
@@ -25,8 +24,8 @@ fn insert_right_first_record() {
 
 #[test]
 fn insert_right_second_two_records() {
-    let mut dc: DataContainer<TestRecord, DefaultIdAllocator> = DataContainer::new(10);
-    let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
+    let mut dc: DataContainer<TestRecord> = DataContainer::new(10);
+    let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
     let record1: TestRecord = TestRecord::constant("First record to add");
     let record2: TestRecord = TestRecord::constant("Second record to add");
     let records: Vec<TestRecord> = vec![record1.clone(), record2.clone()];
@@ -44,8 +43,8 @@ fn insert_right_second_two_records() {
 
 #[test]
 fn insert_right_three_records() {
-    let mut dc: DataContainer<TestRecord, DefaultIdAllocator> = DataContainer::new(10);
-    let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
+    let mut dc: DataContainer<TestRecord> = DataContainer::new(10);
+    let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
     let record1: TestRecord = TestRecord::constant("First record to add");
     let record2: TestRecord = TestRecord::constant("Second record to add");
     let record3: TestRecord = TestRecord::constant("Third record to add");
@@ -69,7 +68,6 @@ mod max_size_3 {
 
     use backend_dummy::test_cases::TestRecord;
     use record::Record;
-    use record::DefaultIdAllocator;
     
     use crate::WindowChangeset;
 
@@ -79,8 +77,6 @@ mod max_size_3 {
     const MAX_SIZE: usize = 3;
     
     mod at_at_0 {
-        
-        use super::DefaultIdAllocator;
         use super::Record;
         use super::TestRecord;
         use super::TestData;
@@ -92,7 +88,7 @@ mod max_size_3 {
         #[test]
         fn add_at_0_elements_0() {
             let TestData{ records, mut container } = TestData::new(RECORDS_CNT, MAX_SIZE);
-            let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
+            let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
             let new_records = vec![];
             let position = 0;
 
@@ -114,7 +110,7 @@ mod max_size_3 {
         #[test]
         fn add_at_0_elements_1() {
             let TestData{ records, mut container } = TestData::new(RECORDS_CNT, MAX_SIZE);
-            let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
+            let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
             let new_record = TestRecord::since("Record added at pos 0", 1);
             let new_records = vec![new_record.clone()];
             let position = 0;
@@ -136,7 +132,7 @@ mod max_size_3 {
         #[test]
         fn add_at_0_elements_2() {
             let TestData{ records, mut container } = TestData::new(RECORDS_CNT, MAX_SIZE);
-            let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
+            let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
             let new_record1 = TestRecord::since("Record added at pos 0 - 0", 1);
             let new_record2 = TestRecord::since("Record added at pos 0 - 1", 1);
             let new_records = vec![new_record1.clone(), new_record2.clone()];
@@ -158,7 +154,7 @@ mod max_size_3 {
         #[test]
         fn add_at_0_elements_3() {
             let TestData{ mut container, .. } = TestData::new(RECORDS_CNT, MAX_SIZE);
-            let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
+            let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
             let new_record1 = TestRecord::since("Record added at pos 0 - 0", 1);
             let new_record2 = TestRecord::since("Record added at pos 0 - 1", 1);
             let new_record3 = TestRecord::since("Record added at pos 0 - 2", 1);
@@ -181,7 +177,7 @@ mod max_size_3 {
         #[test]
         fn add_at_0_elements_4() {
             let TestData{ mut container, .. } = TestData::new(RECORDS_CNT, MAX_SIZE);
-            let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
+            let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
             let new_record1 = TestRecord::since("Record added at pos 0 - 0", 1);
             let new_record2 = TestRecord::since("Record added at pos 0 - 1", 1);
             let new_record3 = TestRecord::since("Record added at pos 0 - 2", 1);
@@ -210,7 +206,7 @@ mod max_size_3 {
         #[test]
         fn add_at_0_elements_5() {
             let TestData{ mut container, .. } = TestData::new(RECORDS_CNT, MAX_SIZE);
-            let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
+            let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
             let new_record1 = TestRecord::since("Record added at pos 0 - 0", 1);
             let new_record2 = TestRecord::since("Record added at pos 0 - 1", 1);
             let new_record3 = TestRecord::since("Record added at pos 0 - 2", 1);
@@ -243,7 +239,7 @@ mod max_size_3 {
     fn add_at_1() {
         
         let TestData{ records, mut container } = TestData::new(RECORDS_CNT, MAX_SIZE);
-        let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
+        let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
         let new_record = TestRecord::since("Record added at pos 0", 1);
         let new_records = vec![new_record.clone()];
         let position = 1;
@@ -264,7 +260,7 @@ mod max_size_3 {
     #[test]
     fn add_at_2() {   
         let TestData{ records, mut container } = TestData::new(RECORDS_CNT, MAX_SIZE);
-        let mut changeset: WindowChangeset<TestRecord, DefaultIdAllocator> = WindowChangeset::default();
+        let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
         let new_record = TestRecord::since("Record added at pos 0", 1);
         let new_records = vec![new_record.clone()];
         let position = 2;

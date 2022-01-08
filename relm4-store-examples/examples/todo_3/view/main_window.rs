@@ -1,21 +1,21 @@
-use record::DefaultIdAllocator;
 use reexport::{gtk, relm4, relm4_macros};
-use std::{ cell::RefCell, rc::Rc};
-use gtk::prelude::{BoxExt, OrientableExt, GtkWindowExt};
-use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets, WidgetPlus};
+use gtk::prelude::{ButtonExt, GtkWindowExt};
+use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets, send};
 use relm4_macros::widget;
-use store::{StoreSize, StoreViewComponent, window::{KeepOnBottom, KeepOnTop, PositionTrackingWindow, ValueTrackingWindow}};
+use store::{OrderedStore, StoreSize, StoreViewComponent};
 
 use crate::{
-    store::Tasks,
+    store::{Tasks, OrderTasksBy},
     view::{task_list::TasksListConfiguration, task_list::TasksListViewModel}
 };
 
-pub enum MainWindowMsg {}
+pub enum MainWindowMsg {
+    ASC,
+    DESC,
+}
 
 pub struct MainWindowViewModel {
-    pub tasks: Rc<RefCell<Tasks>>,
-    pub page_size: usize,
+    pub tasks: Tasks,
 }
 
 impl ViewModel for MainWindowViewModel {
@@ -27,113 +27,77 @@ impl ViewModel for MainWindowViewModel {
 impl AppUpdate for MainWindowViewModel {
     fn update(
         &mut self, 
-        _msg: Self::Msg , 
+        msg: Self::Msg , 
         _components: &Self::Components, 
         _sender: Sender<Self::Msg>
     ) -> bool {
+        match msg  {
+            MainWindowMsg::ASC => {
+                self.tasks.set_order(
+                    OrderTasksBy::Name{ascending: true}
+                )
+            },
+            MainWindowMsg::DESC => {
+                self.tasks.set_order(
+                    OrderTasksBy::Name{ascending: false}
+                )
+            }
+        }
+
         true
     }
 }
 
 pub struct MainWindowComponents {
-    tasks_list_1: StoreViewComponent<TasksListViewModel<TaskList1Configuration>, DefaultIdAllocator, DefaultIdAllocator>,
-    tasks_list_2: StoreViewComponent<TasksListViewModel<TaskList2Configuration>, DefaultIdAllocator, DefaultIdAllocator>,
-    tasks_list_3: StoreViewComponent<TasksListViewModel<TaskList3Configuration>, DefaultIdAllocator, DefaultIdAllocator>,
-    tasks_list_4: StoreViewComponent<TasksListViewModel<TaskList4Configuration>, DefaultIdAllocator, DefaultIdAllocator>,
+    tasks_list: StoreViewComponent<TasksListViewModel<Self>>
 }
 
 impl Components<MainWindowViewModel> for MainWindowComponents {
     fn init_components(
-        parent_view_model: &MainWindowViewModel,
+        parent_model: &MainWindowViewModel,
         _parent_sender: Sender<MainWindowMsg>,
     ) -> Self {
         Self {
-            tasks_list_1: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
-            tasks_list_2: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
-            tasks_list_3: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
-            tasks_list_4: StoreViewComponent::new(parent_view_model, parent_view_model.tasks.clone(), StoreSize::Items(parent_view_model.page_size)),
+            tasks_list: StoreViewComponent::new(
+                parent_model,
+                parent_model.tasks.clone(),
+                StoreSize::Items(50)
+            ),
         }
     }
 
-    fn connect_parent(&mut self, _parent_widgets: &MainWindowWidgets) {}
+    fn connect_parent(&mut self, _parent_widgets: &MainWindowWidgets) { }
 }
 
-struct TaskList1Configuration {}
-impl TasksListConfiguration for TaskList1Configuration {
+impl TasksListConfiguration for MainWindowComponents {
     type ParentViewModel = MainWindowViewModel;
-    type Window = PositionTrackingWindow;
-    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
+
+    fn get_tasks(parent_model: &Self::ParentViewModel) -> Tasks {
         parent_model.tasks.clone()
     }
 }
 
-struct TaskList2Configuration {}
-impl TasksListConfiguration for TaskList2Configuration {
-    type ParentViewModel = MainWindowViewModel;
-    type Window = ValueTrackingWindow;
-    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
-        parent_model.tasks.clone()
-    }
-}
 
-struct TaskList3Configuration {}
-impl TasksListConfiguration for TaskList3Configuration {
-    type ParentViewModel = MainWindowViewModel;
-    type Window = KeepOnTop;
-    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
-        parent_model.tasks.clone()
-    }
-}
-
-struct TaskList4Configuration {}
-impl TasksListConfiguration for TaskList4Configuration {
-    type ParentViewModel = MainWindowViewModel;
-    type Window = KeepOnBottom;
-    fn get_tasks(parent_model: &Self::ParentViewModel) -> Rc<RefCell<Tasks>> {
-        parent_model.tasks.clone()
-    }
-}
 
 #[widget(visibility=pub, relm4=relm4)]
 impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
     view!{
         root = gtk::ApplicationWindow {
-            set_child= Some(&gtk::Box) {
-                set_orientation: gtk::Orientation::Horizontal,
-                append = &gtk::Box {
-                    set_orientation: gtk::Orientation::Vertical,
-                    set_margin_all: 12,
-                    append = &gtk::Label {
-                        set_label: "PositionTrackingWindow",
+            set_child: Some(components.tasks_list.root_widget()),
+            set_titlebar= Some(&gtk::HeaderBar){
+                set_title_widget = Some(&gtk::Label::new(Some("todo_3"))){},
+                pack_end = &gtk::Button::from_icon_name(Some("view-sort-ascending")) {
+                    connect_clicked(sender) => move |_| {
+                        send!(sender, MainWindowMsg::ASC)
                     },
-                    append: components.tasks_list_1.root_widget(),
                 },
-                append = &gtk::Box {
-                    set_orientation: gtk::Orientation::Vertical,
-                    set_margin_all: 12,
-                    append = &gtk::Label {
-                        set_label: "ValueTrackingWindow",
+                pack_end = &gtk::Button::from_icon_name(Some("view-sort-descending")) {
+                    connect_clicked(sender) => move |_| {
+                        send!(sender, MainWindowMsg::DESC)
                     },
-                    append: components.tasks_list_2.root_widget(),
                 },
-                append = &gtk::Box {
-                    set_orientation: gtk::Orientation::Vertical,
-                    set_margin_all: 12,
-                    append = &gtk::Label {
-                        set_label: "KeepOnTop",
-                    },
-                    append: components.tasks_list_3.root_widget(),
-                },
-                append = &gtk::Box {
-                    set_orientation: gtk::Orientation::Vertical,
-                    set_margin_all: 12,
-                    append = &gtk::Label {
-                        set_label: "KeepOnBottom",
-                    },
-                    append: components.tasks_list_4.root_widget(),
-                }
             },
-            set_default_size: args!(1100, 600),
+            set_default_size: args!(350, 800),
         }
     }
 }

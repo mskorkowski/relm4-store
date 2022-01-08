@@ -7,37 +7,62 @@
 #[cfg(test)]
 mod tests;
 
+use reexport::log;
+
 use std::slice::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::hash_map::Keys;
 
 use record::Id;
-use record::TemporaryIdAllocator;
 
 use crate::WindowChangeset;
 
 /// Data container for the store view implementation
 /// 
-/// Implementation guarantees:
+/// ## Implementation guarantees:
 /// 
 /// 1. `data` and `order` at the end of any method have the same length
 /// 2. `order` doesn't contain values not present in `data`
-pub(crate) struct DataContainer<Record, Allocator>
+/// 
+/// ## Why `data` and `order`?
+/// 
+/// - Records in the `data` might be fairly big compared to id
+/// - Size of record might not be known at compilation time
+/// - It's impossible to implement `Copy` for the records in generic case
+/// - It's trivial to implement `Copy` for id in most cases and all other cases I'm aware of it's enough to overallocate
+///   id's so they can hold any id which can be set
+/// 
+/// ----
+/// 
+/// ## Overallocate example
+/// 
+/// If you are reading this I assume your db is properly designed and you have thought about it really hard. Personally
+/// I would be thinking at least two times more about that.
+/// 
+/// You can't help it. For ease of thinking let's assume your id is a string of length of up to 50 latin characters.
+/// In such case your id's should use a slice of characters with length of 50 `[char, 50]`. This creates a place for your
+/// id and you can provide a copy for it. It will require from you to decide how to mark unused parts of your id, how to 
+/// align your data in this 50 characters, how to compare them efficiently, etc... It's the best solution I can think of
+/// in such a case.
+/// 
+/// If your id's are much shorter then 50 characters and this wastes memory that's a good indicator that your database design
+/// probably needs rethinking.
+pub(crate) struct DataContainer<Record>
 where
-    Record: 'static + record::Record<Allocator> + std::fmt::Debug,
-    Allocator: TemporaryIdAllocator,
+    Record: 'static + ?Sized + record::Record + std::fmt::Debug,
 {
-    #[allow(clippy::type_complexity)]
-    data: HashMap<Id<Record, Allocator>, Record>,
-    order: Vec<Id<Record, Allocator>>,
+    /// Keeps copy of records in the view
+    data: HashMap<Id<Record>, Record>,
+    /// Keeps ordered vector of records
+    order: Vec<Id<Record>>,
+    /// Maximum number of elements in the data container
     max_size: usize,
 }
 
-impl<Record, Allocator> DataContainer<Record, Allocator>
+impl<Record> DataContainer<Record>
 where
-    Record: 'static + record::Record<Allocator> + std::fmt::Debug,
-    Allocator: TemporaryIdAllocator,
+    Record: 'static + record::Record + std::fmt::Debug,
 {
     pub(crate) fn new(max_size: usize) -> Self {
         let dc = DataContainer{
@@ -63,12 +88,12 @@ where
         assert!(self.max_size >= self.len(), "DataContainer size can't exceed max size");
     }
 
-    pub(crate) fn record_ids(&self) -> Keys<'_, Id<Record, Allocator>, Record> {
+    pub(crate) fn record_ids(&self) -> Keys<'_, Id<Record>, Record> {
         let keys = self.data.keys();
         keys
     }
 
-    pub(crate) fn ordered_record_ids(&self) -> Iter<'_, Id<Record, Allocator>> {
+    pub(crate) fn ordered_record_ids(&self) -> Iter<'_, Id<Record>> {
         self.order.iter()
     }
 
@@ -78,13 +103,17 @@ where
         self.invariants();
     }
 
-    pub(crate) fn reload(&mut self, changeset: &mut WindowChangeset<Record, Allocator>, records: Vec<Record>) {
+    pub(crate) fn reload(&mut self, changeset: &mut WindowChangeset<Record>, records: Vec<Record>) {
         let mut old_order = HashSet::new(); 
         old_order.extend(self.order.clone());
 
+        
         let last_idx = std::cmp::min(self.max_size, records.len());
-
+        
         self.clear();
+
+        log::trace!("[reload] old_order.len(): {}", old_order.len());
+        log::trace!("[reload] last idx: {}", last_idx);
 
         for idx in 0..last_idx {
             let record = records[idx].clone();
@@ -92,11 +121,13 @@ where
             self.order.push(id);
             self.data.insert(id, record);
             if old_order.contains(&id) {
+                log::trace!("[reload] old order contains the record");
                 //old view had this record
                 old_order.remove(&id); //removes id's from old view. It will allow us to remove unneeded data from the view
                 changeset.ids_to_update.insert(id);
             }
             else {
+                log::trace!("[reload] old order doesn't contain the record");
                 changeset.ids_to_add.insert(id);
             }
         }
@@ -110,7 +141,7 @@ where
 
     pub(crate) fn insert_right(
         &mut self, 
-        changeset: &mut WindowChangeset<Record, Allocator>, 
+        changeset: &mut WindowChangeset<Record>, 
         position: usize, 
         records: Vec<Record>
     ) {
@@ -199,7 +230,7 @@ where
     /// - **records** ordered vector holding values to be inserted
     pub(crate) fn insert_left(
         &mut self,
-        changeset: &mut WindowChangeset<Record, Allocator>, 
+        changeset: &mut WindowChangeset<Record>, 
         position: usize, 
         records: Vec<Record>
     ) {
@@ -288,11 +319,11 @@ where
         }
     }
 
-    pub(crate) fn get_order_idx(&self, idx: usize) -> &Id<Record, Allocator>{
+    pub(crate) fn get_order_idx(&self, idx: usize) -> &Id<Record>{
         &self.order[idx]
     }
 
-    pub(crate) fn get_record(&self, id: &Id<Record, Allocator>) -> Option<&Record> {
+    pub(crate) fn get_record(&self, id: &Id<Record>) -> Option<&Record> {
         self.data.get(id)
     }
 
@@ -302,10 +333,9 @@ where
     // }
 }
 
-impl<Record, Allocator> std::fmt::Debug for DataContainer<Record, Allocator>
+impl<Record> std::fmt::Debug for DataContainer<Record>
 where
-    Record: 'static + record::Record<Allocator> + std::fmt::Debug,
-    Allocator: TemporaryIdAllocator,
+    Record: 'static + record::Record + std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut sf = f.debug_struct("DataContainer");
