@@ -72,7 +72,7 @@ where
             receiver.attach(Some(&context), move |msg| {
                 if let Ok(implementation) = handler_implementation.try_borrow_mut() {
                     implementation.inbox(msg);
-                    println!("StoreView is sending redraw message");
+                    log::trace!("StoreView is sending redraw message");
                     handler_redraw_sender.send(RedrawMessages::Redraw).expect("Unexpected failure while sending message via redraw_sender");
                 }
                 else {

@@ -183,12 +183,12 @@ where
         {
             let context = glib::MainContext::default();
             redraw_receiver.attach(Some(&context), move |_| {
-                log::info!("Received redraw message!");
+                log::trace!("Received redraw message!");
                 if let Ok(view_model) = redraw_handler_view_model.try_borrow() {
                     if let Ok(mut container) = redraw_handler_container.try_borrow_mut() {
-                        log::info!("Store view queue size: {}", redraw_handler_view.inbox_queue_size());
+                        log::trace!("Store view queue size: {}", redraw_handler_view.inbox_queue_size());
                         if redraw_handler_view.inbox_queue_size() > 0 { //only redraw if there is an update awaiting
-                            println!("Updating the store view");
+                            log::trace!("Updating the store view");
                             redraw_handler_view.generate(container.container_widget(), redraw_handler_sender.clone());
                         }
                         container.view(&view_model, redraw_handler_sender.clone());

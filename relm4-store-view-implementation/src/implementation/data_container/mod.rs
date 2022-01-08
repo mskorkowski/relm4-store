@@ -7,6 +7,8 @@
 #[cfg(test)]
 mod tests;
 
+use reexport::log;
+
 use std::slice::Iter;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -110,8 +112,8 @@ where
         
         self.clear();
 
-        println!("[reload] old_order.len(): {}", old_order.len());
-        println!("[reload] last idx: {}", last_idx);
+        log::trace!("[reload] old_order.len(): {}", old_order.len());
+        log::trace!("[reload] last idx: {}", last_idx);
 
         for idx in 0..last_idx {
             let record = records[idx].clone();
@@ -119,13 +121,13 @@ where
             self.order.push(id);
             self.data.insert(id, record);
             if old_order.contains(&id) {
-                println!("[reload] old order contains the record");
+                log::trace!("[reload] old order contains the record");
                 //old view had this record
                 old_order.remove(&id); //removes id's from old view. It will allow us to remove unneeded data from the view
                 changeset.ids_to_update.insert(id);
             }
             else {
-                println!("[reload] old order doesn't contain the record");
+                log::trace!("[reload] old order doesn't contain the record");
                 changeset.ids_to_add.insert(id);
             }
         }
