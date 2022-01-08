@@ -112,9 +112,6 @@ where
             StoreViewMsg::Remove(at) => {
                 Configuration::Window::remove(state, &at.to_point())
             },
-            StoreViewMsg::Commit(_) => {
-                WindowTransition::Identity
-            },
             StoreViewMsg::Update(_) => {
                 WindowTransition::Identity
             },

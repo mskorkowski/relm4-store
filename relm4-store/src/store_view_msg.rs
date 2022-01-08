@@ -27,8 +27,6 @@ pub enum StoreViewMsg<T: Record> {
     /// Record was removed from the store at given position
     Remove(Position),
     /// Record was committed to the store
-    Commit(T),
-    /// Record was updates in the store
     Update(Id<T>),
     /// Store should be reloaded fully, dump all data, indexes, etc... and reload the data
     Reload,
