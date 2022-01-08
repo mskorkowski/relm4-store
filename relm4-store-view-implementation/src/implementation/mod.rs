@@ -3,6 +3,7 @@ mod data_store;
 
 use reexport::log;
 use reexport::relm4;
+use store::StoreViewMsg;
 
 
 use std::cell::RefCell;
@@ -19,7 +20,6 @@ use record::Id;
 use store::DataStore;
 use store::StoreViewPrototype;
 use store::Position;
-use store::StoreMsg;
 use store::math::Range;
 use store::window::StoreState;
 use store::window::WindowBehavior;
@@ -49,7 +49,7 @@ where
     view: Rc<RefCell<DataContainer<<Configuration::Store as DataStore>::Record>>>,
     #[allow(clippy::type_complexity)]
     widgets: Rc<RefCell<HashMap<Id<<Configuration::Store as DataStore>::Record>, widgets::Widgets<Configuration::RecordWidgets, <Configuration::View as FactoryView<Configuration::Root>>::Root>>>>,
-    changes: Rc<RefCell<Vec<StoreMsg<<Configuration::Store as DataStore>::Record>>>>,
+    changes: Rc<RefCell<Vec<StoreViewMsg<<Configuration::Store as DataStore>::Record>>>>,
     range: Rc<RefCell<Range>>,
     size: usize,
 }
@@ -78,8 +78,8 @@ where
         let range = Rc::new(RefCell::new(Range::new(0, size)));
 
         let changes = Rc::new(RefCell::new(Vec::new()));
-        
-        changes.borrow_mut().push(StoreMsg::Reload);
+
+        changes.borrow_mut().push(StoreViewMsg::Reload);
 
         Self{
             store,
@@ -94,31 +94,31 @@ where
     /// Adds message to the inbox
     /// 
     /// Messages are handled at the render time in batch
-    pub fn inbox(&self, message: StoreMsg<<Configuration::Store as DataStore>::Record>) {
+    pub fn inbox(&self, message: StoreViewMsg<<Configuration::Store as DataStore>::Record>) {
         self.changes.borrow_mut().push(message);
     }
 
-    fn convert_to_transition(&self, state: &StoreState<'_>, message: &StoreMsg<<Configuration::Store as DataStore>::Record>) -> WindowTransition {
+    fn convert_to_transition(&self, state: &StoreState<'_>, message: &StoreViewMsg<<Configuration::Store as DataStore>::Record>) -> WindowTransition {
         match message {
-            StoreMsg::NewAt(p) => {
+            StoreViewMsg::NewAt(p) => {
                 Configuration::Window::insert(state, &p.to_point())
             },
-            StoreMsg::Move{from, to} => {
+            StoreViewMsg::Move{from, to} => {
                 Configuration::Window::slide(state, &Range::new(from.0, to.0))
             },
-            StoreMsg::Reorder{from, to} => {
+            StoreViewMsg::Reorder{from, to} => {
                 Configuration::Window::slide(state, &Range::new(from.0, to.0))
             },
-            StoreMsg::Remove(at) => {
+            StoreViewMsg::Remove(at) => {
                 Configuration::Window::remove(state, &at.to_point())
             },
-            StoreMsg::Commit(_) => {
+            StoreViewMsg::Commit(_) => {
                 WindowTransition::Identity
             },
-            StoreMsg::Update(_) => {
+            StoreViewMsg::Update(_) => {
                 WindowTransition::Identity
             },
-            StoreMsg::Reload => {
+            StoreViewMsg::Reload => {
                 WindowTransition::Identity
             },
         }
@@ -220,14 +220,14 @@ where
             match transition {
                 WindowTransition::Identity => {
                     match change {
-                        StoreMsg::Update(id) => {
+                        StoreViewMsg::Update(id) => {
                             let mut view = self.view.borrow_mut();
                             if let Some(record) = self.store.get(id) {
                                 changeset.ids_to_update.insert(*id);
                                 view.update(record);
                             }
                         },
-                        StoreMsg::Reload => {
+                        StoreViewMsg::Reload => {
                             log::trace!("Reload");
                             changeset.reload = true;
                             self.reload(&mut changeset);

@@ -1,6 +1,6 @@
 
 use store::Position;
-use store::StoreMsg;
+use store::StoreViewMsg;
 
 use crate::configuration::Step;
 use crate::test_cases::TestRecord;
@@ -64,7 +64,7 @@ impl TestCases {
             steps: vec![
                 Step{
                     data: vec![r1.clone(),],
-                    events: vec![StoreMsg::NewAt(Position(0))]
+                    events: vec![StoreViewMsg::NewAt(Position(0))]
                 }
             ]
         };
@@ -87,7 +87,7 @@ impl TestCases {
             steps: vec![
                 Step{
                     data: vec![r1.clone(), r2.clone()],
-                    events: vec![StoreMsg::NewAt(Position(1))]
+                    events: vec![StoreViewMsg::NewAt(Position(1))]
                 }
             ]
         };
@@ -110,7 +110,7 @@ impl TestCases {
             steps: vec![
                 Step{
                     data: vec![r2.clone(), r1.clone()],
-                    events: vec![StoreMsg::NewAt(Position(0))]
+                    events: vec![StoreViewMsg::NewAt(Position(0))]
                 }
             ]
         };
@@ -134,7 +134,7 @@ impl TestCases {
             steps: vec![
                 Step{
                     data: vec![r1.clone(), r2.clone(), r3.clone()],
-                    events: vec![StoreMsg::NewAt(Position(2))]
+                    events: vec![StoreViewMsg::NewAt(Position(2))]
                 }
             ]
         };
@@ -158,7 +158,7 @@ impl TestCases {
             steps: vec![
                 Step{
                     data: vec![r1.clone(), r3.clone(), r2.clone()],
-                    events: vec![StoreMsg::NewAt(Position(1))]
+                    events: vec![StoreViewMsg::NewAt(Position(1))]
                 }
             ]
         };
@@ -182,7 +182,7 @@ impl TestCases {
             steps: vec![
                 Step{
                     data: vec![r3.clone(), r1.clone(), r2.clone()],
-                    events: vec![StoreMsg::NewAt(Position(0))]
+                    events: vec![StoreViewMsg::NewAt(Position(0))]
                 }
             ]
         };
@@ -202,7 +202,7 @@ impl TestCases {
             steps: vec![
                 Step{
                     data: vec![],
-                    events: vec![StoreMsg::Reload],
+                    events: vec![StoreViewMsg::Reload],
                 }
             ]
         };

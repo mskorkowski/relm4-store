@@ -23,9 +23,9 @@ use relm4_macros::widget;
 
 use store::StoreView;
 use store::DataStore;
+use store::StoreViewMsg;
 use store::StoreViewPrototype;
 use store::Pagination;
-use store::StoreMsg;
 use store_view::View;
 
 /// Messages sent to pagination component
@@ -119,7 +119,7 @@ where
                 self.view.last_page(),
             PaginationMsg::ToPage => (),
             PaginationMsg::Reload =>
-                self.view.send(StoreMsg::Reload),
+                self.view.send(StoreViewMsg::Reload),
             PaginationMsg::StoreUpdated => (),
         }
 

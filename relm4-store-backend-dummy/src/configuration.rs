@@ -1,12 +1,12 @@
 use std::fmt::Debug;
 use std::ops::Index;
 
-use store::StoreMsg;
+use store::StoreViewMsg;
 
 #[derive(Debug, Clone)]
 pub struct Step<Record: record::Record + Clone> {
     pub data: Vec<Record>,
-    pub events: Vec<StoreMsg<Record>>,
+    pub events: Vec<StoreViewMsg<Record>>,
 }
 
 /// Configuration of the dummy data store

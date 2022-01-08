@@ -2,6 +2,7 @@ use reexport::log;
 
 use store::Backend;
 use store::Replies;
+use store::StoreViewMsg;
 
 use std::cmp::min;
 use std::collections::HashMap;
@@ -119,11 +120,11 @@ where
                 {
                     if id.is_new() {
                         let position = self.add(record);
-                        replies.push(StoreMsg::NewAt(position));
+                        replies.push(StoreViewMsg::NewAt(position));
                     }
                     else {
                         self.data.insert(id, record);
-                        replies.push(StoreMsg::Update(id));
+                        replies.push(StoreViewMsg::Update(id));
                     }
                 }
 

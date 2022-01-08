@@ -3,6 +3,7 @@ use store::Backend;
 use store::OrderedBackend;
 use store::Replies;
 use store::Sorter;
+use store::StoreViewMsg;
 
 use std::cmp::min;
 use std::collections::HashMap;
@@ -69,11 +70,11 @@ where
         if id.is_new() {
             record.set_permanent_id(<<Config::Record as Record>::Allocator as TemporaryIdAllocator>::new_id()).expect(&format!("Unable to set the permanent id for record `{:#?}`", record));
             let position = self.insert(record);
-            replies.push(StoreMsg::NewAt(position));
+            replies.push(StoreViewMsg::NewAt(position));
         }
         else if !self.data.contains_key(&id) {
             let position = self.insert(record);
-            replies.push(StoreMsg::NewAt(position));
+            replies.push(StoreViewMsg::NewAt(position));
         }
         else {
             replies.push(self.update(record));
@@ -119,7 +120,7 @@ where
     /// 
     /// Running if you run it for nonexisting record this method is undefined. It might end up with panic or
     /// killing your cat, or flooding, or erupting volcanos, or whatever other disaster you might think of. 
-    fn update(&mut self, record: Config::Record) -> StoreMsg<Config::Record> {
+    fn update(&mut self, record: Config::Record) -> StoreViewMsg<Config::Record> {
         let id = record.get_id();
         // record is already in store => it's safe to unwrap
         let old_record = self.data.insert(id, record.clone()).unwrap();
@@ -151,24 +152,24 @@ where
             Ok(p) => {
                 // if two elements are equal it doesn't matter which one is first
                 if p == old_position {
-                    (p, old_position, StoreMsg::Update(id))
+                    (p, old_position, StoreViewMsg::Update(id))
                 }
                 else if p < old_position {
-                    (old_position, p, StoreMsg::Move{from: Position(old_position), to: Position(p)} )
+                    (old_position, p, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
                 }
                 else {
-                    (p, old_position, StoreMsg::Move{from: Position(old_position), to: Position(p)} )
+                    (p, old_position, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
                 }
             },
             Err(p) => {
                 if p == old_position {
-                    (p, old_position, StoreMsg::Update(id))
+                    (p, old_position, StoreViewMsg::Update(id))
                 }
                 else if p < old_position {
-                    (old_position, p, StoreMsg::Move{from: Position(old_position), to: Position(p)} )
+                    (old_position, p, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
                 }
                 else {
-                    (p, old_position, StoreMsg::Move{from: Position(old_position), to: Position(p)} )
+                    (p, old_position, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
                 }
             }
         };
@@ -268,7 +269,7 @@ where
         }
 
         Replies{
-            replies: vec!(StoreMsg::Reload)
+            replies: vec!(StoreViewMsg::Reload)
         }
     }
 }
