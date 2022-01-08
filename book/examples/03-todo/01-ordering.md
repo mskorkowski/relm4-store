@@ -7,17 +7,14 @@ make sure natural order is stable. Otherwise to make your application useful eit
 end up with application where every time interface is refreshed due to data changes being propagated, your whole ui shuffles. This will be terrible
 from user point of view.
 
-All examples until now were using `InMemoryBackend` for which natural order is defined as order in which records where added.
-
-## Defining custom sorting
-
-TODO
+All examples until now we were using `InMemoryBackend` for which natural order is defined as order in which records where added. In this example we will switch to
+`SortedInMemoryBackend` where we can change natural order of elements.
 
 ## Sorting behavior
 
-There are two ways in which sorting work while you use data store. First is global sorting. You apply it to the store and store rebuilds itself so
+There are two ways in which sorting work while you use data store. First is global sorting or natural order. You apply it to the store and store rebuilds itself so
 natural order becomes the one which you had requested. This will cause update in all store views. Second way is to apply sorting to the store view.
-This will make store view from now to ask the data to be ordered by the given property. In most cases result seen by the view is equivalent of
+This will make store view from now to ask the data to be ordered by the given property. Result seen by the view is equivalent of
 `store view ordering(natural order(data))`.
 
 If you define the ordering what was originally append at the end of the store might become insert somewhere in the middle of the data set. This might
@@ -59,7 +56,7 @@ If you insert data at position `5` or hight ui will not be updated and store vie
 
 This kind of behavior works the best with scrolling. It makes interface feel more static then with `PositionTrackingWindow`. If you have a data generated at
 the time user is seeing them and for some reason you can't use pagination this will be the best choice for you. Your users will scroll to the data they are
-interested into and whatever happens to the data it will 
+interested into and whatever happens to the data the view will try it's best to keep them in scope.
 
 ### `store::window::KeepOnBottom`
 

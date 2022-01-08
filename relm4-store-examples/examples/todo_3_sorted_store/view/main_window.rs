@@ -1,21 +1,18 @@
 use reexport::{gtk, relm4, relm4_macros};
-use gtk::prelude::{ButtonExt, GtkWindowExt};
-use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets, send};
+use gtk::prelude::GtkWindowExt;
+use relm4::{AppUpdate, Components, Model as ViewModel, Sender, Widgets};
 use relm4_macros::widget;
-use store::{OrderedStore, StoreSize, StoreViewComponent};
+use store::{StoreSize, StoreViewComponent};
 
 use crate::{
-    store::{Tasks, OrderTasksBy},
+    store::Tasks,
     view::{task_list::TasksListConfiguration, task_list::TasksListViewModel}
 };
 
-pub enum MainWindowMsg {
-    ASC,
-    DESC,
-}
+pub enum MainWindowMsg {}
 
 pub struct MainWindowViewModel {
-    pub tasks: Tasks,
+    pub tasks: Tasks
 }
 
 impl ViewModel for MainWindowViewModel {
@@ -27,23 +24,10 @@ impl ViewModel for MainWindowViewModel {
 impl AppUpdate for MainWindowViewModel {
     fn update(
         &mut self, 
-        msg: Self::Msg , 
+        _msg: Self::Msg , 
         _components: &Self::Components, 
         _sender: Sender<Self::Msg>
     ) -> bool {
-        match msg  {
-            MainWindowMsg::ASC => {
-                self.tasks.set_order(
-                    OrderTasksBy::Name{ascending: true}
-                )
-            },
-            MainWindowMsg::DESC => {
-                self.tasks.set_order(
-                    OrderTasksBy::Name{ascending: false}
-                )
-            }
-        }
-
         true
     }
 }
@@ -84,19 +68,6 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
     view!{
         root = gtk::ApplicationWindow {
             set_child: Some(components.tasks_list.root_widget()),
-            set_titlebar= Some(&gtk::HeaderBar){
-                set_title_widget = Some(&gtk::Label::new(Some("todo_3"))){},
-                pack_end = &gtk::Button::from_icon_name(Some("view-sort-ascending")) {
-                    connect_clicked(sender) => move |_| {
-                        send!(sender, MainWindowMsg::ASC)
-                    },
-                },
-                pack_end = &gtk::Button::from_icon_name(Some("view-sort-descending")) {
-                    connect_clicked(sender) => move |_| {
-                        send!(sender, MainWindowMsg::DESC)
-                    },
-                },
-            },
             set_default_size: args!(350, 800),
         }
     }

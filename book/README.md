@@ -31,5 +31,4 @@ There are two ways to read this book. First one is to follow the chapters in ord
 
 ### Window behavior
 
-- [Description of window behavior](./03-todo/01-ordering.md)
-- [Implementing your own](./appendix/internals/window-behavior.md)
+- [Description of window behavior](./examples/03-todo/01-ordering.md)
