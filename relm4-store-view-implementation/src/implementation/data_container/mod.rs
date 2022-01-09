@@ -139,6 +139,14 @@ where
         self.invariants();
     }
 
+    /// Inserts records to the right of the position
+    /// 
+    /// If there is more **records** then place to insert the data only fitting data from the beginning of the
+    /// **records** will be inserted
+    /// 
+    /// - **changeset** structure holding information which elements of the view require update
+    /// - **position** index at which first record will be inserted
+    /// - **records** ordered vector holding values to be inserted
     pub(crate) fn insert_right(
         &mut self, 
         changeset: &mut WindowChangeset<Record>, 
@@ -304,13 +312,28 @@ where
         self.invariants();
     }
 
+    /// Removes records to the right of the position
+    /// 
+    /// If there is more **records** then place to insert the data only fitting data from the beginning of the
+    /// **records** will be inserted
+    /// 
+    /// - **changeset** structure holding information which elements of the view require update
+    /// - **position** index at which first record will be removed
+    /// - **records** ordered vector holding values to be inserted
+    // pub(crate) fn remove_right(
+    //     &mut self,
+    //     changeset: &mut WindowChangeset<Record>, 
+    //     position: usize, 
+    //     records: Vec<Record>
+    // ) {
+    //     let starting_len = self.len();
+        
+
+    // }
+
     pub(crate) fn len(&self) -> usize {
         self.order.len()
     }
-
-    // pub(crate) fn is_empty(&self) -> bool {
-    //     self.order.is_empty()
-    // }
 
     pub(crate) fn update(&mut self, r: Record) {
         let id = r.get_id();
@@ -326,11 +349,6 @@ where
     pub(crate) fn get_record(&self, id: &Id<Record>) -> Option<&Record> {
         self.data.get(id)
     }
-
-    // pub(crate) fn get_record_in_order(&self, idx: usize) -> Option<&Record> {
-    //     let id = self.get_order_idx(idx);
-    //     self.get_record(id)
-    // }
 }
 
 impl<Record> std::fmt::Debug for DataContainer<Record>

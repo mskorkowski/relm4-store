@@ -7,6 +7,7 @@ use store::StoreViewMsg;
 
 
 use std::cell::RefCell;
+// use std::cmp::min;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -40,6 +41,13 @@ use super::widgets;
 /// make sure all the updates are propagated to the view.
 /// 
 /// **Warning** This implementation of the store view doesn't work for multisets (aka data repetition).
+/// 
+/// ## Left and right
+/// 
+/// While reading documentation you will find that something is `to the left`, or `moved right`, or something similar. 
+/// 
+/// View by the nature of the screen is ordered. You wouldn't find it funny when two widgets would be drown at the same screen area, would you?
+/// So what the left means is "earlier in the order". Right means opposite of that. Like you would order your widgets as data point on the line.
 pub struct StoreViewImplementation<Configuration>
 where
     Configuration: ?Sized + StoreViewPrototype + 'static,
@@ -198,6 +206,36 @@ where
 
     }
 
+    /// Removes by elements starting at `pos` and if there are data in the store brings segments from the right hand side
+    /// to the view.
+    /// 
+    /// To fill up the released space we need to request `[range.end-by, range.end)` of data from the store and place them
+    /// to the right.
+    // fn remove_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, pos: usize, by: usize) {
+    //     let (range_start, range_end) = {
+    //         let range = self.range.borrow();
+    //         (*range.start(), *range.end())
+    //     };
+
+    //     let mut view = self.view.borrow_mut();
+    //     let position = pos - range_start;
+    //     let range_of_changes_start = if position + by > view.len() {
+    //         pos
+    //     }
+    //     else {
+    //         range_end - by
+    //     };
+
+    //     let range_of_changes = Range::new(
+    //         range_of_changes_start,
+    //         range_end
+    //     );
+    //     let data = self.store.get_range(&range_of_changes);
+
+
+    //     view.remove_right(changeset, position, data);
+    // }
+
     fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore>::Record> {
         let mut changeset = WindowChangeset::default();
 
@@ -242,12 +280,37 @@ where
                 }
                 WindowTransition::RemoveLeft{pos: _, by: _} => {
                     log::error!("RemoveLeft - unimplemented yet");
+                    self.reload(&mut changeset);
                 }
                 WindowTransition::RemoveRight{pos: _, by: _} => {
-                    log::error!("RemoveRight - unimplemented yet");
+                    log::error!("RemoveLeft - unimplemented yet");
+                    self.reload(&mut changeset);
+                    // self.remove_right(&mut changeset, pos, by);
                 }
-                WindowTransition::SlideLeft(_by) => {
-                    log::error!("SlideLeft - unimplemented yet");
+                WindowTransition::SlideLeft(by) => {
+                    log::trace!("SlideLeft");
+
+                    // This implementation is suboptimal
+                    //
+                    // We don't check for data overlap and just do a reload it works but can be made much faster
+                    //TODO: Check for data overlap and update what is necessary
+                    let range = {
+                        let range = self.range.borrow();
+                        range.clone()
+                    };
+
+                    let start = *range.start();
+
+                    let new_range = if start < by {
+                        range.slide(0)
+                    }
+                    else {
+                        range.slide(start - by)
+                    };
+
+                    self.range.replace(new_range);
+
+                    self.reload(&mut changeset);
                 }
                 WindowTransition::SlideRight(by) => {
                     //exceeds is true if we try to slide outside of available data
