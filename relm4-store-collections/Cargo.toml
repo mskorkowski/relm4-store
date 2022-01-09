@@ -9,5 +9,6 @@ categories = ["gui"]
 repository = "https://github.com/mskorkowski/relm4-store"
 documentation = "https://mskorkowski.github.io/relm4-store/beta/book/index.html"
 readme = "README.md"
+license = "Apache-2.0 OR MIT"
 
 [dependencies]
