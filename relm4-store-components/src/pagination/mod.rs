@@ -94,7 +94,7 @@ where
         let current_page: &str = &format!("{}", view.current_page());
 
         Self{
-            view: view.clone(),
+            view,
             page: gtk::EntryBuffer::new(Some(current_page)),
             total_pages,
             tracker: 0,

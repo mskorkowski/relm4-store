@@ -148,8 +148,8 @@ where
 
         let last_idx = std::cmp::min(*range.end(), v.len());
 
-        for idx in *range.start()..last_idx {
-            result.push(v[idx].clone());
+        for record in v.iter().take(last_idx).skip(*range.start()) {
+            result.push(record.clone());
         }
 
         result

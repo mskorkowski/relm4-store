@@ -88,7 +88,7 @@ impl Record for TestRecord {
     type Allocator = DefaultIdAllocator;
 
     fn get_id(&self) -> record::Id<Self> {
-        self.id.clone()
+        self.id
     }
 
     fn set_permanent_id(&mut self, value: Uuid) -> Result<(), record::IdentityError> {

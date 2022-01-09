@@ -18,7 +18,7 @@ impl<Value, Comparator> Drop for TreeImpl<Value, Comparator> {
 
 impl<Value, Comparator> Node<Value, Comparator> {
     fn clean_internal(&mut self, layout: Layout) {
-        while let Some(_) = self.elems.pop_front() {}
+        while self.elems.pop_front().is_some() {}
         while let Some(mut kid) = self.kids.pop_front() {
             unsafe {
                 kid.node.as_mut().clean_internal(layout);

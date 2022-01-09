@@ -133,14 +133,6 @@ impl PartialEq<usize> for Point {
 
 impl PartialOrd<usize> for Point {
     fn partial_cmp(&self, other: &usize) -> Option<Ordering> {
-        if self.0 == *other {
-            Some(Ordering::Equal)
-        }
-        else if self.0 > *other {
-            Some(Ordering::Greater)
-        }
-        else {
-            Some(Ordering::Less)
-        }
+        Some(self.0.cmp(other))
     }
 }

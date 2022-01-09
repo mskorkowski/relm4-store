@@ -31,7 +31,7 @@ where
 {
     id: StoreId<Self>,
     backend: Rc<RefCell<Backend>>,
-
+    #[allow(clippy::type_complexity)]
     connections: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreViewMsg<Backend::Record>>>>>,
     sender: Sender<StoreMsg<Backend::Record>>,
 }
@@ -48,7 +48,7 @@ where
         let id = StoreId::new();
         let shared_backed = Rc::new(RefCell::new(backend));
         let handler_backend = shared_backed.clone();
-
+        #[allow(clippy::type_complexity)]
         let connections: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreViewMsg<Backend::Record>>>>> = Rc::new(RefCell::new(HashMap::new()));
         let handler_connections = connections.clone();
 
@@ -63,7 +63,7 @@ where
                             for msg in &replies.replies {
                                 if let Err(..) = c.send(msg.clone()) {
                                     // in case of broken channel (closed by other side), mark it for removal
-                                    to_remove.push(sid.clone());
+                                    to_remove.push(*sid);
                                     break;
                                 }
                             }
@@ -96,14 +96,14 @@ where
     /// 
     /// Store is unable to check if your message would break the state of the store views. When you use this method
     /// please double check if you are not breaking something.
-    pub fn fire_handlers(&self, messages: &Vec<StoreViewMsg<Backend::Record>>) {
+    pub fn fire_handlers(&self, messages: &[StoreViewMsg<Backend::Record>]) {
         if let Ok(mut connections) = self.connections.try_borrow_mut() { 
             let mut to_remove = Vec::<StoreId<Store<Backend, StoreIdAllocator>>>::new();
             for (sid,c) in connections.iter() {
                 for msg in messages {
                     if let Err(..) = c.send(msg.clone()) {
                         // in case of broken channel (closed by other side), mark it for removal
-                        to_remove.push(sid.clone());
+                        to_remove.push(*sid);
                         break;
                     }
                 }
@@ -134,7 +134,7 @@ where
     type Id=StoreId<Self>;
 
     fn get_id(&self) -> Self::Id {
-        self.id.clone()
+        self.id
     }
 }
 
@@ -206,7 +206,7 @@ where
     /// detach from backend
     fn clone(&self) -> Self {
         Store{
-            id: self.id.clone(),
+            id: self.id,
             backend: self.backend.clone(),
             connections: self.connections.clone(),
             sender: self.sender.clone(),

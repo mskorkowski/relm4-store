@@ -47,6 +47,7 @@ where
 {
     id: StoreId<Self>,
     implementation: Rc<RefCell<StoreViewImplementation<Configuration>>>,
+    #[allow(clippy::type_complexity)]
     connections: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreViewMsg<<Configuration::Store as DataStore>::Record>>>>>,
     sender: Sender<StoreViewMsg<<Configuration::Store as DataStore>::Record>>,
     redraw_sender: Sender<RedrawMessages>,
@@ -283,7 +284,7 @@ where
 {
     fn clone(&self) -> Self {
         Self{
-            id: self.id.clone(),
+            id: self.id,
             implementation: self.implementation.clone(),
             connections: self.connections.clone(),
             sender: self.sender.clone(),

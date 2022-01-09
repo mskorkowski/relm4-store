@@ -42,6 +42,11 @@ where
     pub fn len(&self) -> usize {
         self.steps.len()
     }
+
+    /// Returns true is dummy backend has only initial state
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 

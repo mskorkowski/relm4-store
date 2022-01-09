@@ -68,7 +68,7 @@ where
 
     /// [store::StoreView::get_window()]
     pub fn get_window(&self) -> Range {
-        self.range.borrow().clone()
+        *self.range.borrow()
     }
 
     /// [store::StoreView::get_position()]
