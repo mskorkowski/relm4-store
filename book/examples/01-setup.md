@@ -6,16 +6,16 @@ All examples in this book are using this dependencies in `Cargo.toml`
 
 ```toml
 [dependencies]
-reexport = { package = "relm4-store-reexport" }
-record = { package = "relm4-store-record" }
-store = { package = "relm4-store" }
-store-view = { package = "relm4-store-view-implementation"}
-backend_inmemory = { package = "relm4-store-backend-inmemory" }
-components = { package = "relm4-store-components" }
+reexport = { package = "relm4-store-reexport", version="0.1.0-beta" }
+record = { package = "relm4-store-record", version = "0.1.0-beta" }
+store = { package = "relm4-store", version = "0.1.0-beta" }
+store-view = { package = "relm4-store-view-implementation", version = "0.1.0-beta"}
+backend_inmemory = { package = "relm4-store-backend-inmemory", version = "0.1.0-beta" }
+components = { package = "relm4-store-components", version = "0.1.0-beta" }
 log4rs = "1.0.0"
 ```
 
-**Warning: currently this crate is not being published yet because of being in pre-alpha state. So if you would like to run some code here is your git definition.**
+### Directly from github
 
 ```toml
 [dependencies]
@@ -34,7 +34,7 @@ log4rs = "1.0.0"
 
 ## log4rs
 
-Internally `relm4_store` is using `log` crate. `reexport::log` reexports it. In examples we are setting up `log4rs` to manage the log output. In examples folder you can find any required configuration file in the `etc` directory. For example `log4rs.yaml` for `todo_1` is in `relm4-store-examples/examples/todo1/etc/log4rs.yaml`. At the end of any chapter where all configuration filles will be posted.
+Internally `relm4_store` is using `log` crate. `reexport::log` reexports it. In examples we are setting up `log4rs` to manage the log output. In examples folder you can find any required configuration file in the `etc` directory. For example `log4rs.yaml` for `todo_1` is in `relm4-store-examples/examples/todo1/etc/log4rs.yaml`. At the end of any chapter all configuration filles will be posted.
 
 ```yaml
 {{#include ../../relm4-store-examples/examples/todo_1/etc/log4rs.yaml}}
