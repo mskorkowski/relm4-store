@@ -235,11 +235,29 @@ where
                     replies: vec!()
                 }
             }, 
-            _ => {
-                Replies{
-                    replies: vec!()
+            StoreMsg::Delete(id) => {
+                let mut replies = vec![];
+                if self.data.contains_key(&id) {
+                    self.data.remove(&id);
+                    
+                    let mut order_idx = None;
+
+                    for (idx, oid) in self.order.iter().enumerate() {
+                        if *oid == id {
+                            order_idx = Some(idx);
+                        }
+                    }
+
+                    if let Some(idx) = order_idx {
+                        self.order.remove(idx);
+                        replies.push(StoreViewMsg::Remove(Position(idx)));
+                    }
                 }
-            }
+
+                Replies{
+                    replies,
+                }
+            },
         }
     }
 }

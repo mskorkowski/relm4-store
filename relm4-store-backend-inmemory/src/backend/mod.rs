@@ -55,8 +55,6 @@ where
         backend
     }
 
-    
-
     fn add(&mut self, record: Configuration::Record) -> Position {
         let id = record.get_id();
         {
@@ -129,11 +127,28 @@ where
                 }
 
             },
+            StoreMsg::Delete(id) => {
+                if self.data.contains_key(&id) {
+                    self.data.remove(&id);
+                    
+                    let mut order_idx = None;
+
+                    for (idx, oid) in self.order.iter().enumerate() {
+                        if *oid == id {
+                            order_idx = Some(idx);
+                        }
+                    }
+
+                    if let Some(idx) = order_idx {
+                        self.order.remove(idx);
+                        replies.push(StoreViewMsg::Remove(Position(idx)));
+                    }
+
+                }
+            },
             StoreMsg::Reload => {
                 //it's in memory store so nothing to do...
             }, 
-            _ => {
-            }
         };
 
         Replies{

@@ -22,3 +22,5 @@
     - [Ordering](./examples/03-todo/01-ordering.md)
     - [Custom sorting](./examples/03-todo/02-custom_sorting.md)
     - [View](./examples/03-todo/03-view.md)
+  - [Simple todo 4](./examples/04-todo/README.md)
+    - [View](./examples/04-todo/01-view.md)
