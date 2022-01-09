@@ -2,7 +2,7 @@
 name = "relm4-store-collections"
 publish = false
 description = "Custom collections required by the relm4-store"
-version = "0.1.0-beta"
+version = "0.1.0-beta.1"
 edition = "2021"
 keywords = ["gui", "gtk", "gtk4", "relm4"]
 categories = ["gui"]

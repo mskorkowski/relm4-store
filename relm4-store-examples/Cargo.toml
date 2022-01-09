@@ -1,7 +1,7 @@
 [package]
 name = "relm4-store-examples"
 description = "examples for relm4-store"
-version = "0.1.0-beta"
+version = "0.1.0-beta.1"
 edition = "2021"
 keywords = ["gui", "gtk", "gtk4", "relm4"]
 categories = ["gui"]
@@ -10,10 +10,10 @@ documentation = "https://mskorkowski.github.io/relm4-store/beta/book/index.html"
 readme = "README.md"
 
 [dependencies]
-reexport = { path = "../relm4-store-reexport", package = "relm4-store-reexport" }
-record = { path = "../relm4-store-record", package = "relm4-store-record" }
-store = { path = "../relm4-store", package = "relm4-store" }
-store-view = { path = "../relm4-store-view-implementation", package = "relm4-store-view-implementation"}
-backend_inmemory = { path = "../relm4-store-backend-inmemory", package = "relm4-store-backend-inmemory" }
-components = { path = "../relm4-store-components", package = "relm4-store-components" }
+reexport = { path = "../relm4-store-reexport", package = "relm4-store-reexport", version="0.1.0-beta.1" }
+record = { path = "../relm4-store-record", package = "relm4-store-record", version="0.1.0-beta.1" }
+store = { path = "../relm4-store", package = "relm4-store", version="0.1.0-beta.1" }
+store-view = { path = "../relm4-store-view-implementation", package = "relm4-store-view-implementation", version="0.1.0-beta.1"}
+backend_inmemory = { path = "../relm4-store-backend-inmemory", package = "relm4-store-backend-inmemory", version="0.1.0-beta.1" }
+components = { path = "../relm4-store-components", package = "relm4-store-components", version="0.1.0-beta.1" }
 log4rs = "1.0.0"

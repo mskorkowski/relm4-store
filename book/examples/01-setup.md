@@ -6,12 +6,12 @@ All examples in this book are using this dependencies in `Cargo.toml`
 
 ```toml
 [dependencies]
-reexport = { package = "relm4-store-reexport", version="0.1.0-beta" }
-record = { package = "relm4-store-record", version = "0.1.0-beta" }
-store = { package = "relm4-store", version = "0.1.0-beta" }
-store-view = { package = "relm4-store-view-implementation", version = "0.1.0-beta"}
-backend_inmemory = { package = "relm4-store-backend-inmemory", version = "0.1.0-beta" }
-components = { package = "relm4-store-components", version = "0.1.0-beta" }
+reexport = { package = "relm4-store-reexport", version="0.1.0-beta.1" }
+record = { package = "relm4-store-record", version = "0.1.0-beta.1" }
+store = { package = "relm4-store", version = "0.1.0-beta.1" }
+store-view = { package = "relm4-store-view-implementation", version = "0.1.0-beta.1"}
+backend_inmemory = { package = "relm4-store-backend-inmemory", version = "0.1.0-beta.1" }
+components = { package = "relm4-store-components", version = "0.1.0-beta.1" }
 log4rs = "1.0.0"
 ```
 
