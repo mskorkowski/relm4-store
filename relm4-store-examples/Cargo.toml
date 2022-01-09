@@ -1,5 +1,6 @@
 [package]
 name = "relm4-store-examples"
+publish = false
 description = "examples for relm4-store"
 version = "0.1.0-beta.1"
 edition = "2021"
