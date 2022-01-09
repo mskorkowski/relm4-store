@@ -57,6 +57,7 @@ where
     view: Rc<RefCell<DataContainer<<Configuration::Store as DataStore>::Record>>>,
     #[allow(clippy::type_complexity)]
     widgets: Rc<RefCell<HashMap<Id<<Configuration::Store as DataStore>::Record>, widgets::Widgets<Configuration::RecordWidgets, <Configuration::View as FactoryView<Configuration::Root>>::Root>>>>,
+    #[allow(clippy::type_complexity)]
     changes: Rc<RefCell<Vec<StoreViewMsg<<Configuration::Store as DataStore>::Record>>>>,
     range: Rc<RefCell<Range>>,
     size: usize,
@@ -130,7 +131,7 @@ where
     }
 
     fn reload(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>) {
-        let range_of_changes = self.range.borrow().clone();
+        let range_of_changes = *self.range.borrow();
         log::trace!("Range of changes {:?}", range_of_changes);
         let new_records: Vec<<Configuration::Store as DataStore>::Record> = self.store.get_range(&range_of_changes);
         log::trace!("New records length: {}", new_records.len());
@@ -295,8 +296,7 @@ where
                     // We don't check for data overlap and just do a reload it works but can be made much faster
                     //TODO: Check for data overlap and update what is necessary
                     let range = {
-                        let range = self.range.borrow();
-                        range.clone()
+                        *self.range.borrow()
                     };
 
                     let start = *range.start();
@@ -395,7 +395,7 @@ where
             let iter = view_order.ordered_record_ids();
             let mut v = Vec::with_capacity(view_order.len());
             for id in iter { //manual copy cos of the lifetime
-                v.push(id.clone());
+                v.push(*id);
             }
 
             v
@@ -444,7 +444,7 @@ where
                         let prev_idx = (position - 1 - *range.start()).0;
                         log::info!("Index of previous elements: {}", prev_idx);
                         let prev_id = view_order.get_order_idx((position - 1 - *range.start()).0);
-                        let prev = widgets.get(&prev_id).unwrap();
+                        let prev = widgets.get(prev_id).unwrap();
                         view.insert_after(widgets_root, &prev.root)
                     };
     
@@ -463,31 +463,30 @@ where
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
                         <Configuration as StoreViewPrototype>::update_record(record, position, &widget.widgets);
-                        if old_order_len > position.0 {
-                            if old_order[position.0] != *id {
-                                // things got reordered so we need to remove widget from old place and attach it to the new one
-                                if let Some(widget) = widgets.remove(&id) {
-                                    view.remove(&widget.root);
-                                    let root = if position.0 == *range.start() {
-                                        view.push_front(Configuration::get_root(&widget.widgets))
-                                    }
-                                    else {
-                                        let prev_idx = (position - 1 - *range.start()).0;
-                                        log::info!("Index of previous elements: {}", prev_idx);
-                                        let prev_id = view_order.get_order_idx((position - 1 - *range.start()).0);
-                                        let prev = widgets.get(&prev_id).unwrap();
-                                        view.insert_after(Configuration::get_root(&widget.widgets), &prev.root)
-                                    };
-
-                                    widgets.insert(
-                                        *id,
-                                        widgets::Widgets{
-                                            widgets: widget.widgets,
-                                            root,
-                                        }
-                                    );
+                        if old_order_len > position.0 && old_order[position.0] != *id {
+                            // things got reordered so we need to remove widget from old place and attach it to the new one
+                            if let Some(widget) = widgets.remove(id) {
+                                view.remove(&widget.root);
+                                let root = if position.0 == *range.start() {
+                                    view.push_front(Configuration::get_root(&widget.widgets))
                                 }
+                                else {
+                                    let prev_idx = (position - 1 - *range.start()).0;
+                                    log::info!("Index of previous elements: {}", prev_idx);
+                                    let prev_id = view_order.get_order_idx((position - 1 - *range.start()).0);
+                                    let prev = widgets.get(prev_id).unwrap();
+                                    view.insert_after(Configuration::get_root(&widget.widgets), &prev.root)
+                                };
+
+                                widgets.insert(
+                                    *id,
+                                    widgets::Widgets{
+                                        widgets: widget.widgets,
+                                        root,
+                                    }
+                                );
                             }
+                            
                         }
                     }
                 }

@@ -20,7 +20,7 @@ impl TreeConfiguration {
             order / 2
         }
         else {
-            order + 1 / 2
+            (order + 1) / 2
         };
 
         Self{

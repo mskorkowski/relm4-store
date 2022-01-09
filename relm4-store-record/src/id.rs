@@ -212,6 +212,6 @@ where
     T: 'static + ?Sized + Record,
 {
     fn from_iter<II: IntoIterator<Item = &'static Id<T>>>(iter: II) -> Self {
-        iter.into_iter().map(|v| v.clone()).collect()
+        iter.into_iter().copied().collect()
     }
 }

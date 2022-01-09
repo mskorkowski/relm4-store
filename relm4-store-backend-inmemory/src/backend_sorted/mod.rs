@@ -5,6 +5,7 @@ use store::Replies;
 use store::Sorter;
 use store::StoreViewMsg;
 
+use std::cmp::Ordering;
 use std::cmp::min;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -68,7 +69,7 @@ where
         let mut replies = vec!();
         let id = record.get_id();
         if id.is_new() {
-            record.set_permanent_id(<<Config::Record as Record>::Allocator as TemporaryIdAllocator>::new_id()).expect(&format!("Unable to set the permanent id for record `{:#?}`", record));
+            record.set_permanent_id(<<Config::Record as Record>::Allocator as TemporaryIdAllocator>::new_id()).unwrap_or_else(|_| panic!("Unable to set the permanent id for record `{:#?}`", record));
             let position = self.insert(record);
             replies.push(StoreViewMsg::NewAt(position));
         }
@@ -94,14 +95,14 @@ where
 
         let position = {
             let ordering = self.ordering;
-            let r = record.clone();
+            let r = record;
             self.order.binary_search_by(|other_id| {
                 let other = self.data.get(other_id).unwrap();
                 ordering.cmp(&r, other).reverse()
             })
         };
 
-        let pos = match position {
+        match position {
             // if two elements are equal it doesn't matter which one is first
             Ok(p) => {
                 self.order.insert(p, id);
@@ -111,9 +112,7 @@ where
                 self.order.insert(p, id);
                 Position(p)
             }
-        };
-
-        pos
+        }
     }
 
     /// Calls to this method are allowed only if record is already in the store
@@ -141,7 +140,7 @@ where
 
         let position = {
             let ordering = self.ordering;
-            let r = record.clone();
+            let r = record;
             self.order.binary_search_by(|other_id| {
                 let other = self.data.get(other_id).unwrap();
                 ordering.cmp(&r, other).reverse()
@@ -150,27 +149,37 @@ where
 
         let (to, mut from, p) = match position {
             Ok(p) => {
-                // if two elements are equal it doesn't matter which one is first
-                if p == old_position {
-                    (p, old_position, StoreViewMsg::Update(id))
+                match p.cmp(&old_position) {
+                    Ordering::Equal => (p, old_position, StoreViewMsg::Update(id)),
+                    Ordering::Greater => (p, old_position, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} ),
+                    Ordering::Less => (old_position, p, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} ),
                 }
-                else if p < old_position {
-                    (old_position, p, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
-                }
-                else {
-                    (p, old_position, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
-                }
+                // // if two elements are equal it doesn't matter which one is first
+                // if p == old_position {
+                //     (p, old_position, StoreViewMsg::Update(id))
+                // }
+                // else if p < old_position {
+                //     (old_position, p, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
+                // }
+                // else {
+                //     (p, old_position, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
+                // }
             },
             Err(p) => {
-                if p == old_position {
-                    (p, old_position, StoreViewMsg::Update(id))
+                match p.cmp(&old_position) {
+                    Ordering::Equal => (p, old_position, StoreViewMsg::Update(id)),
+                    Ordering::Greater => (p, old_position, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} ),
+                    Ordering::Less => (old_position, p, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} ),
                 }
-                else if p < old_position {
-                    (old_position, p, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
-                }
-                else {
-                    (p, old_position, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
-                }
+                // if p == old_position {
+                //     (p, old_position, StoreViewMsg::Update(id))
+                // }
+                // else if p < old_position {
+                //     (old_position, p, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
+                // }
+                // else {
+                //     (p, old_position, StoreViewMsg::Move{from: Position(old_position), to: Position(p)} )
+                // }
             }
         };
 
@@ -219,8 +228,7 @@ where
     }
 
     fn get(&self, id: &Id<Configuration::Record>) -> Option<Configuration::Record> {
-        self.data.get(id)
-            .map(|r| r.clone())
+        self.data.get(id).cloned()
     }
 
     fn inbox(&mut self, msg: StoreMsg<Configuration::Record>) -> Replies<Configuration::Record> {
@@ -289,5 +297,14 @@ where
         Replies{
             replies: vec!(StoreViewMsg::Reload)
         }
+    }
+}
+
+impl<Config> Default for SortedInMemoryBackend<Config> 
+where 
+    Config: SortedInMemoryBackendConfiguration + 'static,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }

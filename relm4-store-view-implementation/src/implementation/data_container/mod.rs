@@ -89,8 +89,7 @@ where
     }
 
     pub(crate) fn record_ids(&self) -> Keys<'_, Id<Record>, Record> {
-        let keys = self.data.keys();
-        keys
+        self.data.keys()
     }
 
     pub(crate) fn ordered_record_ids(&self) -> Iter<'_, Id<Record>> {
@@ -115,11 +114,10 @@ where
         log::trace!("[reload] old_order.len(): {}", old_order.len());
         log::trace!("[reload] last idx: {}", last_idx);
 
-        for idx in 0..last_idx {
-            let record = records[idx].clone();
+        for record in records.iter().take(last_idx) {
             let id = record.get_id();
             self.order.push(id);
-            self.data.insert(id, record);
+            self.data.insert(id, record.clone());
             if old_order.contains(&id) {
                 log::trace!("[reload] old order contains the record");
                 //old view had this record
@@ -175,7 +173,7 @@ where
         
         // Mark data for removal by adding them to changeset and remove them from view_data
         for idx in remove_start_idx..remove_end_idx {
-            let id_to_remove = self.order[idx].clone();
+            let id_to_remove = self.order[idx];
             
             // if we test whole implementation to hold invariants in all cases this can be simplify
             // to `self.data.remove(&id_to_remove)`
@@ -209,8 +207,7 @@ where
         }
 
         // fill up 
-        for idx in 0..records_len {
-            let record = &records[idx];
+        for (idx, record) in records.iter().enumerate().take(records_len) {
             // add new data so we can later generate widgets for them
             let view_insertion_point = idx+position;
             changeset.ids_to_add.insert(record.get_id());
@@ -361,7 +358,7 @@ where
         let mut data = vec![];
 
         for (idx, id) in self.order.iter().enumerate() {
-            if let Some(r) = self.data.get(&id) {
+            if let Some(r) = self.data.get(id) {
                 data.push(
                     format!("{} => {:?}", idx, r)
                 )
@@ -378,7 +375,7 @@ where
         let mut out_of_order = vec![];
 
         for (id, record) in &self.data {
-            if !self.order.contains(&id) {
+            if !self.order.contains(id) {
                 out_of_order.push(record);
             }
         }

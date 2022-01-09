@@ -58,7 +58,7 @@ where
     fn add(&mut self, record: Configuration::Record) -> Position {
         let id = record.get_id();
         {
-            self.data.insert(id, record.clone());
+            self.data.insert(id, record);
             self.order.push_back(id);
 
             Position(self.order.len() -1)
@@ -103,8 +103,7 @@ where
 
     fn get(&self, id: &Id<Configuration::Record>) -> Option<Configuration::Record> {
         let data = &self.data;
-        data.get(id)
-            .map(|r| r.clone())
+        data.get(id).cloned()
     }
 
     fn inbox(&mut self, msg: StoreMsg<Configuration::Record>) -> Replies<Configuration::Record> {
@@ -154,5 +153,14 @@ where
         Replies{
             replies
         }
+    }
+}
+
+impl<Configuration> Default for InMemoryBackend<Configuration> 
+where 
+    Configuration: InMemoryBackendConfiguration + 'static,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }

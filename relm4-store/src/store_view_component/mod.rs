@@ -131,7 +131,7 @@ where
         let (redraw_sender, redraw_receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
         let handler_redraw_sender = redraw_sender.clone();
 
-        let view = Configuration::init_store_view(store.clone(), size, redraw_sender.clone());
+        let view = Configuration::init_store_view(store, size, redraw_sender.clone());
         let redraw_handler_view = view.clone();
 
         let view_model = Configuration::init_view_model(parent_view_model, &view);
