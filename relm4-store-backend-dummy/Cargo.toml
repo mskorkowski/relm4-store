@@ -1,7 +1,13 @@
 [package]
 name = "relm4-store-backend-dummy"
-version = "0.1.0"
+description = "Dummy backend for relm4-store used for writing tests"
+version = "0.1.0-beta"
 edition = "2021"
+keywords = ["gui", "gtk", "gtk4", "relm4"]
+categories = ["gui"]
+repository = "https://github.com/mskorkowski/relm4-store"
+documentation = "https://mskorkowski.github.io/relm4-store/beta/book/index.html"
+readme = "README.md"
 
 [dependencies]
 reexport = { path = "../relm4-store-reexport", package = "relm4-store-reexport" }
@@ -9,4 +15,4 @@ record = { path = "../relm4-store-record", package = "relm4-store-record" }
 store = { path = "../relm4-store", package = "relm4-store" }
 
 [dev-dependencies]
-gtk-test="0.7.0"
+gtk-test="0.14.0"
