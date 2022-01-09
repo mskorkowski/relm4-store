@@ -1,17 +1,19 @@
 [package]
 name="relm4-store-reexport"
-version= "0.1.0"
+description = "Holds all dependencies for relm4-store in single place"
+version = "0.1.0-beta"
 edition = "2021"
-description = "Place holding all dependencies for relm4-store in single place"
-
-keywords = ["model", "data"]
+keywords = ["gui", "gtk", "gtk4", "relm4"]
+categories = ["gui"]
+repository = "https://github.com/mskorkowski/relm4-store"
+documentation = "https://mskorkowski.github.io/relm4-store/beta/book/index.html"
 readme = "README.md"
 
 [dependencies]
 log = "0.4.14"
-relm4 = "0.4.0-beta.2"
-relm4-macros = "0.4.0-beta.2"
-relm4-components = "0.4.0-beta.2"
+relm4 = "0.4.0-beta.3"
+relm4-macros = "0.4.0-beta.3"
+relm4-components = "0.4.0-beta.3"
 # relm4 = { package = "relm4", path="../../relm4" }
 # relm4-macros = {package = "relm4-macros", path="../../relm4/relm4-macros"}
 # relm4-components = {package = "relm4-components", path="../../relm4/relm4-components"}

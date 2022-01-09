@@ -1,7 +1,7 @@
 //! Test cases with initial state holding 2 elements
 
 use store::Position;
-use store::StoreMsg;
+use store::StoreViewMsg;
 
 use crate::configuration::Step;
 use crate::test_cases::TestRecord;
@@ -44,7 +44,7 @@ impl TestCases {
 
             for insertion_point in insertion_points {
                 let r = TestRecord::since(&format!("Record inserted at pos `{}` in step `{}`", insertion_point, step), step);
-                let event = StoreMsg::NewAt(Position(*insertion_point));
+                let event = StoreViewMsg::NewAt(Position(*insertion_point));
 
                 events.push(event);
                 data.push(r.clone());

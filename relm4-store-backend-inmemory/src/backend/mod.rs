@@ -2,6 +2,7 @@ use reexport::log;
 
 use store::Backend;
 use store::Replies;
+use store::StoreViewMsg;
 
 use std::cmp::min;
 use std::collections::HashMap;
@@ -53,8 +54,6 @@ where
 
         backend
     }
-
-    
 
     fn add(&mut self, record: Configuration::Record) -> Position {
         let id = record.get_id();
@@ -119,20 +118,37 @@ where
                 {
                     if id.is_new() {
                         let position = self.add(record);
-                        replies.push(StoreMsg::NewAt(position));
+                        replies.push(StoreViewMsg::NewAt(position));
                     }
                     else {
                         self.data.insert(id, record);
-                        replies.push(StoreMsg::Update(id));
+                        replies.push(StoreViewMsg::Update(id));
                     }
                 }
 
             },
+            StoreMsg::Delete(id) => {
+                if self.data.contains_key(&id) {
+                    self.data.remove(&id);
+                    
+                    let mut order_idx = None;
+
+                    for (idx, oid) in self.order.iter().enumerate() {
+                        if *oid == id {
+                            order_idx = Some(idx);
+                        }
+                    }
+
+                    if let Some(idx) = order_idx {
+                        self.order.remove(idx);
+                        replies.push(StoreViewMsg::Remove(Position(idx)));
+                    }
+
+                }
+            },
             StoreMsg::Reload => {
                 //it's in memory store so nothing to do...
             }, 
-            _ => {
-            }
         };
 
         Replies{

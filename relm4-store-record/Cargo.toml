@@ -1,10 +1,12 @@
 [package]
 name="relm4-store-record"
-version= "0.1.0"
-edition = "2021"
 description = "Library for buildiong application model."
-
-keywords = ["model", "data"]
+version = "0.1.0-beta"
+edition = "2021"
+keywords = ["gui", "gtk", "gtk4", "relm4"]
+categories = ["gui"]
+repository = "https://github.com/mskorkowski/relm4-store"
+documentation = "https://mskorkowski.github.io/relm4-store/beta/book/index.html"
 readme = "README.md"
 
 [dependencies]

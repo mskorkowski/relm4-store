@@ -17,6 +17,7 @@ use reexport::relm4::factory::Factory;
 use reexport::relm4::factory::FactoryPrototype;
 use reexport::relm4::factory::FactoryView;
 use store::StoreView;
+use store::StoreViewMsg;
 use store::math::Range;
 
 use std::cell::RefCell;
@@ -33,7 +34,6 @@ use reexport::relm4::Sender;
 use reexport::relm4::Model as ViewModel;
 use store::DataStore;
 use store::StoreId;
-use store::StoreMsg;
 use store::StoreSize;
 use store::StoreViewPrototype;
 use store::redraw_messages::RedrawMessages;
@@ -47,8 +47,8 @@ where
 {
     id: StoreId<Self>,
     implementation: Rc<RefCell<StoreViewImplementation<Configuration>>>,
-    connections: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreMsg<<Configuration::Store as DataStore>::Record>>>>>,
-    sender: Sender<StoreMsg<<Configuration::Store as DataStore>::Record>>,
+    connections: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreViewMsg<<Configuration::Store as DataStore>::Record>>>>>,
+    sender: Sender<StoreViewMsg<<Configuration::Store as DataStore>::Record>>,
     redraw_sender: Sender<RedrawMessages>,
 }
 
@@ -112,6 +112,7 @@ where
 {
     type Record = <Configuration::Store as DataStore>::Record;
     type Allocator = <Configuration::Store as DataStore>::Allocator;
+    type Messages = StoreViewMsg<Self::Record>;
 
     fn len(&self) -> usize {
         self.implementation.borrow().len()
@@ -129,7 +130,7 @@ where
         self.implementation.borrow().get_range(range)
     }
 
-    fn listen(&self, store_id: StoreId<Self>, sender: Sender<store::StoreMsg<Self::Record>>) {
+    fn listen(&self, store_id: StoreId<Self>, sender: Sender<StoreViewMsg<Self::Record>>) {
         self.connections.borrow_mut().insert(store_id, sender);
     }
 
@@ -137,11 +138,11 @@ where
         self.connections.borrow_mut().remove(&store_id);
     }
 
-    fn sender(&self) -> Sender<store::StoreMsg<Self::Record>> {
+    fn sender(&self) -> Sender<store::StoreViewMsg<Self::Record>> {
         self.sender.clone()
     }
 
-    fn send(&self, msg: store::StoreMsg<Self::Record>) {
+    fn send(&self, msg: store::StoreViewMsg<Self::Record>) {
         self.sender.send(msg).expect("Unable to send message. ???")
     }
 }
@@ -162,7 +163,7 @@ where
 
     fn set_window(&self, range: store::math::Range) {
         self.implementation.borrow().set_window(range);
-        self.send(StoreMsg::Reload);
+        self.send(StoreViewMsg::Reload);
     }
 
     fn get_view_data(&self) -> Vec<store::RecordWithLocation<Self::Record>> {

@@ -29,8 +29,9 @@ pub mod redraw_messages;
 mod store_id;
 mod store_msg;
 mod store_size;
-mod store;
 mod store_view_component;
+mod store_view_msg;
+mod store;
 pub mod window;
 
 use reexport::relm4;
@@ -59,6 +60,7 @@ pub use store_msg::StoreMsg;
 pub use store_size::StoreSize;
 pub use store_view_component::StoreViewComponent;
 pub use store_view_component::StoreViewInterfaceError;
+pub use store_view_msg::StoreViewMsg;
 
 /// DataStore is a trait describing collections specialized in housekeeping business model data
 /// 
@@ -131,6 +133,9 @@ pub trait DataStore: Identifiable<Self, <Self::Allocator as TemporaryIdAllocator
     /// Type of records kept in the data store
     type Record: Record + Debug + Clone + 'static;
 
+    /// Kind of messages accepted by the data store
+    type Messages;
+
     /// Id allocator for this data store
     /// 
     /// ## TL;DR;
@@ -178,7 +183,7 @@ pub trait DataStore: Identifiable<Self, <Self::Allocator as TemporaryIdAllocator
     /// Attaches sender to the store
     /// 
     /// Sender is used to send a message whenever there are changes in the store
-    fn listen(&self, id: StoreId<Self>, sender: Sender<StoreMsg<Self::Record>>);
+    fn listen(&self, id: StoreId<Self>, sender: Sender<StoreViewMsg<Self::Record>>);
 
     /// Removes handler from the store
     /// 
@@ -186,10 +191,10 @@ pub trait DataStore: Identifiable<Self, <Self::Allocator as TemporaryIdAllocator
     fn unlisten(&self, handler_ref: StoreId<Self>);
 
     /// Returns sender for this store
-    fn sender(&self) -> Sender<StoreMsg<Self::Record>>;
+    fn sender(&self) -> Sender<Self::Messages>;
 
     /// Sends a message to this store
-    fn send(&self, msg: StoreMsg<Self::Record>);
+    fn send(&self, msg: Self::Messages);
 }
 
 /// StoreView allows you to access part of the data in the data store
@@ -258,7 +263,7 @@ pub struct Replies<Record>
 where Record: record::Record + Debug + Clone + 'static
 {
     /// List of messages to be sent to the store views
-    pub replies: Vec<StoreMsg<Record>>,
+    pub replies: Vec<StoreViewMsg<Record>>,
 }
 
 /// This trait should be implemented for backends of the data stores

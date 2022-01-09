@@ -11,7 +11,7 @@ Stores introduces strict separation of business model and view. So in this book 
 Record has stable identifier. This provides a few benefits like:
 
 1. You know when you talk about same instance even if they are not binary equal.
-2. Data becomes data and not application state.
+2. Data becomes data and not the application state.
 
 Both points are interrelated but slightly nuanced. Let's start from second point.
 

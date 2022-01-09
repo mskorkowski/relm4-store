@@ -20,6 +20,7 @@ use crate::OrderedStore;
 use crate::Replies;
 use crate::StoreId;
 use crate::StoreMsg;
+use crate::StoreViewMsg;
 
 /// Generic implementation of the DataStore
 #[derive(Debug)]
@@ -31,7 +32,7 @@ where
     id: StoreId<Self>,
     backend: Rc<RefCell<Backend>>,
 
-    connections: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreMsg<Backend::Record>>>>>,
+    connections: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreViewMsg<Backend::Record>>>>>,
     sender: Sender<StoreMsg<Backend::Record>>,
 }
 
@@ -48,7 +49,7 @@ where
         let shared_backed = Rc::new(RefCell::new(backend));
         let handler_backend = shared_backed.clone();
 
-        let connections: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreMsg<Backend::Record>>>>> = Rc::new(RefCell::new(HashMap::new()));
+        let connections: Rc<RefCell<HashMap<StoreId<Self>, Sender<StoreViewMsg<Backend::Record>>>>> = Rc::new(RefCell::new(HashMap::new()));
         let handler_connections = connections.clone();
 
         {
@@ -95,7 +96,7 @@ where
     /// 
     /// Store is unable to check if your message would break the state of the store views. When you use this method
     /// please double check if you are not breaking something.
-    pub fn fire_handlers(&self, messages: &Vec<StoreMsg<Backend::Record>>) {
+    pub fn fire_handlers(&self, messages: &Vec<StoreViewMsg<Backend::Record>>) {
         if let Ok(mut connections) = self.connections.try_borrow_mut() { 
             let mut to_remove = Vec::<StoreId<Store<Backend, StoreIdAllocator>>>::new();
             for (sid,c) in connections.iter() {
@@ -144,6 +145,7 @@ where
 {
     type Allocator = StoreIdAllocator;
     type Record = Backend::Record;
+    type Messages = StoreMsg<Self::Record>;
 
     fn len(&self) -> usize {
         let be: &RefCell<Backend> = self.backend.borrow();
@@ -165,7 +167,7 @@ where
         be.borrow().get_range(range)
     }
 
-    fn listen(&self, id: StoreId<Self>, sender: reexport::relm4::Sender<StoreMsg<Self::Record>>) {
+    fn listen(&self, id: StoreId<Self>, sender: reexport::relm4::Sender<StoreViewMsg<Self::Record>>) {
         self.connections.borrow_mut().insert(id, sender);
     }
 

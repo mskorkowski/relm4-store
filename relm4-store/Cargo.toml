@@ -1,15 +1,13 @@
 [package]
 name = "relm4-store"
-version = "0.1.0"
+description = "Data store for relm4"
+version = "0.1.0-beta"
 edition = "2021"
-
-[profile.dev]
-debug = true
-panic = "abort"
-
-[profile.release]
-debug = true
-panic = "abort"
+keywords = ["gui", "gtk", "gtk4", "relm4"]
+categories = ["gui"]
+repository = "https://github.com/mskorkowski/relm4-store"
+documentation = "https://mskorkowski.github.io/relm4-store/beta/book/index.html"
+readme = "README.md"
 
 [dependencies]
 reexport = { path = "../relm4-store-reexport", package = "relm4-store-reexport" }
