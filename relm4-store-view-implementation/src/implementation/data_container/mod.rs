@@ -328,12 +328,9 @@ where
         let records_len = records.len();
 
         let end_of_move = if starting_len == 0 || position >= starting_len {
-            println!("Nothing to move!");
             starting_len
         }
         else {
-            println!("Something to move!");
-
             for idx in position..position+by {
                 let id = self.order[idx];
                 self.data.remove(&id);
@@ -347,8 +344,6 @@ where
                 0
             };
 
-            println!("to_remove: {}", to_remove);
-
             let first_move_idx = if position + by > starting_len {
                 // there is not enough records to be removed
                 starting_len
@@ -357,13 +352,7 @@ where
                 position + by
             };
 
-            println!("first_move_idx: {}", first_move_idx);
-
-            let last_idx = starting_len - 1;
             let max_delta = starting_len - first_move_idx;
-
-            println!("max_delta: {}", max_delta);
-            println!("last_idx: {}", last_idx);
 
             // remove records from data
             // move all records to the left to make a place for new values
@@ -371,7 +360,6 @@ where
                 let pos = position+delta;
                 let move_pos = first_move_idx+delta;
 
-                println!("Moving {} to {}", move_pos, pos);
                 let id_to_update = self.order[move_pos];
                 self.order[pos] = self.order[move_pos];
                 changeset.ids_to_update.insert(id_to_update);
@@ -393,19 +381,12 @@ where
             position+max_delta
         };
 
-
-        println!("End of move: {}", end_of_move);
-
         let end_of_insert = if end_of_move + records_len > self.max_size {
-            println!("Too many elements to fit all");
             self.max_size
         }
         else {
-            println!("Can fit all");
             end_of_move + records_len
         };
-
-        println!("End of insert: {}", end_of_insert);
 
         let max_insert_range_delta = end_of_insert - end_of_move;
 
@@ -417,12 +398,8 @@ where
             max_insert_range_delta
         };
 
-        println!("Max insert delta: {}", max_insert_delta);
-
         for idx in 0..max_insert_delta {
             let pos = end_of_move+idx;
-            println!("Insert idx: {}", idx);
-            println!("Insert pos: {}", pos);
             let record = records[idx].clone();
             let id = record.get_id();
             self.data.insert(id, record);
