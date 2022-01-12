@@ -122,11 +122,7 @@ mod records_3{
         assert_eq!(records.len(), 3);
         assert_eq!(container.len(), 3);
 
-        println!("Container: {:#?}", container);
-
         container.remove_right(&mut changeset, 0, 1, new_data.clone());
-
-        println!("Container: {:#?}", container);
 
         assert_eq!(container.len(), 3);
         assert_eq!(container.data[&records[1].get_id()], records[1]);
@@ -149,11 +145,7 @@ mod records_3{
         assert_eq!(records.len(), 3);
         assert_eq!(container.len(), 3);
 
-        println!("Container: {:#?}", container);
-
         container.remove_right(&mut changeset, 1, 1, new_data.clone());
-
-        println!("Container: {:#?}", container);
 
         assert_eq!(container.len(), 3);
         assert_eq!(container.data[&records[0].get_id()], records[0]);
@@ -176,11 +168,7 @@ mod records_3{
         assert_eq!(records.len(), 3);
         assert_eq!(container.len(), 3);
 
-        println!("Container: {:#?}", container);
-
         container.remove_right(&mut changeset, 2, 1, new_data.clone());
-
-        println!("Container: {:#?}", container);
 
         assert_eq!(container.len(), 3);
         assert_eq!(container.data[&records[0].get_id()], records[0]);
@@ -204,11 +192,7 @@ mod records_3{
         assert_eq!(records.len(), 3);
         assert_eq!(container.len(), 3);
 
-        println!("Container: {:#?}", container);
-
         container.remove_right(&mut changeset, 0, 1, new_data.clone());
-
-        println!("Container: {:#?}", container);
 
         assert_eq!(container.len(), 4);
         assert_eq!(container.data[&records[1].get_id()], records[1]);
@@ -234,11 +218,7 @@ mod records_3{
         assert_eq!(records.len(), 3);
         assert_eq!(container.len(), 3);
 
-        println!("Container: {:#?}", container);
-
         container.remove_right(&mut changeset, 1, 1, new_data.clone());
-
-        println!("Container: {:#?}", container);
 
         assert_eq!(container.len(), 4);
         assert_eq!(container.data[&records[0].get_id()], records[0]);
@@ -264,11 +244,7 @@ mod records_3{
         assert_eq!(records.len(), 3);
         assert_eq!(container.len(), 3);
 
-        println!("Container: {:#?}", container);
-
         container.remove_right(&mut changeset, 2, 1, new_data.clone());
-
-        println!("Container: {:#?}", container);
 
         assert_eq!(container.len(), 4);
         assert_eq!(container.data[&records[0].get_id()], records[0]);
@@ -281,4 +257,26 @@ mod records_3{
         assert_eq!(container.order[3], new_data[1].get_id());
         assert!(changeset.widgets_to_remove.contains(&records[2].get_id()));
     }
+}
+
+#[test]
+fn remove_last_element_and_insert_too_many_records() {
+    let TestData{ records, mut container } = TestData::new(10, 10);
+    let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
+    let new_data = vec![
+        TestRecord::since("Added record 1", 1),
+        TestRecord::since("Added record 2", 1),
+    ];
+
+    assert_eq!(records.len(), 10);
+    assert_eq!(container.len(), 10);
+
+    container.remove_right(&mut changeset, 9, 1, new_data.clone());
+
+    assert_eq!(container.len(), 10);
+    assert_eq!(container.data[&new_data[0].get_id()], new_data[0]);
+    assert!(!container.data.contains_key(&new_data[1].get_id()));
+    assert_eq!(container.order[9], new_data[0].get_id());
+    assert!(!container.order.contains(&new_data[1].get_id()));
+    assert!(changeset.widgets_to_remove.contains(&records[9].get_id()));
 }
