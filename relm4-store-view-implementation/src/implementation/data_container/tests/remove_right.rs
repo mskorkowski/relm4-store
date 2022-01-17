@@ -44,7 +44,7 @@ fn remove_last_element() {
     container.remove_right(&mut changeset, 0, 1, vec![]);
 
     assert_eq!(container.len(), 0);
-    assert!(changeset.widgets_to_remove.contains(&records[0].get_id()));
+    assert!(changeset.remove_contains(&records[0].get_id()));
 }
 
 
@@ -72,7 +72,7 @@ mod records_3{
         assert_eq!(container.data[&records[2].get_id()], records[2]);
         assert_eq!(container.order[0], records[1].get_id());
         assert_eq!(container.order[1], records[2].get_id());
-        assert!(changeset.widgets_to_remove.contains(&records[0].get_id()));
+        assert!(changeset.remove_contains(&records[0].get_id()));
     }
 
     #[test]
@@ -90,7 +90,7 @@ mod records_3{
         assert_eq!(container.data[&records[2].get_id()], records[2]);
         assert_eq!(container.order[0], records[0].get_id());
         assert_eq!(container.order[1], records[2].get_id());
-        assert!(changeset.widgets_to_remove.contains(&records[1].get_id()));
+        assert!(changeset.remove_contains(&records[1].get_id()));
     }
 
     #[test]
@@ -108,7 +108,7 @@ mod records_3{
         assert_eq!(container.data[&records[1].get_id()], records[1]);
         assert_eq!(container.order[0], records[0].get_id());
         assert_eq!(container.order[1], records[1].get_id());
-        assert!(changeset.widgets_to_remove.contains(&records[2].get_id()));
+        assert!(changeset.remove_contains(&records[2].get_id()));
     }
 
     #[test]
@@ -131,7 +131,7 @@ mod records_3{
         assert_eq!(container.order[0], records[1].get_id());
         assert_eq!(container.order[1], records[2].get_id());
         assert_eq!(container.order[2], new_data[0].get_id());
-        assert!(changeset.widgets_to_remove.contains(&records[0].get_id()));
+        assert!(changeset.remove_contains(&records[0].get_id()));
     }
 
     #[test]
@@ -154,7 +154,7 @@ mod records_3{
         assert_eq!(container.order[0], records[0].get_id());
         assert_eq!(container.order[1], records[2].get_id());
         assert_eq!(container.order[2], new_data[0].get_id());
-        assert!(changeset.widgets_to_remove.contains(&records[1].get_id()));
+        assert!(changeset.remove_contains(&records[1].get_id()));
     }
 
     #[test]
@@ -177,7 +177,7 @@ mod records_3{
         assert_eq!(container.order[0], records[0].get_id());
         assert_eq!(container.order[1], records[1].get_id());
         assert_eq!(container.order[2], new_data[0].get_id());
-        assert!(changeset.widgets_to_remove.contains(&records[2].get_id()));
+        assert!(changeset.remove_contains(&records[2].get_id()));
     }
 
     #[test]
@@ -203,7 +203,7 @@ mod records_3{
         assert_eq!(container.order[1], records[2].get_id());
         assert_eq!(container.order[2], new_data[0].get_id());
         assert_eq!(container.order[3], new_data[1].get_id());
-        assert!(changeset.widgets_to_remove.contains(&records[0].get_id()));
+        assert!(changeset.remove_contains(&records[0].get_id()));
     }
 
     #[test]
@@ -229,7 +229,7 @@ mod records_3{
         assert_eq!(container.order[1], records[2].get_id());
         assert_eq!(container.order[2], new_data[0].get_id());
         assert_eq!(container.order[3], new_data[1].get_id());
-        assert!(changeset.widgets_to_remove.contains(&records[1].get_id()));
+        assert!(changeset.remove_contains(&records[1].get_id()));
     }
 
     #[test]
@@ -255,7 +255,7 @@ mod records_3{
         assert_eq!(container.order[1], records[1].get_id());
         assert_eq!(container.order[2], new_data[0].get_id());
         assert_eq!(container.order[3], new_data[1].get_id());
-        assert!(changeset.widgets_to_remove.contains(&records[2].get_id()));
+        assert!(changeset.remove_contains(&records[2].get_id()));
     }
 }
 
@@ -278,5 +278,5 @@ fn remove_last_element_and_insert_too_many_records() {
     assert!(!container.data.contains_key(&new_data[1].get_id()));
     assert_eq!(container.order[9], new_data[0].get_id());
     assert!(!container.order.contains(&new_data[1].get_id()));
-    assert!(changeset.widgets_to_remove.contains(&records[9].get_id()));
+    assert!(changeset.remove_contains(&records[9].get_id()));
 }
