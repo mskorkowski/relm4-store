@@ -212,30 +212,33 @@ where
     /// 
     /// To fill up the released space we need to request `[range.end-by, range.end)` of data from the store and place them
     /// to the right.
-    // fn remove_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, pos: usize, by: usize) {
-    //     let (range_start, range_end) = {
-    //         let range = self.range.borrow();
-    //         (*range.start(), *range.end())
-    //     };
+    /// 
+    /// Data are marked as removed if they exist and are in range [pos, pos+by)
+    /// Data are marked as to be updated if they are in the range [pos+by, container.len())
+    fn remove_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, pos: usize, by: usize) {
+        let (range_start, range_end) = {
+            let range = self.range.borrow();
+            (*range.start(), *range.end())
+        };
 
-    //     let mut view = self.view.borrow_mut();
-    //     let position = pos - range_start;
-    //     let range_of_changes_start = if position + by > view.len() {
-    //         pos
-    //     }
-    //     else {
-    //         range_end - by
-    //     };
+        let mut view = self.view.borrow_mut();
+        let position = pos - range_start;
+        let range_of_changes_start = if position + by > view.len() {
+            pos
+        }
+        else {
+            range_end - by
+        };
 
-    //     let range_of_changes = Range::new(
-    //         range_of_changes_start,
-    //         range_end
-    //     );
-    //     let data = self.store.get_range(&range_of_changes);
+        let range_of_changes = Range::new(
+            range_of_changes_start,
+            range_end
+        );
+        let data = self.store.get_range(&range_of_changes);
 
 
-    //     view.remove_right(changeset, position, data);
-    // }
+        view.remove_right(changeset, position, by, data);
+    }
 
     fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore>::Record> {
         let mut changeset = WindowChangeset::default();
@@ -283,10 +286,9 @@ where
                     log::error!("RemoveLeft - unimplemented yet");
                     self.reload(&mut changeset);
                 }
-                WindowTransition::RemoveRight{pos: _, by: _} => {
-                    log::error!("RemoveLeft - unimplemented yet");
-                    self.reload(&mut changeset);
-                    // self.remove_right(&mut changeset, pos, by);
+                WindowTransition::RemoveRight{pos, by} => {
+                    log::trace!("RemoveRight");
+                    self.remove_right(&mut changeset, pos, by);
                 }
                 WindowTransition::SlideLeft(by) => {
                     log::trace!("SlideLeft");

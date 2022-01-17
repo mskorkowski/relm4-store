@@ -78,11 +78,11 @@ where
 
     fn invariants(&self) {
         for r in &self.order {
-            assert!(self.data.contains_key(r), "`data` must contain records for all id's in `order`");
+            assert!(self.data.contains_key(r), "`data` must contain records for all id's in `order`. Missing record for: {:?}", r);
         }
 
         for record in self.data.values() {
-            assert!(self.order.contains(&record.get_id()), "Order must contain entries for all records in data");
+            assert!(self.order.contains(&record.get_id()), "Order must contain entries for all records in data. Missing order entry for {:#?}", record);
         }
         assert_eq!(self.data.len(), self.order.len(), "`data` and `order` collections must have the same length");
         assert!(self.max_size >= self.len(), "DataContainer size can't exceed max size");
@@ -317,16 +317,103 @@ where
     /// - **changeset** structure holding information which elements of the view require update
     /// - **position** index at which first record will be removed
     /// - **records** ordered vector holding values to be inserted
-    // pub(crate) fn remove_right(
-    //     &mut self,
-    //     changeset: &mut WindowChangeset<Record>, 
-    //     position: usize, 
-    //     records: Vec<Record>
-    // ) {
-    //     let starting_len = self.len();
-        
+    pub(crate) fn remove_right(
+        &mut self,
+        changeset: &mut WindowChangeset<Record>, 
+        position: usize,
+        by: usize,
+        records: Vec<Record>
+    ) {
+        let starting_len = self.len();
+        let records_len = records.len();
 
-    // }
+        let end_of_move = if starting_len == 0 || position >= starting_len {
+            starting_len
+        }
+        else {
+            for idx in position..position+by {
+                let id = self.order[idx];
+                self.data.remove(&id);
+                changeset.widgets_to_remove.insert(id);
+            }
+
+            let to_remove = if by > records_len {
+                by - records_len
+            }
+            else {
+                0
+            };
+
+            let first_move_idx = if position + by > starting_len {
+                // there is not enough records to be removed
+                starting_len
+            }
+            else {
+                position + by
+            };
+
+            let max_delta = starting_len - first_move_idx;
+
+            // remove records from data
+            // move all records to the left to make a place for new values
+            for delta in 0..max_delta {
+                let pos = position+delta;
+                let move_pos = first_move_idx+delta;
+
+                let id_to_update = self.order[move_pos];
+                self.order[pos] = self.order[move_pos];
+                changeset.ids_to_update.insert(id_to_update);
+            }
+
+            for _ in 0..to_remove {
+                //we'e moved all required records to the left
+                //now we need to remove repeated id's which won't be overridden in next step
+                if let Some(id) = self.order.pop() {
+                    //if we are don't have enough to move earlier then we might hit the case
+                    //when we remove values unknown to changeset yet
+                    if !changeset.widgets_to_remove.contains(&id) && max_delta == 0 {
+                        changeset.widgets_to_remove.insert(id);
+                        self.data.remove(&id);
+                    }
+                }
+            }
+
+            position+max_delta
+        };
+
+        let end_of_insert = if end_of_move + records_len > self.max_size {
+            self.max_size
+        }
+        else {
+            end_of_move + records_len
+        };
+
+        let max_insert_range_delta = end_of_insert - end_of_move;
+
+        // make sure that we don't try to insert more records then we have
+        let max_insert_delta = if records_len < max_insert_range_delta {
+            records_len
+        }
+        else {
+            max_insert_range_delta
+        };
+
+        for idx in 0..max_insert_delta {
+            let pos = end_of_move+idx;
+            let record = records[idx].clone();
+            let id = record.get_id();
+            self.data.insert(id, record);
+            if pos >= self.order.len() {
+                self.order.push(id);
+            }
+            else {
+                self.order[pos] = id;
+            }
+            changeset.ids_to_add.insert(id);
+        }
+
+        // self.invariants();
+    }
 
     pub(crate) fn len(&self) -> usize {
         self.order.len()
