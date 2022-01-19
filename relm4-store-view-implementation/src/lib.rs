@@ -232,7 +232,7 @@ where
     ) -> Self::Widgets {
         let model = self.get(key).expect("Key doesn't point to the model in the store while generating! WTF?");
         let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
-        Configuration::generate(&model, position, sender)
+        Configuration::init_view(&model, position, sender)
     }
 
     /// Set the widget position upon creation, useful for [`gtk::Grid`] or similar.
@@ -253,12 +253,12 @@ where
     ) {
         let model = self.get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
         let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
-        <Configuration as StoreViewPrototype>::update_record(model, position, widgets)
+        <Configuration as StoreViewPrototype>::view_record(model, position, widgets)
     }
 
     /// Get the outermost widget from the widgets.
     fn root_widget(widgets: &Self::Widgets) -> &Self::Root {
-        Configuration::get_root(widgets)
+        Configuration::root_widget(widgets)
     }
 }
 

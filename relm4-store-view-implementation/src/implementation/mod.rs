@@ -512,8 +512,8 @@ where
                 log::trace!("[StoreViewImplementation::generate] Id to add: {:?}", id);
                 if let Some(record) = self.get(id) {
                     log::trace!("[StoreViewImplementation::generate] Got record {:?}", record);
-                    let new_widgets = Configuration::generate(&record, position, sender.clone());
-                    let widgets_root = Configuration::get_root(&new_widgets);
+                    let new_widgets = Configuration::init_view(&record, position, sender.clone());
+                    let widgets_root = Configuration::root_widget(&new_widgets);
 
                     let root = if widgets.is_empty() || position.0 == *range.start() {
                         log::trace!("[StoreViewImplementation::generate] Adding first element");
@@ -542,20 +542,20 @@ where
                 
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
-                        <Configuration as StoreViewPrototype>::update_record(record, position, &widget.widgets);
+                        <Configuration as StoreViewPrototype>::view_record(record, position, &widget.widgets);
                         if old_order_len > position.0 && old_order[position.0] != *id {
                             // things got reordered so we need to remove widget from old place and attach it to the new one
                             if let Some(widget) = widgets.remove(id) {
                                 view.remove(&widget.root);
                                 let root = if position.0 == *range.start() {
-                                    view.push_front(Configuration::get_root(&widget.widgets))
+                                    view.push_front(Configuration::root_widget(&widget.widgets))
                                 }
                                 else {
                                     let prev_idx = (position - 1 - *range.start()).0;
                                     log::info!("Index of previous elements: {}", prev_idx);
                                     let prev_id = view_order.get_order_idx((position - 1 - *range.start()).0);
                                     let prev = widgets.get(prev_id).unwrap();
-                                    view.insert_after(Configuration::get_root(&widget.widgets), &prev.root)
+                                    view.insert_after(Configuration::root_widget(&widget.widgets), &prev.root)
                                 };
 
                                 widgets.insert(

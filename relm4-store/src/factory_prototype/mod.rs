@@ -65,7 +65,7 @@ pub trait StoreViewPrototype
 
     /// Creates instance of the [Self::RecordWidgets] responsible for displaying `record`
     /// at the `position`
-    fn generate(
+    fn init_view(
         record: &<Self::Store as DataStore>::Record,
         position: Position,
         sender: Sender<<Self::ViewModel as ViewModel>::Msg>,
@@ -73,14 +73,14 @@ pub trait StoreViewPrototype
 
     /// Function called when record in store view is modified and you need to 
     /// synchronize the state of the view with data in the model
-    fn update_record(
+    fn view_record(
         model: <Self::Store as DataStore>::Record,
         position: Position,
         widgets: &Self::RecordWidgets,
     );
 
     /// Function called when component received a message
-    fn update(
+    fn view(
         view_model: &mut Self::ViewModel,
         msg: <Self::ViewModel as ViewModel>::Msg,
         sender: Sender<<Self::ViewModel as ViewModel>::Msg>,
@@ -100,7 +100,7 @@ pub trait StoreViewPrototype
     ) -> <Self::View as FactoryView<Self::Root>>::Position;
 
     /// Get the outermost widget from the widgets.
-    fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root;
+    fn root_widget(widgets: &Self::RecordWidgets) -> &Self::Root;
 }
 
 /// Trait describing what do we need from widgets to be usable for the [StoreViewComponent]

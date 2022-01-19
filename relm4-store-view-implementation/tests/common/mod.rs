@@ -47,21 +47,21 @@ impl<Window: 'static + WindowBehavior + Debug> StoreViewPrototype for TestConfig
         View::new(store, size, redraw_sender)
     }
 
-    fn generate(_record: &<Self::Store as store::DataStore>::Record, _position: Position, _sender: Sender<()>) -> Self::RecordWidgets {
+    fn init_view(_record: &<Self::Store as store::DataStore>::Record, _position: Position, _sender: Sender<()>) -> Self::RecordWidgets {
         TestWidgets{
             root: gtk::Box::default()
         }
     }
 
-    fn update_record(_model: <Self::Store as store::DataStore>::Record, _position: Position, _widgets: &Self::RecordWidgets) {}
+    fn view_record(_model: <Self::Store as store::DataStore>::Record, _position: Position, _widgets: &Self::RecordWidgets) {}
 
-    fn update(_view_model: &mut Self::ViewModel, _msg: (), _sender: Sender<()>) {}
+    fn view(_view_model: &mut Self::ViewModel, _msg: (), _sender: Sender<()>) {}
     
     fn init_view_model(_parent_view_model: &Self::ParentViewModel, _store_view: &Self::StoreView) -> Self::ViewModel {}
 
     fn position(_model: <Self::Store as store::DataStore>::Record, _position: Position) {}
 
-    fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root {
+    fn root_widget(widgets: &Self::RecordWidgets) -> &Self::Root {
         &widgets.root
     }
 }

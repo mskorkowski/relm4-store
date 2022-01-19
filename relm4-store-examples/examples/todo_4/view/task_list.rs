@@ -98,7 +98,7 @@ where Config: TasksListConfiguration + 'static,
         View::new(store, size, redraw_sender)
     }
 
-    fn generate(
+    fn init_view(
         record: &Task,
         _position: Position,
         sender: Sender<TaskMsg>,
@@ -169,7 +169,7 @@ where Config: TasksListConfiguration + 'static,
     }
 
     /// Function called when record is modified.
-    fn update_record(
+    fn view_record(
         record: Task,
         _position: Position,
         widgets: &Self::RecordWidgets,
@@ -187,11 +187,11 @@ where Config: TasksListConfiguration + 'static,
     ) {}
 
     /// Get the outermost widget from the widgets.
-    fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root {
+    fn root_widget(widgets: &Self::RecordWidgets) -> &Self::Root {
         &widgets.root
     }
 
-    fn update(
+    fn view(
         view_model: &mut Self::ViewModel, 
         msg: <Self as ViewModel>::Msg, 
         _sender: Sender<<Self as ViewModel>::Msg>
