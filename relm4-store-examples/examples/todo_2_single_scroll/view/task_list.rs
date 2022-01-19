@@ -152,7 +152,7 @@ where Config: TasksListConfiguration + 'static,
         widgets.checkbox.set_active(record.completed);
 
         let attrs = widgets.label.attributes().unwrap_or_default();
-        attrs.change(gtk::pango::Attribute::new_strikethrough(record.completed));
+        attrs.change(gtk::pango::AttrInt::new_strikethrough(record.completed));
         widgets.label.set_attributes(Some(&attrs));
     }
 

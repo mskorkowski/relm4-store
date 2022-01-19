@@ -225,7 +225,7 @@ where
     type Root = Configuration::Root;
     type View = Configuration::View;
 
-    fn generate(
+    fn init_view(
         &self,
         key: &<Self::Factory as Factory<Self, Self::View>>::Key,
         sender: Sender<<Configuration::ViewModel as ViewModel>::Msg>,
@@ -246,7 +246,7 @@ where
     }
 
     /// Function called when self is modified.
-    fn update(
+    fn view(
         &self,
         key: &<Self::Factory as Factory<Self, Self::View>>::Key,
         widgets: &Self::Widgets,
@@ -257,7 +257,7 @@ where
     }
 
     /// Get the outermost widget from the widgets.
-    fn get_root(widgets: &Self::Widgets) -> &Self::Root {
+    fn root_widget(widgets: &Self::Widgets) -> &Self::Root {
         Configuration::get_root(widgets)
     }
 }

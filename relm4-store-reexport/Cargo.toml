@@ -12,14 +12,14 @@ license = "Apache-2.0 OR MIT"
 
 [dependencies]
 log = "0.4.14"
-relm4 = "0.4.0-beta.3"
-relm4-macros = "0.4.0-beta.3"
-relm4-components = "0.4.0-beta.3"
+relm4 = "0.4.1"
+relm4-macros = "0.4.1"
+relm4-components = "0.4.0"
 # relm4 = { package = "relm4", path="../../relm4" }
 # relm4-macros = {package = "relm4-macros", path="../../relm4/relm4-macros"}
 # relm4-components = {package = "relm4-components", path="../../relm4/relm4-components"}
 tracker = "^0.1.1"
 # tracker = { package = "tracker", path="../../Tracker" }
-gtk = { version = "0.3.1", package = "gtk4" }
+gtk = { version = "0.4.3", package = "gtk4" }
 uuid = { version = "^0.8.2", features = ["serde", "v4"] }
 adw = { version = "0.1.0-alpha-6", optional = true, package = "libadwaita" }
