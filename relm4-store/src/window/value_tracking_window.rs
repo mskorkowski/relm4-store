@@ -91,8 +91,9 @@ impl WindowBehavior for ValueTrackingWindow {
         else {
             let half: usize = (state.page.start() + state.page.end())/2;
             if p < &half {
+                // p is at the deletion point and pos should point to first not deleted record so +1
                 WindowTransition::RemoveLeft{
-                    pos: p.value() - state.page.start(),
+                    pos: p.value() - state.page.start() + 1,
                     by: 1,
                 }
             }

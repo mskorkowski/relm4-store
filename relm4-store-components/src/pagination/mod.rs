@@ -139,13 +139,13 @@ where
         root = &gtk::Box {
             set_margin_all: 12,
             set_orientation: gtk::Orientation::Horizontal,
-            append: first = &gtk::Button::from_icon_name(Some("go-first-symbolic")) {
+            append: first = &gtk::Button::from_icon_name("go-first-symbolic") {
                 connect_clicked(sender) => move |_| {
                     send!(sender, PaginationMsg::First);
                 },
                 add_css_class: "flat",
             },
-            append: prev = &gtk::Button::from_icon_name(Some("go-previous-symbolic")) {
+            append: prev = &gtk::Button::from_icon_name("go-previous-symbolic") {
                 connect_clicked(sender) => move |_| {
                     send!(sender, PaginationMsg::Prev)
                 },
@@ -163,19 +163,19 @@ where
                     &model.total_pages
                 ),
             },
-            append: reload = &gtk::Button::from_icon_name(Some("view-refresh-symbolic")) {
+            append: reload = &gtk::Button::from_icon_name("view-refresh-symbolic") {
                 connect_clicked(sender) => move |_| {
                     send!(sender, PaginationMsg::Reload)
                 },
                 add_css_class: "flat",
             },
-            append: next = &gtk::Button::from_icon_name(Some("go-next-symbolic")) {
+            append: next = &gtk::Button::from_icon_name("go-next-symbolic") {
                 connect_clicked(sender) => move |_| {
                     send!(sender, PaginationMsg::Next)
                 },
                 add_css_class: "flat",
             },
-            append: last = &gtk::Button::from_icon_name(Some("go-last-symbolic")) {
+            append: last = &gtk::Button::from_icon_name("go-last-symbolic") {
                 connect_clicked(sender) => move |_| {
                     send!(sender, PaginationMsg::Last)
                 },

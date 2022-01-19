@@ -1,5 +1,11 @@
 //! Holds implementation for basic view window behaviors
 //! 
+//! **WARNING!** Current implementations of the window behavior are under defined in behavior.
+//! For example if you remove last record on the page is not handled. For details of what's
+//! missing check 
+//! 
+//! - [#20 Fill the gaps in window behaviors](https://github.com/mskorkowski/relm4-store/issues/20)
+//! 
 //! When you display the data to the user different kind of behavior of the view is desired
 //! in presence of the new data
 //! 

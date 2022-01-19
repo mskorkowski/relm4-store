@@ -86,12 +86,12 @@ impl Widgets<MainWindowViewModel, ()> for MainWindowWidgets {
             set_child: Some(components.tasks_list.root_widget()),
             set_titlebar= Some(&gtk::HeaderBar){
                 set_title_widget = Some(&gtk::Label::new(Some("todo_3"))){},
-                pack_end = &gtk::Button::from_icon_name(Some("view-sort-ascending-symbolic")) {
+                pack_end = &gtk::Button::from_icon_name("view-sort-ascending-symbolic") {
                     connect_clicked(sender) => move |_| {
                         send!(sender, MainWindowMsg::ASC)
                     },
                 },
-                pack_end = &gtk::Button::from_icon_name(Some("view-sort-descending-symbolic")) {
+                pack_end = &gtk::Button::from_icon_name("view-sort-descending-symbolic") {
                     connect_clicked(sender) => move |_| {
                         send!(sender, MainWindowMsg::DESC)
                     },

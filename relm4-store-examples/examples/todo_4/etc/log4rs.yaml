@@ -16,5 +16,7 @@ root:
 
 loggers:
   # Raise the maximum log level for events sent to the "app::backend::db" logger to "info"
-  backend_inmemory::backend:
+  # backend_inmemory::backend:
+  #   level: trace
+  relm4_store_view_implementation:
     level: trace

@@ -36,7 +36,7 @@ impl WindowBehavior for KeepOnBottom {
         }
         else {
             WindowTransition::RemoveLeft{
-                pos: p.value(),
+                pos: p.value() +1,
                 by: 1,
             }
         }

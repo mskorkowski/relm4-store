@@ -94,7 +94,7 @@ where Config: TasksListConfiguration + 'static,
         View::new(store, size, redraw_sender)
     }
 
-    fn generate(
+    fn init_view(
         record: &Task,
         _position: Position,
         sender: Sender<TaskMsg>,
@@ -142,7 +142,7 @@ where Config: TasksListConfiguration + 'static,
     }
 
     /// Function called when record is modified.
-    fn update_record(
+    fn view_record(
         record: Task,
         _position: Position,
         widgets: &Self::RecordWidgets,
@@ -150,7 +150,7 @@ where Config: TasksListConfiguration + 'static,
         widgets.checkbox.set_active(record.completed);
 
         let attrs = widgets.label.attributes().unwrap_or_default();
-        attrs.change(gtk::pango::Attribute::new_strikethrough(record.completed));
+        attrs.change(gtk::pango::AttrInt::new_strikethrough(record.completed));
         widgets.label.set_attributes(Some(&attrs));
     }
 
@@ -160,11 +160,11 @@ where Config: TasksListConfiguration + 'static,
     ) {}
 
     /// Get the outermost widget from the widgets.
-    fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root {
+    fn root_widget(widgets: &Self::RecordWidgets) -> &Self::Root {
         &widgets.root
     }
 
-    fn update(view_model: &mut Self::ViewModel, msg: <Self as ViewModel>::Msg, _sender: Sender<<Self as ViewModel>::Msg>) {
+    fn view(view_model: &mut Self::ViewModel, msg: <Self as ViewModel>::Msg, _sender: Sender<<Self as ViewModel>::Msg>) {
         match msg {
             TaskMsg::New => {
                 let description = view_model.new_task_description.text();

@@ -40,7 +40,7 @@ The most important part is that we've built `delete_button` and added it to the 
 it will send `TaskMsg::Delete`. To make ui nice we in the `label` we've added to extra settings
 
 ```rust,noplaypen
-{{#include ../../../relm4-store-examples/examples/todo_4/view/task_list.rs:135:136}}
+{{#include ../../../relm4-store-examples/examples/todo_4/view/task_list.rs:136:137}}
 ```
 
 This will expand horizontally and text will be left aligned.
