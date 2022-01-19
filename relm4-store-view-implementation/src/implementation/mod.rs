@@ -214,7 +214,7 @@ where
     /// to the right.
     /// 
     /// Data are marked as removed if they exist and are in range [pos, pos+by)
-    /// Data are marked as to be updated if they are in the range [pos+by, container.len())
+    /// Data are marked as to be updated if they are in the range [pos+by, range.end)
     fn remove_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, pos: usize, by: usize) {
         let (range_start, range_end) = {
             let range = self.range.borrow();
@@ -240,6 +240,65 @@ where
         view.remove_right(changeset, position, by, data);
     }
 
+    /// Removes by elements ending at `pos` and if there are data in the store brings segments from the left hand side
+    /// to the view.
+    /// 
+    /// Remove left is more involving then remove right since there is an extra case when there is not enough records from
+    /// left side and we also need to fill up from right side. For example
+    /// 
+    /// - range is from 1-11
+    /// - remove left is at position 4 by 3 (removal range is [1,4))
+    /// 
+    /// We have only one record to the left to fill up the space at position 0. All other needs to be filled up from the right hand side
+    /// 
+    /// To fill up the released space we need to request `[range.start-by, range.start)` of data from the store and place them
+    /// to the left.
+    /// 
+    /// Data are marked as removed if they exist and are in range [pos-by, pos)
+    /// Data are marked as to be updated if they are in the range [pos, container.len())
+    fn remove_left(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, pos: usize, by: usize) {
+        let (range_start, range_end) = {
+            let range = self.range.borrow();
+            (*range.start(), *range.end())
+        };
+
+        let mut view = self.view.borrow_mut();
+        let position = pos - range_start;
+        let range_of_changes_start = if position < by {
+            //range can't start before 0
+            0
+        } 
+        else {
+            position - by
+        };
+
+        let range_of_changes = Range::new(
+            range_of_changes_start,
+            position
+        );
+        let left_data = self.store.get_range(&range_of_changes);
+
+        let new_range = Range::new(
+            range_start, range_end
+        ).to_left(range_of_changes.len());
+        self.range.replace(new_range);
+
+        let right_data = if range_start < by {
+            let by_right = by - range_start;
+            
+            let right_range = Range::new(
+                new_range.end() - by_right, *new_range.end()
+            );
+            
+            self.store.get_range(&right_range)
+        } 
+        else {
+            vec![]
+        };
+
+        view.remove_left(changeset, position, by, left_data, right_data);
+    }
+
     fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore>::Record> {
         let mut changeset = WindowChangeset::default();
 
@@ -262,7 +321,7 @@ where
                         StoreViewMsg::Update(id) => {
                             let mut view = self.view.borrow_mut();
                             if let Some(record) = self.store.get(id) {
-                                changeset.ids_to_update.insert(*id);
+                                changeset.update(*id);
                                 view.update(record);
                             }
                         },
@@ -282,9 +341,9 @@ where
                     log::trace!("Insert right");
                     self.insert_right(&mut changeset, pos, by);
                 }
-                WindowTransition::RemoveLeft{pos: _, by: _} => {
+                WindowTransition::RemoveLeft{pos, by} => {
                     log::error!("RemoveLeft - unimplemented yet");
-                    self.reload(&mut changeset);
+                    self.remove_left(&mut changeset, pos, by);
                 }
                 WindowTransition::RemoveRight{pos, by} => {
                     log::trace!("RemoveRight");
@@ -405,13 +464,13 @@ where
         let old_order_len = old_order.len();
 
         let WindowChangeset{
-            widgets_to_remove,
+            ids_to_remove,
             ids_to_add,
             ids_to_update,
             reload: _,
         } = self.compile_changes();
 
-        if widgets_to_remove.is_empty() && ids_to_add.is_empty() && ids_to_update.is_empty() {
+        if ids_to_remove.is_empty() && ids_to_add.is_empty() && ids_to_update.is_empty() {
             //if all changes leads to identity then return
             return
         }
@@ -498,7 +557,7 @@ where
             position = position + 1;
         }
 
-        for id in widgets_to_remove {
+        for id in ids_to_remove {
             if let Some(widget) = widgets.remove(&id) {
                 view.remove(&widget.root);
             }
