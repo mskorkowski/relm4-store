@@ -2,10 +2,8 @@ use serial_test::serial;
 use backend_dummy::test_cases::TestCases;
 use store::Position;
 use store::StoreView;
-use store::window::ValueTrackingWindow;
-use crate::common::StoreViewTest;
 
-type ST = StoreViewTest<ValueTrackingWindow>;
+use super::ST;
 
 #[test]
 #[serial(gtk)]

@@ -531,8 +531,10 @@ where
             starting_len
         };
 
-        
-        let free_space = self.max_size + right_move_size - starting_len;
+        // WARNING: operation order matters
+        //   If page size is set to UNLIMITED then `self.max_size+right_move_size` would overflow
+        //   `self.max_size - starting_len` is always valid since `starting_len` is in range [0, self.max_size]
+        let free_space = self.max_size - starting_len + right_move_size;
 
         let max_right_insert_size = min(free_space, right_records_len);
         let max_right_insert_idx = max_right_insert_size + first_free_idx;
