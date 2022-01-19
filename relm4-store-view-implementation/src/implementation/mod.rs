@@ -257,26 +257,45 @@ where
     /// Data are marked as removed if they exist and are in range [pos-by, pos)
     /// Data are marked as to be updated if they are in the range [pos, container.len())
     fn remove_left(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, pos: usize, by: usize) {
+        log::trace!("Remove left");
+        log::trace!("\tPos: {}", pos);
+        log::trace!("\tBy: {}", by);
+
         let (range_start, range_end) = {
             let range = self.range.borrow();
             (*range.start(), *range.end())
         };
 
+        log::trace!("\tRange start: {}", range_start);
+        log::trace!("\tRange end: {}", range_end);
+
         let mut view = self.view.borrow_mut();
-        let position = pos - range_start;
-        let range_of_changes_start = if position < by {
+        let container_position = pos - range_start;
+
+        log::trace!("\tContainer position: {}", container_position);
+
+        let range_of_changes_start = if container_position < by {
             //range can't start before 0
             0
         } 
         else {
-            position - by
+            container_position - by
         };
 
         let range_of_changes = Range::new(
             range_of_changes_start,
-            position
+            container_position -1 //container position is first not removed
         );
-        let left_data = self.store.get_range(&range_of_changes);
+        let left_data = if !range_of_changes.is_empty() {
+            self.store.get_range(&range_of_changes)
+        }
+        else {
+            vec![]
+        };
+        
+
+        log::trace!("\tRange of changes: {}", range_of_changes);
+        log::trace!("\tLeft data: {:#?}", left_data);
 
         let new_range = Range::new(
             range_start, range_end
@@ -296,7 +315,7 @@ where
             vec![]
         };
 
-        view.remove_left(changeset, position, by, left_data, right_data);
+        view.remove_left(changeset, container_position, by, left_data, right_data);
     }
 
     fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore>::Record> {
@@ -342,7 +361,7 @@ where
                     self.insert_right(&mut changeset, pos, by);
                 }
                 WindowTransition::RemoveLeft{pos, by} => {
-                    log::error!("RemoveLeft - unimplemented yet");
+                    log::trace!("RemoveLeft");
                     self.remove_left(&mut changeset, pos, by);
                 }
                 WindowTransition::RemoveRight{pos, by} => {
