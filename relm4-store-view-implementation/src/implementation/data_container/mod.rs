@@ -425,13 +425,15 @@ where
 
     /// Removes records to the left of the position
     /// 
-    /// Last record removed is `position-1`.
+    /// If you remove 5 records, records_left will be used to fill up to 5 records.
+    /// 
+    /// Last record removed is at `position-1`.
     /// 
     /// If there is more **records** then place to insert the data only fitting data from the beginning of the
     /// **left_records** will be inserted
     /// 
     /// If **left_records** are not enough to fill the container up to the max amount of records **right_records**
-    /// will be use used
+    /// will be use used to fill the dat from the right hand side
     /// 
     /// - **changeset** structure holding information which elements of the view require update
     /// - **position** index at which first record will be removed
@@ -449,13 +451,6 @@ where
         let starting_len = self.len();
         let left_records_len = left_records.len();
         let right_records_len = right_records.len();
-
-        println!();
-        println!("Position: {}", position);
-        println!("By: {}", by);
-        println!("Starting len: {}", starting_len);
-        println!("Left records len: {}", left_records_len);
-        println!("Right records len: {}", right_records_len);
 
         if starting_len == 0 {
             return;
@@ -495,14 +490,10 @@ where
             (records_to_remove, 0)
         };
 
-        println!("Left move size: {}", left_move_size);
-        println!("Right move size: {}", right_move_size);
-
         //marking records as to be deleted
         self.mark_removed(changeset, first_removed_idx..position);
 
         if left_move_size > 0 { //if we don't have a need for a loop don't do it
-            println!("Left move");
             //moving records to the right so we can make a place for values in the left_records
             for idx in (0..first_removed_idx).rev() {
                 //these records don't change location or value so we don't mark them as to be updated
@@ -541,7 +532,9 @@ where
         };
 
         
-        let max_right_insert_size = min(right_move_size, right_records_len);
+        let free_space = self.max_size + right_move_size - starting_len;
+
+        let max_right_insert_size = min(free_space, right_records_len);
         let max_right_insert_idx = max_right_insert_size + first_free_idx;
         let right_insert_size = if max_right_insert_idx > self.max_size {
             max_right_insert_idx - self.max_size
@@ -550,13 +543,7 @@ where
             max_right_insert_size
         };
 
-        println!("First free index: {}", first_free_idx);
-        println!("Max right insert size: {}", max_right_insert_size);
-        println!("Max right insert index: {}", max_right_insert_idx);
-        println!("Right insert size: {}", right_insert_size);
-
         if first_free_idx < self.max_size && right_records_len > 0{
-            println!("Right insert");
             for idx in 0..right_insert_size {
                 let record = right_records[idx].clone();
                 let id = record.get_id();
@@ -577,7 +564,6 @@ where
         // remove values which were not overridden by the right_records
         // since there are not enough values in right records
         if max_right_insert_idx < starting_len {
-            println!("Remove overflown");
             let remove_len = starting_len - max_right_insert_idx;
             
             for _ in 0..remove_len {
