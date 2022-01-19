@@ -6,10 +6,12 @@ use store_view::View;
 use std::marker::PhantomData;
 
 use gtk::Box;
+use gtk::Button;
 use gtk::CheckButton;
 use gtk::Label;
 use gtk::Orientation;
 use gtk::prelude::BoxExt;
+use gtk::prelude::ButtonExt;
 use gtk::prelude::CheckButtonExt;
 use gtk::prelude::EntryExt;
 use gtk::prelude::EntryBufferExtManual;
@@ -48,6 +50,7 @@ pub enum TaskMsg {
         complete: bool,
         id: Id<Task>,
     },
+    Delete(Id<Task>),
     New,
 }
 
@@ -56,6 +59,7 @@ pub enum TaskMsg {
 pub struct TaskWidgets {
     checkbox: CheckButton,
     label: Label,
+    delete_button: Button,
     root: Box,
 }
 
@@ -136,14 +140,37 @@ where
             .margin_end(12)
             .margin_bottom(12)
             .label(&record.description)
+            .hexpand(true)
+            .xalign(0.0)
             .build();
+
+        let delete_button = Button::builder()
+            .margin_top(12)
+            .margin_start(12)
+            .margin_end(12)
+            .margin_bottom(12)
+            .icon_name("user-trash-symbolic")
+            .build();
+            
+        delete_button.add_css_class("flat");
+
+        {
+            let sender = sender.clone();
+            let id = record.get_id();
+
+            delete_button.connect_clicked(move |_| {
+                send!(sender, TaskMsg::Delete(id));
+            });
+        }
 
         root.append(&checkbox);
         root.append(&label);
+        root.append(&delete_button);
 
         TaskWidgets {
             checkbox,
             label,
+            delete_button,
             root,
         }
     }
@@ -187,6 +214,10 @@ where
                     tasks.send(StoreMsg::Commit(updated));
                 }
             },
+            TaskMsg::Delete(id) => {
+                let tasks = &view_model.tasks;
+                tasks.send(StoreMsg::Delete(id));
+            }
         }
     }
 
