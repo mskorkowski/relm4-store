@@ -14,14 +14,14 @@ use crate::store::TasksBuilder;
 use crate::view::MainWindowViewModel;
 
 fn main() -> Result<()> {
-    log4rs::init_file("relm4-store-examples/examples/todo_1/etc/log4rs.yaml", Default::default()).unwrap();
+    log4rs::init_file("relm4-store-examples/examples/todo_2/etc/log4rs.yaml", Default::default()).unwrap();
 
     log::info!("");
-    log::info!("Todo 1 example!");
+    log::info!("Todo 2 example!");
     log::info!("");
 
     
-    let app_id = "store.relm4.example.todo-1";
+    let app_id = "store.relm4.example.todo-2";
     
     gtk::init().expect("Couldn't initialize gtk");
     let application = gtk::Application::builder()

@@ -1,6 +1,7 @@
 //! Contains various configurations for the dummy data store ready for use in your tests
-mod basic;
+mod add;
 mod add_multistep;
+mod remove;
 
 #[cfg(test)]
 mod tests;

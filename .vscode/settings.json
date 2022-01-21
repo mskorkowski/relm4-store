@@ -1,9 +1,13 @@
 {
     "cSpell.words": [
         "Deque",
+        "hexpand",
+        "multistep",
         "overallocate",
         "titlebar",
-        "upsert"
+        "upsert",
+        "vexpand",
+        "xalign"
     ],
     "cSpell.ignoreWords": [
         "asciiart",

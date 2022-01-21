@@ -82,7 +82,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<C
         View::new(store, size, redraw_sender)
     }
 
-    fn generate(
+    fn init_view(
         record: &Task,
         _position: Position,
         sender: Sender<TaskMsg>,
@@ -130,7 +130,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<C
     }
 
     /// Function called when record is modified.
-    fn update_record(
+    fn view(
         record: Task,
         _position: Position,
         widgets: &Self::RecordWidgets,
@@ -138,7 +138,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<C
         widgets.checkbox.set_active(record.completed);
 
         let attrs = widgets.label.attributes().unwrap_or_default();
-        attrs.change(gtk::pango::Attribute::new_strikethrough(record.completed));
+        attrs.change(gtk::pango::AttrInt::new_strikethrough(record.completed));
         widgets.label.set_attributes(Some(&attrs));
     }
 
@@ -148,7 +148,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype for TasksListViewModel<C
     ) {}
 
     /// Get the outermost widget from the widgets.
-    fn get_root(widgets: &Self::RecordWidgets) -> &Self::Root {
+    fn root_widget(widgets: &Self::RecordWidgets) -> &Self::Root {
         &widgets.root
     }
 

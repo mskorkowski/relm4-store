@@ -1,4 +1,3 @@
-mod data_container;
 mod data_store;
 
 use reexport::log;
@@ -18,6 +17,8 @@ use relm4::factory::FactoryView;
 
 use record::Id;
 
+use collections::WindowChangeset;
+use collections::DataContainer;
 use store::DataStore;
 use store::StoreViewPrototype;
 use store::Position;
@@ -26,9 +27,7 @@ use store::window::StoreState;
 use store::window::WindowBehavior;
 use store::window::WindowTransition;
 
-use self::data_container::DataContainer;
 
-use super::window_changeset::WindowChangeset;
 use super::widgets;
 
 /// View of the store
@@ -214,7 +213,7 @@ where
     /// to the right.
     /// 
     /// Data are marked as removed if they exist and are in range [pos, pos+by)
-    /// Data are marked as to be updated if they are in the range [pos+by, container.len())
+    /// Data are marked as to be updated if they are in the range [pos+by, range.end)
     fn remove_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, pos: usize, by: usize) {
         let (range_start, range_end) = {
             let range = self.range.borrow();
@@ -240,6 +239,105 @@ where
         view.remove_right(changeset, position, by, data);
     }
 
+    /// Removes by elements ending at `pos` and if there are data in the store brings segments from the left hand side
+    /// to the view.
+    /// 
+    /// Remove left is more involving then remove right since there is an extra case when there is not enough records from
+    /// left side and we also need to fill up from right side. For example
+    /// 
+    /// - range is from 1-11
+    /// - remove left is at position 4 by 3 (removal range is [1,4))
+    /// 
+    /// We have only one record to the left to fill up the space at position 0. All other needs to be filled up from the right hand side
+    /// 
+    /// To fill up the released space we need to request `[range.start-by, range.start)` of data from the store and place them
+    /// to the left.
+    /// 
+    /// Data are marked as removed if they exist and are in range [pos-by, pos)
+    /// Data are marked as to be updated if they are in the range [pos, container.len())
+    fn remove_left(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, pos: usize, by: usize) {
+        log::trace!("Remove left");
+        log::trace!("\tPos: {}", pos);
+        log::trace!("\tBy: {}", by);
+        println!();
+        println!("Remove left");
+        println!("\tPos: {}", pos);
+        println!("\tBy: {}", by);
+
+        let (range_start, range_end) = {
+            let range = self.range.borrow();
+            (*range.start(), *range.end())
+        };
+
+        log::trace!("\tRange start: {}", range_start);
+        log::trace!("\tRange end: {}", range_end);
+        println!("\tRange start: {}", range_start);
+        println!("\tRange end: {}", range_end);
+
+        let mut view = self.view.borrow_mut();
+        let container_position = pos - range_start;
+
+        log::trace!("\tContainer position: {}", container_position);
+        println!("\tContainer position: {}", container_position);
+
+        let range_of_changes_start = if container_position < by {
+            //range can't start before 0
+            0
+        } 
+        else {
+            container_position - by
+        };
+
+        let range_of_changes = Range::new(
+            range_of_changes_start,
+            container_position //container position is first not removed
+        );
+        let left_data = if !range_of_changes.is_empty() && range_start > 0 {
+            let range_of_changes_len = range_of_changes.len();
+            let left_range = if range_of_changes_len > range_start {
+                let length = range_of_changes_len - range_start;
+                Range::new(0, length)
+            }
+            else {
+                Range::new(range_start - range_of_changes_len, range_start)
+            };
+            println!("Left range: {:?}", left_range);
+            self.store.get_range(&left_range)
+        }
+        else {
+            vec![]
+        };
+        
+
+        log::trace!("\tRange of changes: {}", range_of_changes);
+        log::trace!("\tLeft data: {:#?}", left_data);
+        println!("\tRange of changes: {}", range_of_changes);
+        println!("\tLeft data: {:#?}", left_data);
+
+        let new_range = Range::new(
+            range_start, range_end
+        ).to_left(range_of_changes.len());
+        self.range.replace(new_range);
+
+        let right_data = if range_start < by {
+            let by_right = by - range_start;
+            
+            let right_range = Range::new(
+                new_range.end() - by_right, *new_range.end()
+            );
+            
+            self.store.get_range(&right_range)
+        } 
+        else {
+            vec![]
+        };
+
+        log::trace!("\tRight data: {:#?}", right_data);
+        println!("\tRight data: {:#?}", right_data);
+
+        view.remove_left(changeset, container_position, by, left_data, right_data);
+    }
+
     fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore>::Record> {
         let mut changeset = WindowChangeset::default();
 
@@ -262,7 +360,7 @@ where
                         StoreViewMsg::Update(id) => {
                             let mut view = self.view.borrow_mut();
                             if let Some(record) = self.store.get(id) {
-                                changeset.ids_to_update.insert(*id);
+                                changeset.update(*id);
                                 view.update(record);
                             }
                         },
@@ -282,9 +380,9 @@ where
                     log::trace!("Insert right");
                     self.insert_right(&mut changeset, pos, by);
                 }
-                WindowTransition::RemoveLeft{pos: _, by: _} => {
-                    log::error!("RemoveLeft - unimplemented yet");
-                    self.reload(&mut changeset);
+                WindowTransition::RemoveLeft{pos, by} => {
+                    log::trace!("RemoveLeft");
+                    self.remove_left(&mut changeset, pos, by);
                 }
                 WindowTransition::RemoveRight{pos, by} => {
                     log::trace!("RemoveRight");
@@ -405,13 +503,13 @@ where
         let old_order_len = old_order.len();
 
         let WindowChangeset{
-            widgets_to_remove,
+            ids_to_remove,
             ids_to_add,
             ids_to_update,
             reload: _,
         } = self.compile_changes();
 
-        if widgets_to_remove.is_empty() && ids_to_add.is_empty() && ids_to_update.is_empty() {
+        if ids_to_remove.is_empty() && ids_to_add.is_empty() && ids_to_update.is_empty() {
             //if all changes leads to identity then return
             return
         }
@@ -434,8 +532,8 @@ where
                 log::trace!("[StoreViewImplementation::generate] Id to add: {:?}", id);
                 if let Some(record) = self.get(id) {
                     log::trace!("[StoreViewImplementation::generate] Got record {:?}", record);
-                    let new_widgets = Configuration::generate(&record, position, sender.clone());
-                    let widgets_root = Configuration::get_root(&new_widgets);
+                    let new_widgets = Configuration::init_view(&record, position, sender.clone());
+                    let widgets_root = Configuration::root_widget(&new_widgets);
 
                     let root = if widgets.is_empty() || position.0 == *range.start() {
                         log::trace!("[StoreViewImplementation::generate] Adding first element");
@@ -445,7 +543,7 @@ where
                         log::trace!("[StoreViewImplementation::generate] Adding non first element");
                         let prev_idx = (position - 1 - *range.start()).0;
                         log::info!("Index of previous elements: {}", prev_idx);
-                        let prev_id = view_order.get_order_idx((position - 1 - *range.start()).0);
+                        let prev_id = view_order.get_record_id_at((position - 1 - *range.start()).0);
                         let prev = widgets.get(prev_id).unwrap();
                         view.insert_after(widgets_root, &prev.root)
                     };
@@ -464,20 +562,20 @@ where
                 
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
-                        <Configuration as StoreViewPrototype>::update_record(record, position, &widget.widgets);
+                        <Configuration as StoreViewPrototype>::view(record, position, &widget.widgets);
                         if old_order_len > position.0 && old_order[position.0] != *id {
                             // things got reordered so we need to remove widget from old place and attach it to the new one
                             if let Some(widget) = widgets.remove(id) {
                                 view.remove(&widget.root);
                                 let root = if position.0 == *range.start() {
-                                    view.push_front(Configuration::get_root(&widget.widgets))
+                                    view.push_front(Configuration::root_widget(&widget.widgets))
                                 }
                                 else {
                                     let prev_idx = (position - 1 - *range.start()).0;
                                     log::info!("Index of previous elements: {}", prev_idx);
-                                    let prev_id = view_order.get_order_idx((position - 1 - *range.start()).0);
+                                    let prev_id = view_order.get_record_id_at((position - 1 - *range.start()).0);
                                     let prev = widgets.get(prev_id).unwrap();
-                                    view.insert_after(Configuration::get_root(&widget.widgets), &prev.root)
+                                    view.insert_after(Configuration::root_widget(&widget.widgets), &prev.root)
                                 };
 
                                 widgets.insert(
@@ -498,7 +596,7 @@ where
             position = position + 1;
         }
 
-        for id in widgets_to_remove {
+        for id in ids_to_remove {
             if let Some(widget) = widgets.remove(&id) {
                 view.remove(&widget.root);
             }

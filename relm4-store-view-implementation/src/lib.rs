@@ -9,7 +9,6 @@
 
 mod implementation;
 mod widgets;
-mod window_changeset;
 
 use reexport::glib;
 use reexport::log;
@@ -37,7 +36,6 @@ use store::StoreId;
 use store::StoreSize;
 use store::StoreViewPrototype;
 use store::redraw_messages::RedrawMessages;
-pub use window_changeset::WindowChangeset;
 use store::Pagination;
 
 /// StoreView implementation
@@ -225,14 +223,14 @@ where
     type Root = Configuration::Root;
     type View = Configuration::View;
 
-    fn generate(
+    fn init_view(
         &self,
         key: &<Self::Factory as Factory<Self, Self::View>>::Key,
         sender: Sender<<Configuration::ViewModel as ViewModel>::Msg>,
     ) -> Self::Widgets {
         let model = self.get(key).expect("Key doesn't point to the model in the store while generating! WTF?");
         let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
-        Configuration::generate(&model, position, sender)
+        Configuration::init_view(&model, position, sender)
     }
 
     /// Set the widget position upon creation, useful for [`gtk::Grid`] or similar.
@@ -246,19 +244,19 @@ where
     }
 
     /// Function called when self is modified.
-    fn update(
+    fn view(
         &self,
         key: &<Self::Factory as Factory<Self, Self::View>>::Key,
         widgets: &Self::Widgets,
     ) {
         let model = self.get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
         let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
-        <Configuration as StoreViewPrototype>::update_record(model, position, widgets)
+        <Configuration as StoreViewPrototype>::view(model, position, widgets)
     }
 
     /// Get the outermost widget from the widgets.
-    fn get_root(widgets: &Self::Widgets) -> &Self::Root {
-        Configuration::get_root(widgets)
+    fn root_widget(widgets: &Self::Widgets) -> &Self::Root {
+        Configuration::root_widget(widgets)
     }
 }
 
