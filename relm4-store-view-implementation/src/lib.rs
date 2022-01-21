@@ -9,7 +9,6 @@
 
 mod implementation;
 mod widgets;
-mod window_changeset;
 
 use reexport::glib;
 use reexport::log;
@@ -37,7 +36,6 @@ use store::StoreId;
 use store::StoreSize;
 use store::StoreViewPrototype;
 use store::redraw_messages::RedrawMessages;
-pub use window_changeset::WindowChangeset;
 use store::Pagination;
 
 /// StoreView implementation

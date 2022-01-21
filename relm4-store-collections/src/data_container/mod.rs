@@ -14,6 +14,8 @@
 #[cfg(test)]
 mod tests;
 
+mod window_changeset;
+
 use reexport::log;
 
 use std::cmp::min;
@@ -25,7 +27,7 @@ use std::ops::Range;
 
 use record::Id;
 
-use crate::WindowChangeset;
+pub use window_changeset::WindowChangeset;
 
 /// Data container for the store view implementation
 /// 
@@ -85,7 +87,7 @@ use crate::WindowChangeset;
 /// 
 /// If your id's are much shorter then 50 characters and this wastes memory that's a good indicator that your database design
 /// probably needs rethinking.
-pub(crate) struct DataContainer<Record>
+pub struct DataContainer<Record>
 where
     Record: 'static + ?Sized + record::Record + std::fmt::Debug,
 {
@@ -101,7 +103,8 @@ impl<Record> DataContainer<Record>
 where
     Record: 'static + record::Record + std::fmt::Debug,
 {
-    pub(crate) fn new(max_size: usize) -> Self {
+    /// Creates new instance of the DataContainer with given maximum size
+    pub fn new(max_size: usize) -> Self {
         let dc = DataContainer{
             data: HashMap::default(),
             order: Vec::default(),
@@ -125,21 +128,27 @@ where
         assert!(self.max_size >= self.len(), "DataContainer size can't exceed max size");
     }
 
-    pub(crate) fn record_ids(&self) -> Keys<'_, Id<Record>, Record> {
+    /// Returns iterator with id's of records in the container
+    pub fn record_ids(&self) -> Keys<'_, Id<Record>, Record> {
         self.data.keys()
     }
 
-    pub(crate) fn ordered_record_ids(&self) -> Iter<'_, Id<Record>> {
+    /// Returns iterator with id's of records in the container in order in which they should be shown 
+    pub fn ordered_record_ids(&self) -> Iter<'_, Id<Record>> {
         self.order.iter()
     }
 
-    pub(crate) fn clear(&mut self) {
+    /// Removes all data from the container
+    pub fn clear(&mut self) {
         self.data.clear();
         self.order.clear();
         self.invariants();
     }
 
-    pub(crate) fn reload(&mut self, changeset: &mut WindowChangeset<Record>, records: Vec<Record>) {
+    /// Removes all data from the container and adds up to `[max_size][DataContainer::max_size]` of values from `records`
+    /// 
+    /// Data which were removed are added to the `changeset`
+    pub fn reload(&mut self, changeset: &mut WindowChangeset<Record>, records: Vec<Record>) {
         let mut old_order = HashSet::new(); 
         old_order.extend(self.order.clone());
 
@@ -182,7 +191,7 @@ where
     /// - **changeset** structure holding information which elements of the view require update
     /// - **position** index at which first record will be inserted
     /// - **records** ordered vector holding values to be inserted
-    pub(crate) fn insert_right(
+    pub fn insert_right(
         &mut self, 
         changeset: &mut WindowChangeset<Record>, 
         position: usize, 
@@ -255,7 +264,7 @@ where
     /// - **changeset** structure holding information which elements of the view require update
     /// - **position** index at which last record will be inserted
     /// - **records** ordered vector holding values to be inserted
-    pub(crate) fn insert_left(
+    pub fn insert_left(
         &mut self,
         changeset: &mut WindowChangeset<Record>, 
         position: usize, 
@@ -325,7 +334,7 @@ where
     /// - **changeset** structure holding information which elements of the view require update
     /// - **position** index at which first record will be removed
     /// - **records** ordered vector holding values to be inserted
-    pub(crate) fn remove_right(
+    pub fn remove_right(
         &mut self,
         changeset: &mut WindowChangeset<Record>, 
         position: usize,
@@ -440,7 +449,7 @@ where
     /// - **left_records** ordered vector holding values to be inserted from the left. These are not a "new" records. They are records existing in the
     ///     data store before
     /// - **right_records** ordered vector holding value to be inserted from the right if there is not enough values
-    pub(crate) fn remove_left(
+    pub fn remove_left(
         &mut self,
         changeset: &mut WindowChangeset<Record>, 
         position: usize,
@@ -575,22 +584,26 @@ where
         }
     }
 
-    pub(crate) fn len(&self) -> usize {
+    /// Returns current length of the container
+    pub fn len(&self) -> usize {
         self.order.len()
     }
 
-    pub(crate) fn update(&mut self, r: Record) {
+    /// Updates given record if it exists in the data container
+    pub fn update(&mut self, r: Record) {
         let id = r.get_id();
         if self.data.contains_key(&id) {
             self.data.insert(id, r);
         }
     }
 
-    pub(crate) fn get_order_idx(&self, idx: usize) -> &Id<Record>{
-        &self.order[idx]
+    /// Returns `nth` record id as data are ordered
+    pub fn get_record_id_at(&self, nth: usize) -> &Id<Record>{
+        &self.order[nth]
     }
 
-    pub(crate) fn get_record(&self, id: &Id<Record>) -> Option<&Record> {
+    /// Returns record for given id
+    pub fn get_record(&self, id: &Id<Record>) -> Option<&Record> {
         self.data.get(id)
     }
 

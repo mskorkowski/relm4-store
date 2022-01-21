@@ -14,13 +14,16 @@
     unreachable_pub
 )]
 
-mod tree;
+mod data_container;
+
+pub use data_container::DataContainer;
+pub use data_container::WindowChangeset;
+
+// mod tree;
+
+// pub use tree::Tree;
+// pub use tree::TreeConfiguration;
 
 
-
-pub use tree::Tree;
-pub use tree::TreeConfiguration;
-
-
-// REMOVE FROM EXPORTS
-pub use tree::TreeImpl;
+// // REMOVE FROM EXPORTS
+// pub use tree::TreeImpl;

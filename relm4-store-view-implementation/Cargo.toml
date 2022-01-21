@@ -14,6 +14,7 @@ license = "Apache-2.0 OR MIT"
 reexport = { path = "../relm4-store-reexport", package = "relm4-store-reexport", version="0.1.0-beta.1" }
 record = { path = "../relm4-store-record", package = "relm4-store-record", version="0.1.0-beta.1" }
 store = { path = "../relm4-store", package = "relm4-store", version="0.1.0-beta.1" }
+collections = { path = "../relm4-store-collections", package = "relm4-store-collections", version="0.1.0-beta.1" }
 
 [dev-dependencies]
 backend_dummy = { path = "../relm4-store-backend-dummy", package = "relm4-store-backend-dummy" }
