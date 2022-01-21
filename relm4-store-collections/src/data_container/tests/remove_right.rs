@@ -2,7 +2,7 @@ use backend_dummy::test_cases::TestRecord;
 use record::Record;
 
 use crate::WindowChangeset;
-use crate::implementation::data_container::DataContainer;
+use crate::data_container::DataContainer;
 
 use super::test_data::TestData;
 

@@ -1,4 +1,3 @@
-mod data_container;
 mod data_store;
 
 use reexport::log;
@@ -18,6 +17,8 @@ use relm4::factory::FactoryView;
 
 use record::Id;
 
+use collections::WindowChangeset;
+use collections::DataContainer;
 use store::DataStore;
 use store::StoreViewPrototype;
 use store::Position;
@@ -26,9 +27,7 @@ use store::window::StoreState;
 use store::window::WindowBehavior;
 use store::window::WindowTransition;
 
-use self::data_container::DataContainer;
 
-use super::window_changeset::WindowChangeset;
 use super::widgets;
 
 /// View of the store
@@ -544,7 +543,7 @@ where
                         log::trace!("[StoreViewImplementation::generate] Adding non first element");
                         let prev_idx = (position - 1 - *range.start()).0;
                         log::info!("Index of previous elements: {}", prev_idx);
-                        let prev_id = view_order.get_order_idx((position - 1 - *range.start()).0);
+                        let prev_id = view_order.get_record_id_at((position - 1 - *range.start()).0);
                         let prev = widgets.get(prev_id).unwrap();
                         view.insert_after(widgets_root, &prev.root)
                     };
@@ -574,7 +573,7 @@ where
                                 else {
                                     let prev_idx = (position - 1 - *range.start()).0;
                                     log::info!("Index of previous elements: {}", prev_idx);
-                                    let prev_id = view_order.get_order_idx((position - 1 - *range.start()).0);
+                                    let prev_id = view_order.get_record_id_at((position - 1 - *range.start()).0);
                                     let prev = widgets.get(prev_id).unwrap();
                                     view.insert_after(Configuration::root_widget(&widget.widgets), &prev.root)
                                 };
