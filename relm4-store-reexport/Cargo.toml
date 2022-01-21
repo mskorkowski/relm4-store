@@ -1,7 +1,7 @@
 [package]
 name="relm4-store-reexport"
 description = "Holds all dependencies for relm4-store in single place"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 edition = "2021"
 keywords = ["gui", "gtk", "gtk4", "relm4"]
 categories = ["gui"]
