@@ -91,9 +91,9 @@ This method is responsible for creating instance of the store view. In here you 
 
 #### `relm4::factory::FactoryPrototype`
 
-Next we implemented `generate`, `update_record`, `position` and `get_root` methods. Three methods `generate`, `position`, `get_root` are the same as in `FactoryPrototype`. `update_record` is the `update` method from `FactoryPrototype`.
+Next we implemented `init_view`, `view`, `position` and `root_widget` methods. All four methods are equivalents of the methods with the same name in `FactoryPrototype`.
 
-#### `update` and `init_view_model`
+#### `relm4::ComponentUpdate`
 
 This method is equivalent of `update` for `ComponentUpdate`.  `init_view_model` is `init_model` from `ComponentUpdate`.
 
@@ -117,7 +117,7 @@ Second is
 {{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:212:215}}
 ```
 
-In here we've named container handling our list of tasks. It's important so the component knows which element to provide to relm4's `Factory` generate method.
+In here we've named container handling our list of tasks. It's important so the component knows which element to provide to relm4's `Factory::init_view` method.
 
 Rest is classic relm4.
 

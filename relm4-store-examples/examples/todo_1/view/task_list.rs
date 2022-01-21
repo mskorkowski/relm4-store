@@ -135,7 +135,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype
     }
 
     /// Function called when record is modified.
-    fn view_record(
+    fn view(
         record: Task,
         _position: Position,
         widgets: &Self::RecordWidgets,
@@ -157,7 +157,7 @@ impl<Config: TasksListConfiguration> StoreViewPrototype
         &widgets.root
     }
 
-    fn view(
+    fn update(
         view_model: &mut Self::ViewModel, 
         msg: <Self as ViewModel>::Msg, 
         _sender: Sender<<Self as ViewModel>::Msg>

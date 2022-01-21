@@ -164,7 +164,7 @@ where
             receiver.attach(Some(&context), move |msg| {
                 if let Ok(mut view_model) = handler_view_model.try_borrow_mut() {
                     if let Ok(mut container) = handler_container.try_borrow_mut() {
-                        Configuration::view(&mut view_model, msg, handler_sender.clone());
+                        Configuration::update(&mut view_model, msg, handler_sender.clone());
                         container.view(&view_model, handler_sender.clone());
                         send!(handler_redraw_sender, RedrawMessages::Redraw);
                     }

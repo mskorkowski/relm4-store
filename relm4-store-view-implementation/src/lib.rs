@@ -251,7 +251,7 @@ where
     ) {
         let model = self.get(key).expect("Key doesn't point to the model in the store while updating! WTF?");
         let position = self.get_position(&model.get_id()).expect("Unsynchronized view with store! WTF?");
-        <Configuration as StoreViewPrototype>::view_record(model, position, widgets)
+        <Configuration as StoreViewPrototype>::view(model, position, widgets)
     }
 
     /// Get the outermost widget from the widgets.
