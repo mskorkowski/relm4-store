@@ -65,6 +65,8 @@ pub trait StoreViewPrototype
 
     /// Creates instance of the [Self::RecordWidgets] responsible for displaying `record`
     /// at the `position`
+    /// 
+    /// This method is equivalent of [FactoryPrototype::init_view][relm4::factory::FactoryPrototype::init_view]
     fn init_view(
         record: &<Self::Store as DataStore>::Record,
         position: Position,
@@ -73,14 +75,18 @@ pub trait StoreViewPrototype
 
     /// Function called when record in store view is modified and you need to 
     /// synchronize the state of the view with data in the model
-    fn view_record(
+    /// 
+    /// This method is equivalent of [FactoryPrototype::view][relm4::factory::FactoryPrototype::view]
+    fn view(
         model: <Self::Store as DataStore>::Record,
         position: Position,
         widgets: &Self::RecordWidgets,
     );
 
     /// Function called when component received a message
-    fn view(
+    /// 
+    /// This method is equivalent of [ComponentUpdate::update][relm4::ComponentUpdate::update]
+    fn update(
         view_model: &mut Self::ViewModel,
         msg: <Self::ViewModel as ViewModel>::Msg,
         sender: Sender<<Self::ViewModel as ViewModel>::Msg>,
@@ -89,17 +95,23 @@ pub trait StoreViewPrototype
     /// Creates new instance of [StoreViewPrototype]
     /// 
     /// If you wish to use store view in widgets you must save it in your model
+    /// 
+    /// This method is equivalent of [ComponentUpdate::init_model][relm4::ComponentUpdate::init_model]
     fn init_view_model(parent_view_model: &Self::ParentViewModel, store_view: &Self::StoreView) -> Self::ViewModel;
 
     /// Returns position of record inside the widget
     /// 
     /// Useful for [gtk::Grid]
+    /// 
+    /// This method is equivalent of [FactoryPrototype::position][relm4::factory::FactoryPrototype::position]
     fn position(
         model: <Self::Store as DataStore>::Record, 
         position: Position,
     ) -> <Self::View as FactoryView<Self::Root>>::Position;
 
     /// Get the outermost widget from the widgets.
+    /// 
+    /// This method is equivalent of [FactoryPrototype::root_widget][relm4::factory::FactoryPrototype::root_widget]
     fn root_widget(widgets: &Self::RecordWidgets) -> &Self::Root;
 }
 

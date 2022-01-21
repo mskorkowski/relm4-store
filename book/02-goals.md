@@ -3,8 +3,8 @@
 - [ ] Window behavior on data changes
   - [ ] Window transitions
     - [x] Add new record
-    - [ ] Slide
-    - [ ] Remove
+    - [ ] Slide/reorder
+    - [x] Remove
   - [ ] View follows transitions
 - [ ] Relative scrolling
 - [ ] Sorting
@@ -32,29 +32,6 @@
   - [x] Replaces relm4 factory
   - [ ] Event propagation to the listeners of the view
 
-## User friendliness
-
-These goals are making usage of the library easier
-
-- [ ] Book
-  - [x] Todo 1
-  - [ ] Todo 2
-  - [ ] Todo 3
-  - [ ] Todo 4
-- [ ] Examples
-  - [x] Todo 1 - really simple todo
-  - [x] Todo 2 - todo 1 with pagination
-  - [x] Todo 4 - todo 2 with sorting
-  - [x] Window behavior - todo 4 many times over
-  
-- [x] rustdoc
-
 ## Missing things
 
-- [ ] Remove records, for now you can reload the view after remove
-- [ ] Reorder records, for now you can reload the view after move
-- [x] Add records
-  - [x] At the beginning
-  - [x] At the end
-  - [x] Somewhere between the elements
-- [x] Remove dependency to StoreMsg if things are not related to store
+- [ ] Reorder records, for now it triggers reload on the store

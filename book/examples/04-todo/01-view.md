@@ -21,7 +21,7 @@ We need to add `Delete` event to the `TaskMsg` so we can track which record shou
 {{#include ../../../relm4-store-examples/examples/todo_4/view/task_list.rs:45:52}}
 ```
 
-Now we need to update the `generate` method in the implementation of the `StoreViewPrototype` for `TaskListViewModel`
+Now we need to update the `init_view` method in the implementation of the `StoreViewPrototype` for `TaskListViewModel`
 
 ```rust,noplaypen
 {{#include ../../../relm4-store-examples/examples/todo_4/view/task_list.rs:85:86}}
@@ -45,7 +45,7 @@ it will send `TaskMsg::Delete`. To make ui nice we in the `label` we've added to
 
 This will expand horizontally and text will be left aligned.
 
-Last thing left to do is to handle the changes in the `update` method in the implementation of `StoreViewPrototype` for `TaskListViewModel`.
+Last thing left to do is to handle the changes in the `view` method in the implementation of `StoreViewPrototype` for `TaskListViewModel`.
 Compiler will tell you exactly where.
 
 ```rust,noplaypen

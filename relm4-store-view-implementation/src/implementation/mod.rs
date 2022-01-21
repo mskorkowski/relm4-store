@@ -562,7 +562,7 @@ where
                 
                 if let Some(record) = self.get(id) {
                     if let Some( widget ) = widgets.get_mut(id) {
-                        <Configuration as StoreViewPrototype>::view_record(record, position, &widget.widgets);
+                        <Configuration as StoreViewPrototype>::view(record, position, &widget.widgets);
                         if old_order_len > position.0 && old_order[position.0] != *id {
                             // things got reordered so we need to remove widget from old place and attach it to the new one
                             if let Some(widget) = widgets.remove(id) {

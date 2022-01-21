@@ -53,9 +53,9 @@ impl<Window: 'static + WindowBehavior + Debug> StoreViewPrototype for TestConfig
         }
     }
 
-    fn view_record(_model: <Self::Store as store::DataStore>::Record, _position: Position, _widgets: &Self::RecordWidgets) {}
+    fn view(_model: <Self::Store as store::DataStore>::Record, _position: Position, _widgets: &Self::RecordWidgets) {}
 
-    fn view(_view_model: &mut Self::ViewModel, _msg: (), _sender: Sender<()>) {}
+    fn update(_view_model: &mut Self::ViewModel, _msg: (), _sender: Sender<()>) {}
     
     fn init_view_model(_parent_view_model: &Self::ParentViewModel, _store_view: &Self::StoreView) -> Self::ViewModel {}
 
