@@ -82,7 +82,7 @@ impl WindowBehavior for PositionTrackingWindow  {
         }
         else { // Case 3
             WindowTransition::RemoveRight {
-                pos: p.value() - state.page.start(),
+                pos: p.value(),
                 by: 1,
             }
         }
