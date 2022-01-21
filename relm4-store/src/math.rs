@@ -13,7 +13,7 @@ use std::fmt::Result;
 use std::ops::Deref;
 
 /// One dimensional range [start, end)
-#[derive(Clone,Copy)]
+#[derive(Clone,Copy,PartialEq,Eq)]
 pub struct Range{
     start: usize,
     end: usize

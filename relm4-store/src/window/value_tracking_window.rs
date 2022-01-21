@@ -93,13 +93,13 @@ impl WindowBehavior for ValueTrackingWindow {
             if p < &half {
                 // p is at the deletion point and pos should point to first not deleted record so +1
                 WindowTransition::RemoveLeft{
-                    pos: p.value() - state.page.start() + 1,
+                    pos: p.value() + 1,
                     by: 1,
                 }
             }
             else {
                 WindowTransition::RemoveRight{
-                    pos: p.value() - state.page.start(),
+                    pos: p.value(),
                     by: 1,
                 }
             }

@@ -260,6 +260,10 @@ where
         log::trace!("Remove left");
         log::trace!("\tPos: {}", pos);
         log::trace!("\tBy: {}", by);
+        println!();
+        println!("Remove left");
+        println!("\tPos: {}", pos);
+        println!("\tBy: {}", by);
 
         let (range_start, range_end) = {
             let range = self.range.borrow();
@@ -268,11 +272,14 @@ where
 
         log::trace!("\tRange start: {}", range_start);
         log::trace!("\tRange end: {}", range_end);
+        println!("\tRange start: {}", range_start);
+        println!("\tRange end: {}", range_end);
 
         let mut view = self.view.borrow_mut();
         let container_position = pos - range_start;
 
         log::trace!("\tContainer position: {}", container_position);
+        println!("\tContainer position: {}", container_position);
 
         let range_of_changes_start = if container_position < by {
             //range can't start before 0
@@ -284,10 +291,19 @@ where
 
         let range_of_changes = Range::new(
             range_of_changes_start,
-            container_position -1 //container position is first not removed
+            container_position //container position is first not removed
         );
-        let left_data = if !range_of_changes.is_empty() {
-            self.store.get_range(&range_of_changes)
+        let left_data = if !range_of_changes.is_empty() && range_start > 0 {
+            let range_of_changes_len = range_of_changes.len();
+            let left_range = if range_of_changes_len > range_start {
+                let length = range_of_changes_len - range_start;
+                Range::new(0, length)
+            }
+            else {
+                Range::new(range_start - range_of_changes_len, range_start)
+            };
+            println!("Left range: {:?}", left_range);
+            self.store.get_range(&left_range)
         }
         else {
             vec![]
@@ -296,6 +312,8 @@ where
 
         log::trace!("\tRange of changes: {}", range_of_changes);
         log::trace!("\tLeft data: {:#?}", left_data);
+        println!("\tRange of changes: {}", range_of_changes);
+        println!("\tLeft data: {:#?}", left_data);
 
         let new_range = Range::new(
             range_start, range_end
@@ -314,6 +332,9 @@ where
         else {
             vec![]
         };
+
+        log::trace!("\tRight data: {:#?}", right_data);
+        println!("\tRight data: {:#?}", right_data);
 
         view.remove_left(changeset, container_position, by, left_data, right_data);
     }
