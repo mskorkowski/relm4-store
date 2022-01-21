@@ -1,6 +1,6 @@
 [package]
 name = "relm4-store-view-implementation"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 edition = "2021"
 description = "Store view implementation for relm4-store"
 keywords = ["gui", "gtk", "gtk4", "relm4"]
