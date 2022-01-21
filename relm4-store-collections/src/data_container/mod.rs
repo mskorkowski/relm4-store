@@ -116,18 +116,6 @@ where
         dc
     }
 
-    fn invariants(&self) {
-        for r in &self.order {
-            assert!(self.data.contains_key(r), "`data` must contain records for all id's in `order`. Missing record for: {:?}", r);
-        }
-
-        for record in self.data.values() {
-            assert!(self.order.contains(&record.get_id()), "Order must contain entries for all records in data. Missing order entry for {:#?}", record);
-        }
-        assert_eq!(self.data.len(), self.order.len(), "`data` and `order` collections must have the same length");
-        assert!(self.max_size >= self.len(), "DataContainer size can't exceed max size");
-    }
-
     /// Returns iterator with id's of records in the container
     pub fn record_ids(&self) -> Keys<'_, Id<Record>, Record> {
         self.data.keys()
@@ -415,11 +403,10 @@ where
             max_insert_range_delta
         };
 
-        for idx in 0..max_insert_delta {
+        for (idx, record) in records.iter().take(max_insert_delta).enumerate() {
             let pos = end_of_move+idx;
-            let record = records[idx].clone();
             let id = record.get_id();
-            self.data.insert(id, record);
+            self.data.insert(id, record.clone());
             if pos >= self.order.len() {
                 self.order.push(id);
             }
@@ -555,14 +542,13 @@ where
         };
 
         if first_free_idx < self.max_size && right_records_len > 0{
-            for idx in 0..right_insert_size {
-                let record = right_records[idx].clone();
-                let id = record.get_id();
+            for (idx, record) in right_records.iter().take(right_insert_size).enumerate() {
                 let order_idx = first_free_idx + idx;
+                let id = record.get_id();
 
-                self.data.insert(id, record);
+                self.data.insert(id, record.clone());
                 if order_idx < starting_len {
-                    self.order[first_free_idx+idx] = id;
+                    self.order[order_idx] = id;
                 }
                 else {
                     self.order.push(id);
@@ -582,11 +568,18 @@ where
                 self.order.pop();
             }
         }
+
+        self.invariants();
     }
 
     /// Returns current length of the container
     pub fn len(&self) -> usize {
         self.order.len()
+    }
+
+    /// Returns `true` if container doesn't have any records
+    pub fn is_empty(&self) -> bool {
+        self.order.is_empty()
     }
 
     /// Updates given record if it exists in the data container
@@ -656,4 +649,42 @@ where
 
         sf.finish()
     }
+}
+
+
+/*****************************************************************************************************************************************************\
+ *                                                                                                                                                   *
+ * CONDITIONAL COMPILATION                                                                                                                           *
+ *                                                                                                                                                   *
+ * For debug/dev builds `DataContainer::invariants()` contains checks to make sure everything works as expected. This tests are expensive so they    *
+ * are disabled for release builds                                                                                                                   *
+ *                                                                                                                                                   *
+ * For release builds `DataContainer::invariants()` is a noop                                                                                        *
+ *                                                                                                                                                   *
+\*****************************************************************************************************************************************************/
+#[cfg(debug_assertions)]
+impl<Record> DataContainer<Record>
+where
+    Record: 'static + record::Record + std::fmt::Debug,
+{
+    fn invariants(&self) {
+        for r in &self.order {
+            assert!(self.data.contains_key(r), "`data` must contain records for all id's in `order`. Missing record for: {:?}", r);
+        }
+
+        for record in self.data.values() {
+            assert!(self.order.contains(&record.get_id()), "Order must contain entries for all records in data. Missing order entry for {:#?}", record);
+        }
+        assert_eq!(self.data.len(), self.order.len(), "`data` and `order` collections must have the same length");
+        assert!(self.max_size >= self.len(), "DataContainer size can't exceed max size");
+    }
+}
+
+#[cfg(not(debug_assertions))]
+impl<Record> DataContainer<Record>
+where
+    Record: 'static + record::Record + std::fmt::Debug,
+{
+    #[inline]
+    fn invariants(&self) {}
 }
