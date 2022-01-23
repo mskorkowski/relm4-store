@@ -43,4 +43,18 @@ Store view is also part of the relm4's model. It represents current state of the
 
 ### Database analogy
 
-Other way of thinking about store is to look at it as database table. The store view in such a case is result of the `SELECT` statement on the store.
+Other way of thinking about store is to look at it as database table. The store view in such a case is result of the `SELECT * FROM data_store` statement on the store.
+
+When you think about interaction between store view and the data store in pseudocode
+
+```text
+while true {
+  await data_store.changed();
+  view = SELECT * FROM data_store LIMIT view.start,view.page_size;
+  for record in view {
+    if record.has_changed() {
+       update_ui(record);
+    }
+  }
+}
+```

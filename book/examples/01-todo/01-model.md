@@ -16,11 +16,9 @@ This is minimal implementation for record. It consist of
 2. Implementation for `Task` which provides method `new`.
 3. Implementation of `record::Record` (`relm4_store_record::Record`)
 
-## `Task` structure
+## `Task`
 
-First we defined structure `Task`. It has a three fields. First is an `id`. This filed is used to identify the record in the store. This `id` must be stable during whole application execution. Later we have a description. It will contain the description of the task. At the end there is boolean flag which will let us know if the task has been completed or not.
-
-Task derives two traits `Clone` and `Debug`. `Debug` is obvious. `Clone` is consequence of what `Record` is. Since you can save a record in the database it's equivalent of `Clone`. What's more without `Clone` it would be hard to reason about multiple views showing same record. It also allows to escape the lifetime boundary issues. Store is a collection of records. So whatever you will place there should have `'static` lifetime. Now let's think about keeping references to the records with `'static` lifetime which are being removed while application is being run. It sounds like going against what `'static' is. It isn't but requires so many lifetime annotations and makes code way overcomplicated.
+In [Application architecture](./../04-application_architecture) we've made analogy that store is a table in database. Following it `Task` is the record in the database. To store the record in database it needs an id. Same applies to records stored in the store. Later we have a description. It will contain the content of the task. At the end there is boolean flag which will let us know if the task has been completed or not.
 
 ## Implementation of `Task`
 

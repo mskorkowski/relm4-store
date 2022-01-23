@@ -14,7 +14,7 @@ Other way of thinking about Store is as really simple database specialized in ma
 
 ## What is the price to use it?
 
-Now it's pre-alpha state. So you shouldn't use it at all. :)
+Now it's early-beta state. So you can experiment with it. Create some code but I would not use it for anything serious.
 
 To tell the truth, the target is to make it possible to use it with minimum costs and integrate it as tightly to the relm4 as possible. Currently it's not trivial to use stores since many things are not completed.
 

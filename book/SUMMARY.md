@@ -27,6 +27,8 @@
   - [Simple todo 4](./examples/04-todo/README.md)
     - [View](./examples/04-todo/01-view.md)
     - [configuration](./examples/04-todo/02-configuration.md)
+- [Store](./store/README.md)
+  - [Id](./store/01-id.md)
 - [Releases](./releases/README.md)
   - [0.1-beta.2](./releases/0.1-beta.2.md)
   - [0.1-beta.1](./releases/0.1-beta.1.md)
