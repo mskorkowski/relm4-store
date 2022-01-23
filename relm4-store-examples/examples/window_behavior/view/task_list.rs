@@ -58,6 +58,7 @@ pub enum TaskMsg {
 #[allow(dead_code)]
 pub struct TaskWidgets {
     checkbox: CheckButton,
+    position: Label,
     label: Label,
     delete_button: Button,
     root: Box,
@@ -107,7 +108,7 @@ where
 
     fn init_view(
         record: &Task,
-        _position: Position,
+        record_position: Position,
         sender: Sender<TaskMsg>,
     ) -> Self::RecordWidgets {
         let root = Box::builder()
@@ -133,6 +134,14 @@ where
                 });
             });
         }
+
+        let position = Label::builder()
+            .margin_top(12)
+            .margin_start(12)
+            .margin_end(12)
+            .margin_bottom(12)
+            .label(&format!("Idx: {}", record_position.0))
+            .build();
 
         let label = Label::builder()
             .margin_top(12)
@@ -163,11 +172,13 @@ where
             });
         }
 
+        root.append(&position);
         root.append(&checkbox);
         root.append(&label);
         root.append(&delete_button);
 
         TaskWidgets {
+            position,
             checkbox,
             label,
             delete_button,
