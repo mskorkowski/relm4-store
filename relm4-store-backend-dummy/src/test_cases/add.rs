@@ -54,6 +54,35 @@ impl TestCases {
         }
     }
 
+    /// returns configuration which adds 1 new record at nth position
+    pub fn add_nth(size: usize, nth: usize, count: usize) -> TestCase {
+        let mut tc = TestCases::with_initial_size(size);
+
+        let mut result_data = tc.data.clone();
+        let mut events: Vec<StoreViewMsg<TestRecord>> = vec![];
+
+        for idx in 0..count {
+            let record = TestRecord::since(&format!("Added test record {}", idx+1), 1);
+            if nth+idx == result_data.len() {
+                result_data.push(record.clone());
+            }
+            else {
+                result_data.insert(nth+idx, record.clone());
+            }
+            tc.data.push(record);
+            events.push(StoreViewMsg::NewAt(Position(nth+idx)));
+        }
+
+        
+
+        tc.configuration.steps.push(Step{
+            data: result_data,
+            events,
+        });
+
+        tc
+    }
+
     /// Add single record to the empty store
     /// 
     /// `[] -> [r1]`
