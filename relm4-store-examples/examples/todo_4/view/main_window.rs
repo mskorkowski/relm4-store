@@ -61,7 +61,7 @@ impl Components<MainWindowViewModel> for MainWindowComponents {
             tasks_list: StoreViewComponent::new(
                 parent_model,
                 parent_model.tasks.clone(),
-                StoreSize::Items(50)
+                StoreSize::Items(10)
             ),
         }
     }
