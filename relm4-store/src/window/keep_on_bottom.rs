@@ -32,6 +32,9 @@ impl WindowBehavior for KeepOnBottom {
 
     fn remove(state: &StoreState<'_>, p: &Point) -> WindowTransition {
         if p < state.page.start() {
+            WindowTransition::TransitionLeft(1)
+        }
+        else if p >= state.page.end() {
             WindowTransition::Identity
         }
         else {

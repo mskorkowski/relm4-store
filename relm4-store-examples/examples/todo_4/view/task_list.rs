@@ -35,7 +35,7 @@ use store::FactoryContainerWidgets;
 use store::Position;
 use store::StoreViewInnerComponent;
 use store::StoreViewPrototype;
-use store::window::{PositionTrackingWindow, KeepOnBottom};
+use store::window::PositionTrackingWindow;
 
 use crate::model::Task;
 use crate::store::Tasks;
@@ -90,7 +90,7 @@ where Config: TasksListConfiguration + 'static,
     type RecordWidgets = TaskWidgets;
     type Root = gtk::Box;
     type View = gtk::Box;
-    type Window = KeepOnBottom;
+    type Window = PositionTrackingWindow;
     type ViewModel = Self;
     type ParentViewModel = Config::ParentViewModel;
 
