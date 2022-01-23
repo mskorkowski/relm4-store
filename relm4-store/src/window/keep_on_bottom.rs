@@ -20,7 +20,7 @@ impl WindowBehavior for KeepOnBottom {
         }
         else if p >= state.page.end() {
             //p is not visible already, then slide by 1 to the right
-            WindowTransition::SlideRight(1)
+            WindowTransition::TransitionRight(1)
         }
         else {
             WindowTransition::InsertRight{

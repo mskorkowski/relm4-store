@@ -259,10 +259,6 @@ where
         log::trace!("Remove left");
         log::trace!("\tPos: {}", pos);
         log::trace!("\tBy: {}", by);
-        println!();
-        println!("Remove left");
-        println!("\tPos: {}", pos);
-        println!("\tBy: {}", by);
 
         let (range_start, range_end) = {
             let range = self.range.borrow();
@@ -271,14 +267,11 @@ where
 
         log::trace!("\tRange start: {}", range_start);
         log::trace!("\tRange end: {}", range_end);
-        println!("\tRange start: {}", range_start);
-        println!("\tRange end: {}", range_end);
 
         let mut view = self.view.borrow_mut();
         let container_position = pos - range_start;
 
         log::trace!("\tContainer position: {}", container_position);
-        println!("\tContainer position: {}", container_position);
 
         let range_of_changes_start = if container_position < by {
             //range can't start before 0
@@ -311,8 +304,6 @@ where
 
         log::trace!("\tRange of changes: {}", range_of_changes);
         log::trace!("\tLeft data: {:#?}", left_data);
-        println!("\tRange of changes: {}", range_of_changes);
-        println!("\tLeft data: {:#?}", left_data);
 
         let new_range = Range::new(
             range_start, range_end
@@ -333,9 +324,49 @@ where
         };
 
         log::trace!("\tRight data: {:#?}", right_data);
-        println!("\tRight data: {:#?}", right_data);
 
         view.remove_left(changeset, container_position, by, left_data, right_data);
+    }
+
+    fn transition_left(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, by: usize) {
+        let view = self.view.borrow();
+        let order = view.ordered_record_ids();
+        for id in order {
+            changeset.update(*id);
+        }
+
+        let range_start = {
+            let range = self.range.borrow();
+            *range.start()
+        };
+
+        let new_start = if range_start < by {
+            0
+        }
+        else {
+            range_start - by
+        };
+
+        let new_range = Range::new(new_start, new_start + self.size);
+        self.range.replace(new_range);
+    }
+
+    fn transition_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, by: usize) {
+        let view = self.view.borrow();
+        let order = view.ordered_record_ids();
+        for id in order {
+            changeset.update(*id);
+        }
+
+        let range_start= {
+            let range = self.range.borrow();
+            *range.start()
+        };
+
+        let new_start = range_start + by;
+
+        let new_range = Range::new(new_start, new_start + self.size);
+        self.range.replace(new_range);
     }
 
     fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore>::Record> {
@@ -387,6 +418,14 @@ where
                 WindowTransition::RemoveRight{pos, by} => {
                     log::trace!("RemoveRight");
                     self.remove_right(&mut changeset, pos, by);
+                }
+                WindowTransition::TransitionLeft(by) => {
+                    log::trace!("TransitionLeft");
+                    self.transition_left(&mut changeset, by);
+                }
+                WindowTransition::TransitionRight(by) => {
+                    log::trace!("TransitionRight");
+                    self.transition_right(&mut changeset, by);
                 }
                 WindowTransition::SlideLeft(by) => {
                     log::trace!("SlideLeft");
@@ -461,6 +500,7 @@ where
                         self.reload(&mut changeset);
                     }
                 }
+                
             }
         }
 

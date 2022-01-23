@@ -181,7 +181,7 @@ mod somwhere_in_the_middle {
                 assert_eq!(range, Range::new(9, 19));
                 let data = store_view.get_view_data();
                 assert_eq!(data[0].position, Position(9));
-                assert_eq!(data[0].record, test_data[9]);
+                assert_eq!(data[0].record, test_data[10]);
                 assert_eq!(data[9].position, Position(18));
                 assert_eq!(data[9].record, test_data[19]);
             })
