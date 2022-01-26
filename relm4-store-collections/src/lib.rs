@@ -2,9 +2,10 @@
 //! 
 //! Currently implemented collections:
 //! 
-//! | Collection | Description |
-//! |:-----------|:------------|
-//! | [Tree]     | BTree with order statistics |
+//! | Collection | Description | Status |
+//! |:-----------|:------------|:-------|
+//! | [data_container::DataContainer] | Collection which can be repurposed to implement custom [store::StoreViews]. | Complete |
+//! | [Tree]     | BTree with order statistics | Work in progress, not exported yet |
 //! 
 
 #![warn(
