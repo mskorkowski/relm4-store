@@ -58,6 +58,7 @@ pub enum TaskMsg {
 #[allow(dead_code)]
 pub struct TaskWidgets {
     checkbox: CheckButton,
+    position: Label,
     label: Label,
     delete_button: Button,
     root: Box,
@@ -107,7 +108,7 @@ where
 
     fn init_view(
         record: &Task,
-        _position: Position,
+        record_position: Position,
         sender: Sender<TaskMsg>,
     ) -> Self::RecordWidgets {
         let root = Box::builder()
@@ -133,6 +134,14 @@ where
                 });
             });
         }
+
+        let position = Label::builder()
+            .margin_top(12)
+            .margin_start(12)
+            .margin_end(12)
+            .margin_bottom(12)
+            .label(&format!("Idx: {}", record_position.0))
+            .build();
 
         let label = Label::builder()
             .margin_top(12)
@@ -163,11 +172,13 @@ where
             });
         }
 
+        root.append(&position);
         root.append(&checkbox);
         root.append(&label);
         root.append(&delete_button);
 
         TaskWidgets {
+            position,
             checkbox,
             label,
             delete_button,
@@ -178,7 +189,7 @@ where
     /// Function called when record is modified.
     fn view(
         record: Task,
-        _position: Position,
+        position: Position,
         widgets: &Self::RecordWidgets,
     ) {
         widgets.checkbox.set_active(record.completed);
@@ -186,6 +197,7 @@ where
         let attrs = widgets.label.attributes().unwrap_or_default();
         attrs.change(gtk::pango::AttrInt::new_strikethrough(record.completed));
         widgets.label.set_attributes(Some(&attrs));
+        widgets.position.set_label(&format!("Idx: {}", position.0));
     }
 
     fn position(

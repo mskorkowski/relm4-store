@@ -15,6 +15,7 @@ use reexport::log;
 use reexport::relm4::factory::Factory;
 use reexport::relm4::factory::FactoryPrototype;
 use reexport::relm4::factory::FactoryView;
+use store::Position;
 use store::StoreView;
 use store::StoreViewMsg;
 use store::math::Range;
@@ -161,8 +162,8 @@ where
     }
 
     fn set_window(&self, range: store::math::Range) {
-        self.implementation.borrow().set_window(range);
-        self.send(StoreViewMsg::Reload);
+        // self.implementation.borrow().set_window(range);
+        self.send(StoreViewMsg::SlideTo(Position(*range.start())));
     }
 
     fn get_view_data(&self) -> Vec<store::RecordWithLocation<Self::Record>> {

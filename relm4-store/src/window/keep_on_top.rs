@@ -35,11 +35,17 @@ impl WindowBehavior for KeepOnTop {
     /// remove right is returned since all possible data can
     /// only come from right side
     fn remove(state: &StoreState<'_>, p: &Point) -> WindowTransition {
-        if p >= state.page.end() {
+        if p >= state.page.end() { // Case 2
             WindowTransition::Identity
         }
-        else {
-            WindowTransition::RemoveRight{
+        else if p < state.page.start() { // Case 1
+            WindowTransition::RemoveRight {
+                pos: *state.page.start(),
+                by: 1,
+            }
+        }
+        else { // Case 3
+            WindowTransition::RemoveRight {
                 pos: p.value(),
                 by: 1,
             }

@@ -1,7 +1,7 @@
 use backend_dummy::test_cases::TestRecord;
 use record::Record;
 
-use crate::WindowChangeset;
+use crate::data_container::WindowChangeset;
 use crate::data_container::DataContainer;
 
 

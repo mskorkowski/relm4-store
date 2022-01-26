@@ -1,7 +1,7 @@
 use backend_dummy::test_cases::TestRecord;
 use record::Record;
 
-use crate::WindowChangeset;
+use crate::data_container::WindowChangeset;
 use crate::data_container::DataContainer;
 
 use super::test_data::TestData;
@@ -797,14 +797,6 @@ mod records_3 {
         assert!(changeset.add_contains(&right_records[1].get_id()));
     }
 
-    /// ----------------------------------
-    /// ----------------------------------
-    /// ----------------------------------
-    /// ----------------------------------
-    /// ----------------------------------
-    /// ----------------------------------
-    /// ----------------------------------
-
     #[test]
     fn remove_last_element_insert_2_2() {
         let TestData{ records, mut container } = TestData::new(RECORDS_CNT, MAX_SIZE);
@@ -863,5 +855,51 @@ mod records_3 {
         container.remove_left(&mut changeset, MAX_SIZE, MAX_SIZE, left_records, right_records);
 
         assert_eq!(container.len(), 0);
+    }
+}
+
+mod full {
+    use super::Record;
+    use super::TestData;
+    use super::TestRecord;
+    use super::WindowChangeset;
+
+    const RECORDS_CNT: usize = 10;
+    const MAX_SIZE: usize = 10;
+
+    /// Position: 10
+    /// By: 5
+    /// Starting len: 10
+    /// Left records len: 5
+    /// Right records len: 0
+    /// Data len: 10
+    /// Order len: 10
+    #[test]
+    fn remove_5_at_10_starting_len_5_left_records_5_right_records_0() {
+        let TestData{ records, mut container } = TestData::new(RECORDS_CNT, MAX_SIZE);
+        let mut changeset: WindowChangeset<TestRecord> = WindowChangeset::default();
+
+        let left_records = vec![
+            TestRecord::since("New record 1", 1),
+            TestRecord::since("New record 2", 2),
+            TestRecord::since("New record 3", 3),
+            TestRecord::since("New record 4", 4),
+            TestRecord::since("New record 5", 5),
+        ];
+        let right_records = vec![];
+
+        container.remove_left(&mut changeset, 10, 5, left_records.clone(), right_records);
+
+        assert_eq!(container.len(), 10);
+
+        for idx in 0..5 {
+            assert_eq!(container.data[&left_records[idx].get_id()], left_records[idx]);
+            assert_eq!(container.data[&records[idx].get_id()], records[idx]);
+            assert_eq!(container.order[idx], left_records[idx].get_id());
+            assert_eq!(container.order[idx+5], records[idx].get_id());
+            assert!(changeset.remove_contains(&records[idx+5].get_id()));
+            assert!(changeset.add_contains(&left_records[idx].get_id()));
+            assert!(!changeset.update_contains(&records[idx].get_id()));
+        }
     }
 }
