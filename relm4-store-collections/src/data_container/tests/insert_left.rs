@@ -18,7 +18,7 @@ fn insert_left_first_record_at_0() {
 
     dc.insert_left(&mut changeset, position, records);
 
-    dc.invariants();
+    dc.invariants("insert_left_first_record_at_0");
     assert_eq!(dc.len(), 1);
     assert_eq!(dc.data[&record.get_id()], record);
     assert_eq!(dc.order[0], record.get_id());
@@ -35,7 +35,7 @@ fn insert_left_second_two_records() {
 
     dc.insert_left(&mut changeset, position, records);
 
-    dc.invariants();
+    dc.invariants("insert_left_second_two_records");
     assert_eq!(dc.len(), 2);
     assert_eq!(dc.data[&record1.get_id()], record1);
     assert_eq!(dc.data[&record2.get_id()], record2);
@@ -55,7 +55,7 @@ fn insert_left_three_records() {
 
     dc.insert_left(&mut changeset, position, records);
 
-    dc.invariants();
+    dc.invariants("insert_left_three_records");
     assert_eq!(dc.len(), 3);
     assert_eq!(dc.data[&record1.get_id()], record1);
     assert_eq!(dc.data[&record2.get_id()], record2);
@@ -71,7 +71,7 @@ mod max_size_3 {
     use backend_dummy::test_cases::TestRecord;
     use record::Record;
     
-    use crate::WindowChangeset;
+    use super::WindowChangeset;
 
     use super::TestData;
 

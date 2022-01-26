@@ -30,4 +30,6 @@ pub enum StoreViewMsg<T: Record> {
     Update(Id<T>),
     /// Store should be reloaded fully, dump all data, indexes, etc... and reload the data
     Reload,
+    /// Move the window such that first shown record is at given position
+    SlideTo(Position),
 }

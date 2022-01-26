@@ -1,9 +1,9 @@
 mod data_store;
 
+
 use reexport::log;
 use reexport::relm4;
 use store::StoreViewMsg;
-
 
 use std::cell::RefCell;
 // use std::cmp::min;
@@ -17,8 +17,8 @@ use relm4::factory::FactoryView;
 
 use record::Id;
 
-use collections::WindowChangeset;
-use collections::DataContainer;
+use collections::data_container::WindowChangeset;
+use collections::data_container::DataContainer;
 use store::DataStore;
 use store::StoreViewPrototype;
 use store::Position;
@@ -106,6 +106,20 @@ where
         self.changes.borrow_mut().push(message);
     }
 
+    fn slide_transition(&self, position: &Position, state: &StoreState<'_>) -> WindowTransition {
+        let page_start = *state.page.start();
+
+        if page_start > position.0 {
+            WindowTransition::SlideLeft(page_start - position.0)
+        }
+        else if page_start < position.0 {
+            WindowTransition::SlideRight(position.0 - page_start)
+        }
+        else {
+            WindowTransition::Identity
+        }
+    }
+
     fn convert_to_transition(&self, state: &StoreState<'_>, message: &StoreViewMsg<<Configuration::Store as DataStore>::Record>) -> WindowTransition {
         match message {
             StoreViewMsg::NewAt(p) => {
@@ -119,6 +133,9 @@ where
             },
             StoreViewMsg::Remove(at) => {
                 Configuration::Window::remove(state, &at.to_point())
+            },
+            StoreViewMsg::SlideTo(position) => {
+                self.slide_transition(position, state)
             },
             StoreViewMsg::Update(_) => {
                 WindowTransition::Identity
@@ -385,7 +402,7 @@ where
             let left_range = Range::new(*new_range.start(), new_range.start() + real_move_size);
             let left_data = self.store.get_range(&left_range);
 
-            view.remove_left(changeset, *new_range.end(), real_move_size, left_data, vec![]);
+            view.remove_left(changeset, self.size, real_move_size, left_data, vec![]);
         }
     }
 

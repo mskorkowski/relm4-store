@@ -2,9 +2,12 @@
 mod add;
 mod add_multistep;
 mod remove;
+mod test_case_builder;
 
 #[cfg(test)]
 mod tests;
+
+pub use test_case_builder::TestCaseBuilder;
 
 use record::DefaultIdAllocator;
 use record::TemporaryIdAllocator;
@@ -16,9 +19,6 @@ use uuid::Uuid;
 use record::Id;
 use record::Record;
 use super::DummyBackendConfiguration;
-
-
-
 
 /// Sample record for test cases
 #[derive(Debug, Clone)]
