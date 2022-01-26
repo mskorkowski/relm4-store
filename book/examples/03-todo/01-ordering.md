@@ -68,7 +68,7 @@ All examples start with data store containing data `[0->a, 1->b, 2->c, 3->d, 4->
 If you add the record at `1->a'` then change would be ignored since distance from the end of the data did not change.
 
 If you add the record inside the data range for example `3->c'` then the data store looks like `[0->a, 1->b, 2->c, 3->c', 4->d, 5->e, 6->f, 7->g]` this means that
-keep the distance from the end we need to slide the window to the right so the range would be `[3, 6)` which in consequence show the user a data `[c', d, e]`.
+to keep the distance from the end we need to slide the window to the right so the range would be `[3, 6)` which in consequence show the user a data `[c', d, e]`.
 
 If you add the record at position after the data range shown to the user, for example `7->h` to keep the distance from the end we need to slide the window to the
 right so user would see `[d. e. f]`.
