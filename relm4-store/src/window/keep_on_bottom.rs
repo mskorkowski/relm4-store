@@ -16,14 +16,14 @@ pub struct KeepOnBottom {}
 impl WindowBehavior for KeepOnBottom {
     fn insert(state: &StoreState<'_>, p: &Point) -> WindowTransition {
         if p < state.page.start() {
-            WindowTransition::Identity
+            WindowTransition::TransitionRight(1)
         }
         else if p >= state.page.end() {
             //p is not visible already, then slide by 1 to the right
             WindowTransition::SlideRight(1)
         }
         else {
-            WindowTransition::InsertRight{
+            WindowTransition::InsertLeft{
                 pos: p.value(),
                 by: 1,
             }
@@ -32,6 +32,9 @@ impl WindowBehavior for KeepOnBottom {
 
     fn remove(state: &StoreState<'_>, p: &Point) -> WindowTransition {
         if p < state.page.start() {
+            WindowTransition::TransitionLeft(1)
+        }
+        else if p >= state.page.end() {
             WindowTransition::Identity
         }
         else {

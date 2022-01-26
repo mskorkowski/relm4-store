@@ -3,7 +3,7 @@
 use backend_dummy::test_cases::TestRecord;
 use record::Record;
 
-use crate::WindowChangeset;
+use crate::data_container::WindowChangeset;
 use crate::data_container::DataContainer;
 use super::test_data::TestData;
 
@@ -17,7 +17,7 @@ fn insert_right_first_record() {
 
     dc.insert_right(&mut changeset, position, records);
 
-    dc.invariants();
+    dc.invariants("insert_right_first_record");
     assert_eq!(dc.data[&record.get_id()], record);
     assert_eq!(dc.order[0], record.get_id());
 }
@@ -33,7 +33,7 @@ fn insert_right_second_two_records() {
 
     dc.insert_right(&mut changeset, position, records);
 
-    dc.invariants();
+    dc.invariants("insert_right_second_two_records");
     assert_eq!(dc.len(), 2);
     assert_eq!(dc.data[&record1.get_id()], record1);
     assert_eq!(dc.data[&record2.get_id()], record2);
@@ -53,7 +53,7 @@ fn insert_right_three_records() {
 
     dc.insert_right(&mut changeset, position, records);
 
-    dc.invariants();
+    dc.invariants("insert_right_three_records");
     assert_eq!(dc.len(), 3);
     assert_eq!(dc.data[&record1.get_id()], record1);
     assert_eq!(dc.data[&record2.get_id()], record2);
@@ -69,7 +69,7 @@ mod max_size_3 {
     use backend_dummy::test_cases::TestRecord;
     use record::Record;
     
-    use crate::WindowChangeset;
+    use super::WindowChangeset;
 
     use super::TestData;
 

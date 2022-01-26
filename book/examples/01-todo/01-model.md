@@ -1,5 +1,19 @@
 # Model
 
+## What you will read about in this chapter?
+
+If you use `relm4-store` there are two kind of models, "business model" and "view model". View model is what in `relm4` implements `relm4::Model`. It describes state of the whole application. Business model is just a part of the view model.
+
+> `relm4::Model` doesn't distinguish between information wherever window is opened and task in todo application is complete.
+
+In this chapter we will ignore the view model.
+
+Business model are the data your application must handle to solve a specific problem your application is designed for. For a todo it would be tasks and all the data related to managing tasks. In this chapter you will see how to implement a business model data. Structures which describe business model implement `relm4-store::Record`. To make it easier to disambiguate between view model and business model in later parts `model` will be referring to the `view model` and `records` will be a reference to the `business model`.
+
+In the database analogy records are rows in database table.
+
+## What are we going to do in this chapter?
+
 We are writing simple todo list. So we need to talk about tasks!
 
 Task will have the description and status wherever it's completed or not.
@@ -16,11 +30,9 @@ This is minimal implementation for record. It consist of
 2. Implementation for `Task` which provides method `new`.
 3. Implementation of `record::Record` (`relm4_store_record::Record`)
 
-## `Task` structure
+## `Task`
 
-First we defined structure `Task`. It has a three fields. First is an `id`. This filed is used to identify the record in the store. This `id` must be stable during whole application execution. Later we have a description. It will contain the description of the task. At the end there is boolean flag which will let us know if the task has been completed or not.
-
-Task derives two traits `Clone` and `Debug`. `Debug` is obvious. `Clone` is consequence of what `Record` is. Since you can save a record in the database it's equivalent of `Clone`. What's more without `Clone` it would be hard to reason about multiple views showing same record. It also allows to escape the lifetime boundary issues. Store is a collection of records. So whatever you will place there should have `'static` lifetime. Now let's think about keeping references to the records with `'static` lifetime which are being removed while application is being run. It sounds like going against what `'static' is. It isn't but requires so many lifetime annotations and makes code way overcomplicated.
+In [Application architecture](./../04-application_architecture) we've made analogy that store is a table in database. Following it `Task` is the record in the database. To store the record in database it needs an id. Same applies to records stored in the store. Later we have a description. It will contain the content of the task. At the end there is boolean flag which will let us know if the task has been completed or not.
 
 ## Implementation of `Task`
 
@@ -39,7 +51,7 @@ We can end our business modelling session now, except I like to add some pretty 
 
 ## Implementation of `record::Record` for `Task`
 
-Here is how we implemented the Record structure.
+Here is how we implemented the Record part.
 
 ```rust,noplaypen
 {{#include ../../../relm4-store-examples/examples/todo_1/model/task.rs:22:35}}

@@ -59,6 +59,8 @@ pub trait Record: Clone {
 /// Provides a way to create temporary id's
 pub trait TemporaryIdAllocator: Clone + Debug {
     /// Type of values on which `Id` is based of
+    /// 
+    /// This type defines memory representation of the id for the record
     type Type: Copy + PartialEq + Hash + Eq + std::fmt::Debug;
     /// Returns value of new **temporary** id
     /// 

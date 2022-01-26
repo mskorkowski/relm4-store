@@ -43,7 +43,7 @@ impl WindowBehavior for ValueTrackingWindow {
             WindowTransition::Identity
         }
         else if p <= state.page.start() && state.page.len() == state.view {
-            WindowTransition::SlideRight(1)
+            WindowTransition::TransitionRight(1)
         }
         else {
             let half: usize = (state.page.start() + state.page.end())/2;
@@ -69,7 +69,7 @@ impl WindowBehavior for ValueTrackingWindow {
     ///
     /// ## Case 1: Element removed before `range.start`
     ///
-    /// Nothing to do
+    /// Id's where changed so we need to transition to the left
     ///
     /// ## Case 2: Element removed after range
     ///
@@ -85,8 +85,11 @@ impl WindowBehavior for ValueTrackingWindow {
     ///   Increase index of elements from `p` by 1. Insert p at `p`
     /// ```
     fn remove(state: &StoreState<'_>, p: &Point) -> WindowTransition {
-        if p < state.page.start() || p >= state.page.end() {
+        if p >= state.page.end() { // case 2
             WindowTransition::Identity
+        }
+        else if p < state.page.start() {
+            WindowTransition::TransitionLeft(1)
         }
         else {
             let half: usize = (state.page.start() + state.page.end())/2;
@@ -128,7 +131,7 @@ impl WindowBehavior for ValueTrackingWindow {
             WindowTransition::Identity
         }
         else if moved.start() < state.page.start() {
-            WindowTransition::SlideRight(moved.len())
+            WindowTransition::TransitionRight(moved.len())
         }
         else {
             WindowTransition::InsertRight{

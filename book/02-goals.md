@@ -3,7 +3,8 @@
 - [ ] Window behavior on data changes
   - [ ] Window transitions
     - [x] Add new record
-    - [ ] Slide/reorder
+    - [x] Slide
+    - [ ] Reorder
     - [x] Remove
   - [ ] View follows transitions
 - [ ] Relative scrolling

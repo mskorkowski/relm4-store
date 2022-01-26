@@ -44,10 +44,16 @@ pub enum WindowTransition {
         by: usize,
     },
 
-    /// Move window to the right. No data changes
-    SlideRight(usize),
+    /// Move window to the right. No records where changed. Indexes of records did change
+    TransitionRight(usize),
 
-    /// Move window to the left. No data changes
+    /// Move window to the left. No records where changed. Indexes of records did change
+    TransitionLeft(usize),
+
+    /// Move window to the left, remove `.0` of records from right and add `.0` from left
+    /// Records were not changed. Indexes of records were not changed.
     SlideLeft(usize),
-
+    /// Move window to the right, remove `.0` of records from left and add `.0` from right
+    /// Records were not changed. Indexes of records were not changed.
+    SlideRight(usize),
 }

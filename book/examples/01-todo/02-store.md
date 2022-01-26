@@ -1,5 +1,11 @@
 # Store
 
+## What it is?
+
+Store is a collection of records. In database analogy it would be a table with records.
+
+## Implementation
+
 We need to keep todo data somewhere. So let's crate a first store in file `store/tasks.rs`.
 
 ```rust,noplaypen
