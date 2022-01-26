@@ -7,6 +7,30 @@ Our view will have a two parts. If you know `relm4` you will see lots of similar
 
 I've decided to split the view this way so each part of implementation is easier to understand.
 
+## Store view
+
+In this chapter we will implement our first store view. Store view is responsible for two things
+
+- Selecting elements which should be visible
+- Rendering this elements as fast as possible
+- Making sure that visible elements are the one in store
+
+In database analogy it would be a `SELECT` statement over the store which holds the data. Simplified interaction between the store and the view can be describe in pseudocode like this
+
+```text
+while true {
+  await data_store.changed();
+  view = SELECT * FROM data_store LIMIT view.start,view.page_size;
+  for record in view {
+    if record.has_changed() {
+       update_ui(record);
+    }
+  }
+}
+```
+
+From `relm4` point of view `StoreView` is a kind of factory.
+
 ## List of tasks
 
 All snippets in this section should go to `view/task_list.rs`

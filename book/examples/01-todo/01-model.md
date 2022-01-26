@@ -1,5 +1,17 @@
 # Model
 
+## What you will read about in this chapter?
+
+If you use `relm4-store` there are two kind of models, "business model" and "view model". View model is what in `relm4` implements `relm4::Model`. It describes state of the whole application. Business model is just a part of the view model.
+
+> `relm4::Model` doesn't distinguish between information wherever window is opened and task in todo application is complete.
+
+In this chapter we will ignore the view model.
+
+Business model are the data your application must handle to solve a specific problem your application is designed for. For a todo it would be tasks and all the data related to managing tasks. In this chapter you will see how to implement a business model data. Structures which describe business model implement `relm4-store::Record`. To make it easier to disambiguate between view model and business model in later parts `model` will be referring to the `view model` and `records` will be a reference to the `business model`.
+
+## What are we going to do in this chapter?
+
 We are writing simple todo list. So we need to talk about tasks!
 
 Task will have the description and status wherever it's completed or not.
@@ -37,7 +49,7 @@ We can end our business modelling session now, except I like to add some pretty 
 
 ## Implementation of `record::Record` for `Task`
 
-Here is how we implemented the Record structure.
+Here is how we implemented the Record part.
 
 ```rust,noplaypen
 {{#include ../../../relm4-store-examples/examples/todo_1/model/task.rs:22:35}}
