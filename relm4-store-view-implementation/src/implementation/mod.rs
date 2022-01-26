@@ -109,14 +109,10 @@ where
     fn slide_transition(&self, position: &Position, state: &StoreState<'_>) -> WindowTransition {
         let page_start = *state.page.start();
 
-        if page_start > position.0 {
-            WindowTransition::SlideLeft(page_start - position.0)
-        }
-        else if page_start < position.0 {
-            WindowTransition::SlideRight(position.0 - page_start)
-        }
-        else {
-            WindowTransition::Identity
+        match page_start.cmp(&position.0) {
+            std::cmp::Ordering::Greater => WindowTransition::SlideLeft(page_start - position.0),
+            std::cmp::Ordering::Less => WindowTransition::SlideRight(position.0 - page_start),
+            std::cmp::Ordering::Equal => WindowTransition::Identity,
         }
     }
 

@@ -33,7 +33,7 @@ impl TestCaseBuilder {
     pub fn add_step(mut self) -> Self {
         let last_step_data = {
             let steps = &self.test_case.configuration.steps;
-            if steps.len() > 0 {
+            if !steps.is_empty() {
                 steps[steps.len() - 1].data.clone()
             }
             else {
