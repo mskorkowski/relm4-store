@@ -10,6 +10,8 @@ In this chapter we will ignore the view model.
 
 Business model are the data your application must handle to solve a specific problem your application is designed for. For a todo it would be tasks and all the data related to managing tasks. In this chapter you will see how to implement a business model data. Structures which describe business model implement `relm4-store::Record`. To make it easier to disambiguate between view model and business model in later parts `model` will be referring to the `view model` and `records` will be a reference to the `business model`.
 
+In the database analogy records are rows in database table.
+
 ## What are we going to do in this chapter?
 
 We are writing simple todo list. So we need to talk about tasks!

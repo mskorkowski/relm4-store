@@ -9,11 +9,11 @@ I've decided to split the view this way so each part of implementation is easier
 
 ## Store view
 
-In this chapter we will implement our first store view. Store view is responsible for two things
+In this chapter we will implement our first store view. Store view is responsible for three things
 
-- Selecting elements which should be visible
-- Rendering this elements as fast as possible
-- Making sure that visible elements are the one in store
+- Selecting records which should be visible
+- Rendering widgets for records as fast as possible
+- Making sure that visible records are up to date with store
 
 In database analogy it would be a `SELECT` statement over the store which holds the data. Simplified interaction between the store and the view can be describe in pseudocode like this
 
