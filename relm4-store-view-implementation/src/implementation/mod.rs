@@ -1,9 +1,9 @@
 mod data_store;
 
+
 use reexport::log;
 use reexport::relm4;
 use store::StoreViewMsg;
-
 
 use std::cell::RefCell;
 // use std::cmp::min;
@@ -17,8 +17,8 @@ use relm4::factory::FactoryView;
 
 use record::Id;
 
-use collections::WindowChangeset;
-use collections::DataContainer;
+use collections::data_container::WindowChangeset;
+use collections::data_container::DataContainer;
 use store::DataStore;
 use store::StoreViewPrototype;
 use store::Position;
@@ -106,6 +106,20 @@ where
         self.changes.borrow_mut().push(message);
     }
 
+    fn slide_transition(&self, position: &Position, state: &StoreState<'_>) -> WindowTransition {
+        let page_start = *state.page.start();
+
+        if page_start > position.0 {
+            WindowTransition::SlideLeft(page_start - position.0)
+        }
+        else if page_start < position.0 {
+            WindowTransition::SlideRight(position.0 - page_start)
+        }
+        else {
+            WindowTransition::Identity
+        }
+    }
+
     fn convert_to_transition(&self, state: &StoreState<'_>, message: &StoreViewMsg<<Configuration::Store as DataStore>::Record>) -> WindowTransition {
         match message {
             StoreViewMsg::NewAt(p) => {
@@ -119,6 +133,9 @@ where
             },
             StoreViewMsg::Remove(at) => {
                 Configuration::Window::remove(state, &at.to_point())
+            },
+            StoreViewMsg::SlideTo(position) => {
+                self.slide_transition(position, state)
             },
             StoreViewMsg::Update(_) => {
                 WindowTransition::Identity
@@ -259,10 +276,6 @@ where
         log::trace!("Remove left");
         log::trace!("\tPos: {}", pos);
         log::trace!("\tBy: {}", by);
-        println!();
-        println!("Remove left");
-        println!("\tPos: {}", pos);
-        println!("\tBy: {}", by);
 
         let (range_start, range_end) = {
             let range = self.range.borrow();
@@ -271,14 +284,11 @@ where
 
         log::trace!("\tRange start: {}", range_start);
         log::trace!("\tRange end: {}", range_end);
-        println!("\tRange start: {}", range_start);
-        println!("\tRange end: {}", range_end);
 
         let mut view = self.view.borrow_mut();
         let container_position = pos - range_start;
 
         log::trace!("\tContainer position: {}", container_position);
-        println!("\tContainer position: {}", container_position);
 
         let range_of_changes_start = if container_position < by {
             //range can't start before 0
@@ -301,7 +311,6 @@ where
             else {
                 Range::new(range_start - range_of_changes_len, range_start)
             };
-            println!("Left range: {:?}", left_range);
             self.store.get_range(&left_range)
         }
         else {
@@ -311,8 +320,6 @@ where
 
         log::trace!("\tRange of changes: {}", range_of_changes);
         log::trace!("\tLeft data: {:#?}", left_data);
-        println!("\tRange of changes: {}", range_of_changes);
-        println!("\tLeft data: {:#?}", left_data);
 
         let new_range = Range::new(
             range_start, range_end
@@ -333,9 +340,93 @@ where
         };
 
         log::trace!("\tRight data: {:#?}", right_data);
-        println!("\tRight data: {:#?}", right_data);
 
         view.remove_left(changeset, container_position, by, left_data, right_data);
+    }
+
+    fn transition_left(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, by: usize) {
+        let view = self.view.borrow();
+        let order = view.ordered_record_ids();
+        for id in order {
+            changeset.update(*id);
+        }
+
+        let range = {
+            let range = self.range.borrow();
+            *range
+        };
+
+        let new_range = range.to_left(by);
+
+        self.range.replace(new_range);
+    }
+
+    fn transition_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, by: usize) {
+        let view = self.view.borrow();
+        let order = view.ordered_record_ids();
+        for id in order {
+            changeset.update(*id);
+        }
+
+        let range_start= {
+            let range = self.range.borrow();
+            *range.start()
+        };
+
+        let new_start = range_start + by;
+
+        let new_range = Range::new(new_start, new_start + self.size);
+        self.range.replace(new_range);
+    }
+
+    fn slide_left(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, by: usize) {
+        // This implementation is suboptimal
+        //
+        // We don't check for data overlap and just do a reload it works but can be made much faster
+        let range = {
+            *self.range.borrow()
+        };
+
+        let new_range = range.to_left(by);
+        
+        self.range.replace(new_range);
+        if self.size <= by {
+            //we've scrolled more then a size of a page.
+            log::trace!("Slide left: reload");
+            self.reload(changeset);
+        }
+        else {
+            log::trace!("Slide left: remove_left");
+            let real_move_size = range.start() - new_range.start();
+            let mut view = self.view.borrow_mut();
+            let left_range = Range::new(*new_range.start(), new_range.start() + real_move_size);
+            let left_data = self.store.get_range(&left_range);
+
+            view.remove_left(changeset, self.size, real_move_size, left_data, vec![]);
+        }
+    }
+
+    fn slide_right(&self, changeset: &mut WindowChangeset<<Configuration::Store as DataStore>::Record>, by: usize) {
+        let range = {
+            *self.range.borrow()
+        };
+
+        let new_range = range.to_right(by);
+
+        self.range.replace(new_range);
+        if self.size <= by {
+            log::trace!("Slide right: reload");
+            self.reload(changeset);
+        }
+        else {
+            log::trace!("Slide right: remove_right");
+            
+            let mut view = self.view.borrow_mut();
+            let data_range = Range::new(new_range.end() - by, *new_range.end());
+            let data = self.store.get_range(&data_range);
+
+            view.remove_right(changeset, 0, by, data);
+        }
     }
 
     fn compile_changes(&self) -> WindowChangeset<<Configuration::Store as DataStore>::Record> {
@@ -388,79 +479,24 @@ where
                     log::trace!("RemoveRight");
                     self.remove_right(&mut changeset, pos, by);
                 }
+                WindowTransition::TransitionLeft(by) => {
+                    log::trace!("TransitionLeft");
+                    self.transition_left(&mut changeset, by);
+                }
+                WindowTransition::TransitionRight(by) => {
+                    log::trace!("TransitionRight");
+                    self.transition_right(&mut changeset, by);
+                }
                 WindowTransition::SlideLeft(by) => {
                     log::trace!("SlideLeft");
+                    self.slide_left(&mut changeset, by);
 
-                    // This implementation is suboptimal
-                    //
-                    // We don't check for data overlap and just do a reload it works but can be made much faster
-                    //TODO: Check for data overlap and update what is necessary
-                    let range = {
-                        *self.range.borrow()
-                    };
-
-                    let start = *range.start();
-
-                    let new_range = if start < by {
-                        range.slide(0)
-                    }
-                    else {
-                        range.slide(start - by)
-                    };
-
-                    self.range.replace(new_range);
-
-                    self.reload(&mut changeset);
                 }
                 WindowTransition::SlideRight(by) => {
-                    //exceeds is true if we try to slide outside of available data
-                    let exceeds = {
-                        let range = self.range.borrow();
-                        self.len() >= range.end() + by
-                    };
-
-                    if by > self.size || exceeds {
-                        // Two cases solved here
-                        // 1. Sliding more then page size, so we must reload whole range
-                        // 2. Trying to go outside of data range of the store
-                        //   2.1 There is less data in the store then one page so keep being on the first page
-                        //   2.2 In all other cases stay on the last page
-                        //
-                        // TODO: Check in case 2 if we can reuse the data which already are in the store
-                        //   currently we don't check for data overlap, just force a full reload which might
-                        //   be more expensive then needed
-                        let new_range = {
-                            let range = self.range.borrow();
-                            let new_end = range.end() + by;
-                            if new_end > self.len() {
-                                // Case 2
-                                if self.size > self.len() {
-                                    // Case 2.2
-                                    range.slide(self.len()-self.size)
-                                }
-                                else {
-                                    // Case 2.1
-                                    range.slide(0)
-                                }
-                            }
-                            else {
-                                // Case 1
-                                range.slide(range.start()+by)
-                            }
-                        };
-
-                        self.range.replace(new_range);
-                        self.reload(&mut changeset);
-                    }
-                    else {
-                        let new_range = {
-                            let range = self.range.borrow();
-                            range.slide(range.start() + by)
-                        };
-                        self.range.replace(new_range);
-                        self.reload(&mut changeset);
-                    }
+                    log::trace!("SlideRight");
+                    self.slide_right(&mut changeset, by);
                 }
+                
             }
         }
 

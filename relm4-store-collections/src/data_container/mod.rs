@@ -111,7 +111,7 @@ where
             max_size,
         };
 
-        dc.invariants();
+        dc.invariants("new");
 
         dc
     }
@@ -130,7 +130,7 @@ where
     pub fn clear(&mut self) {
         self.data.clear();
         self.order.clear();
-        self.invariants();
+        self.invariants("clear");
     }
 
     /// Removes all data from the container and adds up to `[max_size][DataContainer::max_size]` of values from `records`
@@ -168,7 +168,7 @@ where
             changeset.remove(id);
         }
 
-        self.invariants();
+        self.invariants("reload");
     }
 
     /// Inserts records to the right of the position
@@ -204,7 +204,7 @@ where
         
         let remove_start_idx = starting_len - for_removal;
         let remove_end_idx = starting_len; //last index to remove (exclusive)
-        
+
         self.mark_removed(changeset, remove_start_idx..remove_end_idx);
 
         // move all preserved id's to the right
@@ -240,7 +240,7 @@ where
             }
         }
 
-        self.invariants();
+        self.invariants("insert_right");
     }
 
 
@@ -311,7 +311,7 @@ where
             }
         }
 
-        self.invariants();
+        self.invariants("insert_left");
     }
 
     /// Removes records to the right of the position
@@ -331,7 +331,7 @@ where
     ) {
         let starting_len = self.len();
         let records_len = records.len();
-
+        
         let end_of_move = if starting_len == 0 || position >= starting_len {
             starting_len
         }
@@ -406,7 +406,9 @@ where
         for (idx, record) in records.iter().take(max_insert_delta).enumerate() {
             let pos = end_of_move+idx;
             let id = record.get_id();
-            self.data.insert(id, record.clone());
+            if let Some(r) = self.data.insert(id, record.clone()) {
+                log::error!("\tRecord already exist in data!: {:?}", r);
+            }
             if pos >= self.order.len() {
                 self.order.push(id);
             }
@@ -416,7 +418,7 @@ where
             changeset.add(id);
         }
 
-        self.invariants();
+        self.invariants("remove_right");
     }
 
     /// Removes records to the left of the position
@@ -506,7 +508,7 @@ where
 
                 let record = left_records[left_idx].clone();
                 let id = record.get_id();
-                self.order[idx] = id;
+                self.order[left_move_size - 1 - idx] = id;
                 self.data.insert(id, record);
                 changeset.add(id);
             }
@@ -569,7 +571,7 @@ where
             }
         }
 
-        self.invariants();
+        self.invariants("remove_left");
     }
 
     /// Returns current length of the container
@@ -667,16 +669,16 @@ impl<Record> DataContainer<Record>
 where
     Record: 'static + record::Record + std::fmt::Debug,
 {
-    fn invariants(&self) {
+    fn invariants(&self, source: &str) {
         for r in &self.order {
-            assert!(self.data.contains_key(r), "`data` must contain records for all id's in `order`. Missing record for: {:?}", r);
+            assert!(self.data.contains_key(r), "{}: `data` must contain records for all id's in `order`. Missing record for: {:?}", source, r);
         }
 
         for record in self.data.values() {
-            assert!(self.order.contains(&record.get_id()), "Order must contain entries for all records in data. Missing order entry for {:#?}", record);
+            assert!(self.order.contains(&record.get_id()), "{}: Order must contain entries for all records in data. Missing order entry for {:#?}", source, record);
         }
-        assert_eq!(self.data.len(), self.order.len(), "`data` and `order` collections must have the same length");
-        assert!(self.max_size >= self.len(), "DataContainer size can't exceed max size");
+        assert_eq!(self.data.len(), self.order.len(), "{}: `data` and `order` collections must have the same length", source);
+        assert!(self.max_size >= self.len(), "{}: DataContainer size can't exceed max size", source);
     }
 }
 
@@ -686,5 +688,5 @@ where
     Record: 'static + record::Record + std::fmt::Debug,
 {
     #[inline]
-    fn invariants(&self) {}
+    fn invariants(&self, source: &str) {}
 }

@@ -1,3 +1,4 @@
+mod add;
 use store::window::KeepOnBottom;
 use crate::common::StoreViewTest;
 

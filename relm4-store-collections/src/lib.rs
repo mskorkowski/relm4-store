@@ -14,10 +14,7 @@
     unreachable_pub
 )]
 
-mod data_container;
-
-pub use data_container::DataContainer;
-pub use data_container::WindowChangeset;
+pub mod data_container;
 
 // mod tree;
 
