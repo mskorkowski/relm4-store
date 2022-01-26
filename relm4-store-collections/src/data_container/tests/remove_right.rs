@@ -1,7 +1,7 @@
 use backend_dummy::test_cases::TestRecord;
 use record::Record;
 
-use crate::WindowChangeset;
+use crate::data_container::WindowChangeset;
 use crate::data_container::DataContainer;
 
 use super::test_data::TestData;
@@ -15,7 +15,7 @@ fn remove_right_from_empty_container() {
     let records = vec![];
 
     dc.remove_right(&mut changeset, 0, 3, records);
-    dc.invariants();
+    dc.invariants("remove_right_from_empty_container");
 
     assert_eq!(dc.len(), 0);
 }
@@ -28,7 +28,7 @@ fn remove_right_from_empty_container_outside_of_the_range() {
     let records = vec![];
 
     dc.remove_right(&mut changeset, 5, 3, records);
-    dc.invariants();
+    dc.invariants("remove_right_from_empty_container");
 
     assert_eq!(dc.len(), 0);
 }

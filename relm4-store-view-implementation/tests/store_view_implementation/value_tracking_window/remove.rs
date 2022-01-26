@@ -126,7 +126,6 @@ mod first_page {
                 let range = store_view.get_window();
                 assert_eq!(range, Range::new(0, 10));
                 let data = store_view.get_view_data();
-                // println!("Data in the view: {:#?}", data);
                 assert_eq!(data[9].position, Position(9));
                 assert_eq!(data[9].record, test_data[10]);
             })
