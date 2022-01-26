@@ -1,7 +1,9 @@
 //! Contains mathematics required to operate data store
 //! 
 //! This module contains structures and traits which allow to compute which part of store view
-//! should be modified so the amount of changes is minimal. 
+//! should be modified so the amount of changes is minimal.
+
+mod tests;
 
 use std::cmp::max;
 use std::cmp::min;
@@ -76,6 +78,42 @@ impl Range {
     /// Returns new range with starts at `start + r`
     pub fn to_right(&self, r: usize) -> Range {
         self.slide(self.start() + r)
+    }
+
+    /// Returns common part of the two ranges
+    /// 
+    /// If there is no common part then it returns `None`.
+    /// 
+    /// List of cases
+    /// | # | Case | Result |
+    /// |:-:|:-----|:-------|
+    /// | 1 | `other` is strictly to the left of the `self` | None |
+    /// | 2 | `other` is strictly to the right of the `self` | None |
+    /// | 3 | `other` is fully contained in `self` | Some(other) |
+    /// | 4 | `self` is fully contained in `other` | Some(self) |
+    /// | 5 | `other.start() <= self.start() < other.end() <= self.end()` | Some(Range(self.start(), other.end())) |
+    /// | 6 | `self.start() <= other.start() < self.end() <= other.end()` | Some(Range(other.start(), self.end())) |
+    /// 
+    pub fn common_part(&self, other: &Range) -> Option<Range> {
+        if other.start() >= self.end() || other.end() <= self.start() { //cases 1 and 2
+            None
+        }
+        else if self.start() <= other.start() { // cases 3 or 6
+            if other.end() <= self.end() { // case 3
+                Some(*other)
+            }
+            else { // case 6
+                Some(Range::new(*other.start(), *self.end()))
+            }
+        }
+        else { // cases 4 or 5
+            if self.end() <= other.end() { // case 4
+                Some(*self)
+            }
+            else { // case 5
+                Some(Range::new(*self.start(), *other.end()))
+            }
+        }
     }
 }
 
