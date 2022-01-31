@@ -11,3 +11,6 @@ edition = "2021"
 [build]
 build-dir = "target/book"
 create-missing = false
+
+[output.html]
+mathjax-support = true
