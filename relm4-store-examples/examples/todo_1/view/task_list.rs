@@ -1,33 +1,16 @@
-use reexport::gtk;
-use reexport::relm4;
-use reexport::relm4_macros;
-use store_view::View;
+use reexport::{gtk, relm4, relm4_macros};
 
-use gtk::Box;
-use gtk::CheckButton;
-use gtk::Label;
-use gtk::Orientation;
-use gtk::prelude::BoxExt;
-use gtk::prelude::CheckButtonExt;
-use gtk::prelude::EntryExt;
-use gtk::prelude::EntryBufferExtManual;
-use gtk::prelude::OrientableExt;
-use gtk::prelude::WidgetExt;
+use gtk::{*, prelude::*};
 
-use relm4::Model as ViewModel;
-use relm4::send;
-use relm4::Sender;
-use relm4::Widgets;
-use relm4::WidgetPlus;
+use relm4::{Model as ViewModel, send, Sender, Widgets, WidgetPlus};
 use relm4_macros::widget;
 
-use record::Id;
-use record::Record;
-use store::StoreViewPrototype;
-use store::FactoryContainerWidgets;
-use store::DataStore;
-use store::Position;
-use store::window::PositionTrackingWindow;
+use record::{Id, Record};
+use store::{
+    DataStore, FactoryContainerWidgets, Position, 
+    StoreViewPrototype, window::PositionTrackingWindow
+};
+use store_view::View;
 
 use crate::model::Task;
 use crate::store::Tasks;

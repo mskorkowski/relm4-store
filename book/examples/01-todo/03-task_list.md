@@ -40,7 +40,7 @@ All snippets in this section should go to `view/task_list.rs`
 There will be a lots of them here. I'm providing them here so they won't obstruct the examples later. We will cover all important parts later in this chapter.
 
 ```rust,noplaypen
-{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:1:33}}
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:1:16}}
 ```
 
 ### Task widget and task list
@@ -48,16 +48,18 @@ There will be a lots of them here. I'm providing them here so they won't obstruc
 Firstly we need to define structures which will keep our widgets around.
 
 ```rust,noplaypen
-{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:35:62}}
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:18:45}}
 ```
 
 Let's discuss it one by one.
 
 The first thing is definition of the `StoreMsg` type. In your code you will interact with store. Main goal of this type alias is to reduce amount of typing. All stores and store views are using `store::StoreMsg` to communicate between each other and using it is only way to affect state of the data store. `store::StoreMsg` is parametrized by the type of Record so you won't be able to send a message of the wrong type to the store.
 
-The second one is `TaskWidgets`. Exactly same structure you would be defining if you would use `relm4` factories. Checkbox to mark task as complete, label to keep task description and a box (root) to keep it together.
+The second one is `TaskMsg`. This enum contains messages related to single task state. `Toggle` will be sent when the task will be marked/unmarked complete. `New` will be sent when user creates new task.
 
-The third one is `TasksListConfiguration`. It's part of the component pattern to allow more then one instance of the component to be shown at the same time. It contains a method `get_tasks` which will return instance of the `store::Store`.
+The third one is `TaskWidgets`. Exactly same structure you would be defining if you would use `relm4` factories. Checkbox to mark task as complete, label to keep task description and a box (root) to keep it together.
+
+The fourth one is `TasksListConfiguration`. It's part of the component pattern to allow more then one instance of the component to be shown at the same time. It contains a method `get_tasks` which will return instance of the `store::Store`.
 
 Finally `TasksListViewModel`. First really interesting things happens here. First attribute is `tasks` it's the data store which keeps all the data. We will need it to notify the store about status changes of the tasks. Second attribute is store_view. It will provide view into your store.
 
@@ -66,7 +68,7 @@ Finally `TasksListViewModel`. First really interesting things happens here. Firs
 This part is obvious
 
 ```rust,noplaypen
-{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:64:68}}
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:47:51}}
 ```
 
 ### `StoreViewPrototype`
@@ -82,16 +84,14 @@ Differences between the `relm4::factory::FactoryPrototype` and `store::StoreView
 | **Data visibility** | All data in the factory are visible. | Only part of data in the Store is visible. `type Window` defines how the view window behaves (more in chapter 2 and 3). |
 | Method signature | Since you implemented the factory for the ViewModel, it takes `self` as an argument. You create a widgets to display `self`. Second is key under which factory is going to find it. Key is unstable and managed by the factory. | It's not bound to `self`. First is record for which widgets should be created. Second is position in the store. Position in the dataset at the time of widget generation. There is no guarantee to get the same widget in the future when asking store for record at the given position. Record is required to hold stable id by implementing `model::Identifialble`. |
 
-Let's create a file `view/task.rs`
-
 ```rust,noplaypen
-{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:70:193}}
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:53:176}}
 ```
 
 Let's look at the first part of `StoreViewPrototype` implementation
 
 ```rust,noplaypen
-{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:73:80}}
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:56:63}}
 ```
 
 | type name | value | meaning |
@@ -110,7 +110,7 @@ Let's look at the first part of `StoreViewPrototype` implementation
 This method is responsible for creating instance of the store view. In here you connect your view with store and make sure your view has all required properties.
 
 ```rust,noplaypen
-{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:82:88}}
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:65:71}}
 ```
 
 #### `relm4::factory::FactoryPrototype`
@@ -126,19 +126,19 @@ This method is equivalent of `update` for `ComponentUpdate`.  `init_view_model` 
 Now we can create our widgets for showing whole list
 
 ```rust,noplaypen
-{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:195:219}}
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:178:202}}
 ```
 
 There are only two interesting things here. First `StoreView` is kind of relm4 factory.
 
 ```rust,noplaypen
-{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:214:214}}
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:197:197}}
 ```
 
 Second is
 
 ```rust,noplaypen
-{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:212:215}}
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:195:195}}
 ```
 
 In here we've named container handling our list of tasks. It's important so the component knows which element to provide to relm4's `Factory::init_view` method.
@@ -150,7 +150,7 @@ Rest is classic relm4.
 Now we need to implement extra trait `store::FactoryContainerWidgets`
 
 ```rust,noplaypen
-{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:221:230}}
+{{#include ../../../relm4-store-examples/examples/todo_1/view/task_list.rs:204:213}}
 ```
 
 In here we return reference to the widget used to keep whole list of our tasks
